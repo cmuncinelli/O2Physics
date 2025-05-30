@@ -23,19 +23,25 @@ struct myExampleTask {
   // Histogram registry: an object to hold your histograms
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
+  // Defining a configurable for the bin axis:
+  Configurable<int> nBinsPt("nBinsPt", 100, "Nbins in pT histo");
+
   void init(InitContext const&)
   {
     // define axes you want to use
     const AxisSpec axisEta{30, -1.5, +1.5, "#eta"};
+    const AxisSpec axisPt{nBinsPt, 0, 10, "p_{T}"}; // Defined as const because this will not change!
 
     // create histograms
     histos.add("etaHistogram", "etaHistogram", kTH1F, {axisEta});
+    histos.add("ptHistogram", "ptHistogram", kTH1F, {axisPt}); // Used the kTH1F enumerator to construct the histogram as a TH1F
   }
 
   void process(aod::TracksIU const& tracks)
   {
-    for (auto& track : tracks) {
+    for (auto& track : tracks) { // Will loop on the tracks iterable with the track iterator
       histos.fill(HIST("etaHistogram"), track.eta());
+      histos.fill(HIST("ptHistogram"), track.pt());
     }
   }
 };
