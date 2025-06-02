@@ -24,7 +24,7 @@ struct myExampleTask {
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   // Defining a configurable for the bin axis:
-  Configurable<int> nBinsPt{"nBinsPt", 100, "Nbins in pT histo"}; // This has to be declared with braces, not parenthesis.
+  Configurable<int> nBinsPt{"nBinsPt", 500, "Nbins in pT histo"}; // This has to be declared with braces, not parenthesis.
   // This comes from uniform inicialization in C++11. It helps to make the initialization non-ambiguous: it is a template declaration, not a function declaration.
 
   void init(InitContext const&)

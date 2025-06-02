@@ -15,8 +15,11 @@ o2physics_add_dpl_workflow(my-example-task
                   PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
                   COMPONENT_NAME AnalysisTutorial)
 
+# This will generate a file named "o2-<component_name>-<subcomponent_or_subdirectory_group>-<taskname>", thus:
+# o2-analysistutorial-mm-my-example-task
+
 # Second example task -- Testing by myself:
-o2physics_add_dpl_workflow(my-example-task_2
-                  SOURCES myExampleTask_2.cxx
+o2physics_add_dpl_workflow(my-example-task-2
+                  SOURCES myExampleTask2.cxx
                   PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
                   COMPONENT_NAME AnalysisTutorial)
