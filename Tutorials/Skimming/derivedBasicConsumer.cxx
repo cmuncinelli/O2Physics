@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
+// WARNING! This code does not run with pipelining in the *-medium.root derived data provided by David, but it does work on the small and large ones, for some reason...
 
 // O2 includes
 #include "ReconstructionDataFormats/Track.h"
