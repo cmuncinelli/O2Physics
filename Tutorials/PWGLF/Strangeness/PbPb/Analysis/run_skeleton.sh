@@ -8,7 +8,7 @@ DIR_THIS=$PWD
 
 OPTION="-b --configuration json://configuration_skeleton.json"
 
-o2-analysistutorial-lf-strangeness-pbpb-skeleton "${OPTION}" --aod-file @input_data.txt > "$LOGFILE" 2>&1
+o2-analysistutorial-lf-strangeness-pbpb-skeleton ${OPTION} --aod-file @input_data.txt > $LOGFILE 2>&1
 
 # report status
 rc=$?
