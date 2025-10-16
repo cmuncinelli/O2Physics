@@ -138,7 +138,7 @@ struct lambdaInvMassTest{
     // Configurable<float> minInvMass{"minInvMass", 0.7f, "Lower bound of invariant mass axis"};
     // Configurable<float> maxInvMass{"maxInvMass", 1.3f, "Upper bound of invariant mass axis"};
         // From David's code:
-    ConfigurableAxis axisLambdaMass{"axisLambdaMass", {200, 1.101f, 1.131f}, ""};
+    // ConfigurableAxis axisLambdaMass{"axisLambdaMass", {200, 1.101f, 1.131f}, ""};
 
     // Defining a configurable object group for the event selections:
     struct : ConfigurableGroup {
@@ -188,6 +188,8 @@ struct lambdaInvMassTest{
 
         Configurable<bool> useSPDTrackletsCent{"useSPDTrackletsCent", false, "Use SPD tracklets for estimating centrality? If not, use V0M-based centrality (Run 2 only)"};
     } eventSelections;
+
+    static constexpr float DefaultLifetimeCuts[1][2] = {{30., 20.}};
 
     // Defining the configurable object that is going to be used: v0Selections, for selections later on
     struct : ConfigurableGroup {
@@ -241,22 +243,34 @@ struct lambdaInvMassTest{
         Configurable<float> maxDeltaTimePion{"maxDeltaTimePion", 1e+9, "check maximum allowed time"};
     } v0Selections;
 
-        // Machine learning evaluation for pre-selection and corresponding information generation
-    // o2::ml::OnnxModel mlCustomModelK0Short;
+    TF1* fPhiCutLow = new TF1("fPhiCutLow", v0Selections.phiLowCut.value.data(), 0, 100);
+    TF1* fPhiCutHigh = new TF1("fPhiCutHigh", v0Selections.phiHighCut.value.data(), 0, 100);
+
+    struct : ConfigurableGroup {
+        std::string prefix = "rctConfigurations"; // JSON group name
+        Configurable<std::string> cfgRCTLabel{"cfgRCTLabel", "", "Which detector condition requirements? (CBT, CBT_hadronPID, CBT_electronPID, CBT_calo, CBT_muon, CBT_muon_glo)"};
+        Configurable<bool> cfgCheckZDC{"cfgCheckZDC", false, "Include ZDC flags in the bit selection (for Pb-Pb only)"};
+        Configurable<bool> cfgTreatLimitedAcceptanceAsBad{"cfgTreatLimitedAcceptanceAsBad", false, "reject all events where the detectors relevant for the specified Runlist are flagged as LimitedAcceptance"};
+    } rctConfigurations;
+
+    RCTFlagsChecker rctFlagsChecker{rctConfigurations.cfgRCTLabel.value};
+
+    // Machine learning evaluation for pre-selection and corresponding information generation
+    o2::ml::OnnxModel mlCustomModelK0Short;
     o2::ml::OnnxModel mlCustomModelLambda;
     o2::ml::OnnxModel mlCustomModelAntiLambda;
     o2::ml::OnnxModel mlCustomModelGamma;
 
-    struct : ConfigurableGroup {
+    struct : ConfigurableGroup { // Kept the original configurable scores for K0Short and all else due to the line "if (lambdaScore > mlConfigurations.thresholdK0Short.value) (...)"
         std::string prefix = "mlConfigurations"; // JSON group name
         // ML classifiers: master flags to control whether we should use custom ML classifiers or the scores in the derived data
-        // Configurable<bool> useK0ShortScores{"useK0ShortScores", false, "use ML scores to select K0Short"};
+        Configurable<bool> useK0ShortScores{"useK0ShortScores", false, "use ML scores to select K0Short"};
         Configurable<bool> useLambdaScores{"useLambdaScores", false, "use ML scores to select Lambda"};
-        // Configurable<bool> useAntiLambdaScores{"useAntiLambdaScores", false, "use ML scores to select AntiLambda"};
+        Configurable<bool> useAntiLambdaScores{"useAntiLambdaScores", false, "use ML scores to select AntiLambda"};
 
-        // Configurable<bool> calculateK0ShortScores{"calculateK0ShortScores", false, "calculate K0Short ML scores"};
+        Configurable<bool> calculateK0ShortScores{"calculateK0ShortScores", false, "calculate K0Short ML scores"};
         Configurable<bool> calculateLambdaScores{"calculateLambdaScores", false, "calculate Lambda ML scores"};
-        // Configurable<bool> calculateAntiLambdaScores{"calculateAntiLambdaScores", false, "calculate AntiLambda ML scores"};
+        Configurable<bool> calculateAntiLambdaScores{"calculateAntiLambdaScores", false, "calculate AntiLambda ML scores"};
 
         // ML input for ML calculation
         Configurable<std::string> customModelPathCCDB{"customModelPathCCDB", "", "Custom ML Model path in CCDB"};
@@ -266,13 +280,13 @@ struct lambdaInvMassTest{
 
         // Local paths for test purposes
         Configurable<std::string> localModelPathLambda{"localModelPathLambda", "Lambda_BDTModel.onnx", "(std::string) Path to the local .onnx file."};
-        // Configurable<std::string> localModelPathAntiLambda{"localModelPathAntiLambda", "AntiLambda_BDTModel.onnx", "(std::string) Path to the local .onnx file."};
-        // Configurable<std::string> localModelPathK0Short{"localModelPathK0Short", "KZeroShort_BDTModel.onnx", "(std::string) Path to the local .onnx file."};
+        Configurable<std::string> localModelPathAntiLambda{"localModelPathAntiLambda", "AntiLambda_BDTModel.onnx", "(std::string) Path to the local .onnx file."};
+        Configurable<std::string> localModelPathK0Short{"localModelPathK0Short", "KZeroShort_BDTModel.onnx", "(std::string) Path to the local .onnx file."};
 
         // Thresholds for choosing to populate V0Cores tables with pre-selections
         Configurable<float> thresholdLambda{"thresholdLambda", -1.0f, "Threshold to keep Lambda candidates"};
-        // Configurable<float> thresholdAntiLambda{"thresholdAntiLambda", -1.0f, "Threshold to keep AntiLambda candidates"};
-        // Configurable<float> thresholdK0Short{"thresholdK0Short", -1.0f, "Threshold to keep K0Short candidates"};
+        Configurable<float> thresholdAntiLambda{"thresholdAntiLambda", -1.0f, "Threshold to keep AntiLambda candidates"};
+        Configurable<float> thresholdK0Short{"thresholdK0Short", -1.0f, "Threshold to keep K0Short candidates"};
     } mlConfigurations;
 
     // CCDB options
@@ -289,6 +303,14 @@ struct lambdaInvMassTest{
         Configurable<bool> useCustomMagField{"useCustomMagField", false, "Use custom magnetic field value"};
         Configurable<float> customMagField{"customMagField", 5.0f, "Manually set magnetic field"};
     } ccdbConfigurations;
+
+    o2::ccdb::CcdbApi ccdbApi;
+    Service<o2::ccdb::BasicCCDBManager> ccdb;
+    ctpRateFetcher rateFetcher;
+    int mRunNumber;
+    float magField;
+    std::map<std::string, std::string> metadata;
+    o2::parameters::GRPMagField* grpmag = nullptr;
 
     // CCDB options
     struct : ConfigurableGroup {
@@ -344,6 +366,18 @@ struct lambdaInvMassTest{
         // MC coll assoc QA axis
         ConfigurableAxis axisMonteCarloNch{"axisMonteCarloNch", {300, 0.0f, 3000.0f}, "N_{ch} MC"};
     } axisConfigurations;
+
+    // These will not be used, but the variables were needed for some cut David did:
+    // UPC selections
+    SGSelector sgSelector;
+    struct : ConfigurableGroup {
+        std::string prefix = "upcCuts"; // JSON group name
+        Configurable<float> fv0Cut{"fv0Cut", 100., "FV0A threshold"};
+        Configurable<float> ft0Acut{"ft0Acut", 200., "FT0A threshold"};
+        Configurable<float> ft0Ccut{"ft0Ccut", 100., "FT0C threshold"};
+        Configurable<float> zdcCut{"zdcCut", 10., "ZDC threshold"};
+        // Configurable<float> gapSel{"gapSel", 2, "Gap selection"};
+    } upcCuts;
 
 
     // For manual sliceBy
@@ -421,11 +455,11 @@ struct lambdaInvMassTest{
         // histos.add("eventCounter", "eventCounter", kTH1F, {axisCounter});
         // // histos.add("LambdaInvMass1D", "Test LambdaInvMass 1D", kTH1F, {axisLambdaMass});
         histos.add("hMassLambda", "hMassLambda", kTH1D, {axisConfigurations.axisLambdaMass});
-        histos.add("ptQAHist", "ptQAHist", kTH1F, {axisPtQA});
+        // histos.add("ptQAHist", "ptQAHist", kTH1F, {axisPtQA});
 
         // From the analyseLambda flag:
         histos.add("h2dNbrOfLambdaVsCentrality", "h2dNbrOfLambdaVsCentrality", kTH2D, {axisConfigurations.axisCentrality, {10, -0.5f, 9.5f}});
-        histos.add("h3dMassLambda", "h3dMassLambda", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPtQA, axisConfigurations.axisLambdaMass});
+        histos.add("h3dMassLambda", "h3dMassLambda", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPt, axisConfigurations.axisLambdaMass});
         // Non-UPC info
         histos.add("h3dMassLambdaHadronic", "h3dMassLambdaHadronic", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPt, axisConfigurations.axisLambdaMass});
         // Not doing ultra-peripheral!
@@ -500,6 +534,32 @@ struct lambdaInvMassTest{
             LOG(info) << "Retrieved GRP for run " << mRunNumber << " with magnetic field of " << magField << " kZG";
         }
         }
+    }
+
+     double computePhiMod(double phi, int sign)
+    // Compute phi wrt to a TPC sector
+    // Calculation taken from CF: https://github.com/AliceO2Group/O2Physics/blob/376392cb87349886a300c75fa2492b50b7f46725/PWGCF/Flow/Tasks/flowAnalysisGF.cxx#L470
+    {
+        if (magField < 0) // for negative polarity field
+        phi = o2::constants::math::TwoPI - phi;
+        if (sign < 0) // for negative charge
+        phi = o2::constants::math::TwoPI - phi;
+        if (phi < 0)
+        LOGF(warning, "phi < 0: %g", phi);
+
+        phi += o2::constants::math::PI / 18.0; // to center gap in the middle
+        return fmod(phi, o2::constants::math::PI / 9.0);
+    }
+
+    bool isTrackFarFromTPCBoundary(double trackPt, double trackPhi, int sign)
+    // check whether the track passes close to a TPC sector boundary
+    {
+        double phiModn = computePhiMod(trackPhi, sign);
+        if (phiModn > fPhiCutHigh->Eval(trackPt))
+        return true; // keep track
+        if (phiModn < fPhiCutLow->Eval(trackPt))
+        return true; // keep track
+        return false;  // reject track
     }
 
     template <typename TV0, typename TCollision>
@@ -610,6 +670,117 @@ struct lambdaInvMassTest{
         // proper lifetime
         if (v0.distovertotmom(collision.posX(), collision.posY(), collision.posZ()) * o2::constants::physics::MassLambda0 < v0Selections.lifetimecut->get("lifetimecutLambda"))
             BITSET(bitMap, selLambdaCTau);
+
+        return bitMap;
+    }
+
+    bool verifyMask(uint64_t bitmap, uint64_t mask)
+    {
+        return (bitmap & mask) == mask;
+    }
+
+    int computeITSclusBitmap(uint8_t itsClusMap, bool fromAfterburner)
+    // Focus on the 12 dominant ITS cluster configurations
+    {
+        int bitMap = 0;
+
+        if (verifyMask(itsClusMap, ((uint8_t(1) << 0) | (uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5) | (uint8_t(1) << 6)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS : x  x  x  x  x  x  x
+        bitMap = 12;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5) | (uint8_t(1) << 6)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :    x  x  x  x  x  x
+        bitMap = 11;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5) | (uint8_t(1) << 6)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :       x  x  x  x  x
+        bitMap = 10;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5) | (uint8_t(1) << 6)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :          x  x  x  x
+        bitMap = 9;
+        if (fromAfterburner)
+            bitMap = -3;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 4) | (uint8_t(1) << 5) | (uint8_t(1) << 6)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :             x  x  x
+        bitMap = 8;
+        if (fromAfterburner)
+            bitMap = -2;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 5) | (uint8_t(1) << 6)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :                x  x
+        bitMap = 7;
+        if (fromAfterburner)
+            bitMap = -1;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 0) | (uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS : x  x  x  x  x  x
+        bitMap = 6;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :    x  x  x  x  x
+        bitMap = 5;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4) | (uint8_t(1) << 5)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :       x  x  x  x
+        bitMap = 4;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 0) | (uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS : x  x  x  x  x
+        bitMap = 3;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3) | (uint8_t(1) << 4)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS :    x  x  x  x
+        bitMap = 2;
+        } else if (verifyMask(itsClusMap, ((uint8_t(1) << 0) | (uint8_t(1) << 1) | (uint8_t(1) << 2) | (uint8_t(1) << 3)))) {
+        // ITS :    IB         OB
+        // ITS : L0 L1 L2 L3 L4 L5 L6
+        // ITS : x  x  x  x
+        bitMap = 1;
+        } else {
+        // ITS : other configurations
+        bitMap = 0;
+        }
+
+        return bitMap;
+    }
+
+    uint computeDetBitmap(uint8_t detMap)
+    // Focus on the 4 dominant track configurations :
+    //  Others
+    //  ITS-TPC
+    //  ITS-TPC-TRD
+    //  ITS-TPC-TOF
+    //  ITS-TPC-TRD-TOF
+    {
+        uint bitMap = 0;
+
+        if (verifyMask(detMap, (o2::aod::track::ITS | o2::aod::track::TPC | o2::aod::track::TRD | o2::aod::track::TOF))) {
+        // ITS-TPC-TRD-TOF
+        bitMap = 4;
+        } else if (verifyMask(detMap, (o2::aod::track::ITS | o2::aod::track::TPC | o2::aod::track::TOF))) {
+        // ITS-TPC-TOF
+        bitMap = 3;
+        } else if (verifyMask(detMap, (o2::aod::track::ITS | o2::aod::track::TPC | o2::aod::track::TRD))) {
+        // ITS-TPC-TRD
+        bitMap = 2;
+        } else if (verifyMask(detMap, (o2::aod::track::ITS | o2::aod::track::TPC))) {
+        // ITS-TPC
+        bitMap = 1;
+        }
 
         return bitMap;
     }
