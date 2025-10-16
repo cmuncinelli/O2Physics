@@ -94,6 +94,11 @@ o2physics_add_dpl_workflow(lambdapolarization
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
     COMPONENT_NAME Analysis)
 
+o2physics_add_dpl_workflow(lambdaInvMassTest
+    SOURCES lambdaInvMassTest.cxx
+    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+    COMPONENT_NAME Analysis)
+
 o2physics_add_dpl_workflow(lambdapolsp
     SOURCES lambdapolsp.cxx
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
