@@ -249,6 +249,7 @@ struct JetTutorialTask {
   using JetMCPTable = soa::Filtered<soa::Join<aod::ChargedMCParticleLevelJets, aod::ChargedMCParticleLevelJetConstituents, aod::ChargedMCParticleLevelJetsMatchedToChargedMCDetectorLevelJets>>;
     // Above, a filtered table to match indices
   void processMCMatchedCharged(soa::Filtered<aod::JetCollisionsMCD>::iterator const& collision,
+                               aod::JetMcCollisions const&,
                                soa::Filtered<soa::Join<aod::ChargedMCDetectorLevelJets, aod::ChargedMCDetectorLevelJetConstituents, aod::ChargedMCDetectorLevelJetsMatchedToChargedMCParticleLevelJets>> const& mcdjets,
                                JetMCPTable const&,
                                aod::JetTracks const&, // Detector-level particles
@@ -267,9 +268,8 @@ struct JetTutorialTask {
                                                                              // but that may not be the case! The matching might not be perfect!
         // You might need a pT + geometrical matching when doing more complicated analyses such as PbPb collision checks.
         registry.fill(HIST("h_matched_jets_pt"), mcpjet.pt(), mcdjet.pt(), collision.mcCollision().weight());
-          // Compares the detector-level and generator-level jet pT that were matched via geometry, and gives it a weight based on the mcCollision.
-        registry.fill(HIST("h_matched_jets_pt"), mcpjet.phi(), mcdjet.phi(), collision.mcCollision().weight());
-        registry.fill(HIST("h_matched_jets_pt"), mcpjet.eta(), mcdjet.eta(), collision.mcCollision().weight());
+        registry.fill(HIST("h_matched_jets_phi"), mcpjet.phi(), mcdjet.phi(), collision.mcCollision().weight());
+        registry.fill(HIST("h_matched_jets_eta"), mcpjet.eta(), mcdjet.eta(), collision.mcCollision().weight());
       }
     }
   }
