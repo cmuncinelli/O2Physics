@@ -1066,8 +1066,8 @@ struct asymmetric_rapidity_test{
             histos.fill(HIST("h3dMassLambdaDG"), centrality, pt, v0.mLambda());
         else
             histos.fill(HIST("h3dMassLambdaHadronic"), centrality, pt, v0.mLambda());
-        histos.fill(HIST("hMass"), v0.mLambda());
-        histos.fill(HIST("hMassVsY"), v0.mLambda(), v0.yLambda());
+        histos.fill(HIST("Lambda/hMass"), v0.mLambda());
+        histos.fill(HIST("Lambda/hMassVsY"), v0.mLambda(), v0.yLambda());
         if (doPlainTopoQA) {
             histos.fill(HIST("Lambda/hPosDCAToPV"), v0.dcapostopv());
             histos.fill(HIST("Lambda/hNegDCAToPV"), v0.dcanegtopv());
