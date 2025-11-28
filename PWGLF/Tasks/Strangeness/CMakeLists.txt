@@ -19,6 +19,11 @@ o2physics_add_dpl_workflow(derivedlambdakzeroanalysis
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::MLCore O2Physics::AnalysisCCDB
     COMPONENT_NAME Analysis)
 
+o2physics_add_dpl_workflow(asymmetric-rapidity-test
+    SOURCES asymmetric_rapidity_test.cxx
+    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::MLCore O2Physics::AnalysisCCDB
+    COMPONENT_NAME Analysis)
+
 o2physics_add_dpl_workflow(lambdakzeroanalysis-mc
     SOURCES lambdakzeroanalysisMC.cxx
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore

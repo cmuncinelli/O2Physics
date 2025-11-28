@@ -348,6 +348,9 @@ struct asymmetric_rapidity_test{
         ConfigurableAxis axisTPCfoundOverFindable{"axisTPCfoundOverFindable", {120, 0.0f, 1.2f}, "Fraction of TPC found over findable clusters"};
         ConfigurableAxis axisTPCsharedClusters{"axisTPCsharedClusters", {101, -0.005f, 1.005f}, "Fraction of TPC shared clusters"};
 
+        // Additional axis to use with axisV0Radius to check if the lambda V0 radius is asymmetric in rapidity:
+        ConfigurableAxis axisRapidity{"axisRapidity", {4, -1.0f, 1.0f}, "V0 Rapidity"};
+
         // UPC axes
         ConfigurableAxis axisSelGap{"axisSelGap", {4, -1.5, 2.5}, "Gap side"};
 
@@ -378,6 +381,12 @@ struct asymmetric_rapidity_test{
         Configurable<float> zdcCut{"zdcCut", 10., "ZDC threshold"};
         // Configurable<float> gapSel{"gapSel", 2, "Gap selection"};
     } upcCuts;
+
+    // // Lambda invariant mass analysis options
+    // struct : ConfigurableGroup {
+    //     std::string prefix = "LambdaInvMassOptions"; // JSON group name
+    //     Configurable<float> InvMassNSigma{"InvMassNSigma", 3.f, "N sigma window around mean mass"};
+    // } LambdaInvMassOptions;
 
 
     // For manual sliceBy
@@ -454,7 +463,8 @@ struct asymmetric_rapidity_test{
 
         // histos.add("eventCounter", "eventCounter", kTH1F, {axisCounter});
         // // histos.add("LambdaInvMass1D", "Test LambdaInvMass 1D", kTH1F, {axisLambdaMass});
-        histos.add("hMassLambda", "hMassLambda", kTH1D, {axisConfigurations.axisLambdaMass});
+        histos.add("Lambda/hMass", "hMass", kTH1D, {axisConfigurations.axisLambdaMass});
+        histos.add("Lambda/hMassVsY", "hMassVsY", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisRapidity});
         // histos.add("ptQAHist", "ptQAHist", kTH1F, {axisPtQA});
 
 
@@ -669,6 +679,10 @@ struct asymmetric_rapidity_test{
         histos.add("Lambda/h2dNegativeITSvsTPCpts", "h2dNegativeITSvsTPCpts", kTH2D, {axisConfigurations.axisTPCrows, axisConfigurations.axisITSclus});
         histos.add("Lambda/h2dPositivePtVsPhi", "h2dPositivePtVsPhi", kTH2D, {axisConfigurations.axisPtCoarse, axisConfigurations.axisPhiMod});
         histos.add("Lambda/h2dNegativePtVsPhi", "h2dNegativePtVsPhi", kTH2D, {axisConfigurations.axisPtCoarse, axisConfigurations.axisPhiMod});
+                // The histogram to check if the V0 radius is incorrectly asymmetric in new experimental data:
+        histos.add("Lambda/hV0RadiusVsY", "hV0RadiusVsY", kTH2D, {axisConfigurations.axisV0Radius, axisConfigurations.axisRapidity});
+        // histos.add("Lambda/hV0RadiusVsY_3SigMassCut", "hV0RadiusVsY_3SigMassCut", kTH2D, {axisConfigurations.axisV0Radius, axisConfigurations.axisRapidity}); // Should not calculate the 3SigMassCut inside O2!!!
+        histos.add("Lambda/hV0RadiusVsYVsMass", "hV0RadiusVsYVsMass", kTH3D, {axisConfigurations.axisV0Radius, axisConfigurations.axisRapidity, axisConfigurations.axisLambdaMass});
 
             // Check if doing the right thing in AP space please
         histos.add("GeneralQA/h2dArmenterosAll", "h2dArmenterosAll", kTH2D, {axisConfigurations.axisAPAlpha, axisConfigurations.axisAPQt});
@@ -1052,7 +1066,8 @@ struct asymmetric_rapidity_test{
             histos.fill(HIST("h3dMassLambdaDG"), centrality, pt, v0.mLambda());
         else
             histos.fill(HIST("h3dMassLambdaHadronic"), centrality, pt, v0.mLambda());
-        histos.fill(HIST("hMassLambda"), v0.mLambda());
+        histos.fill(HIST("hMass"), v0.mLambda());
+        histos.fill(HIST("hMassVsY"), v0.mLambda(), v0.yLambda());
         if (doPlainTopoQA) {
             histos.fill(HIST("Lambda/hPosDCAToPV"), v0.dcapostopv());
             histos.fill(HIST("Lambda/hNegDCAToPV"), v0.dcanegtopv());
@@ -1063,6 +1078,10 @@ struct asymmetric_rapidity_test{
             histos.fill(HIST("Lambda/h2dNegativeITSvsTPCpts"), negTrackExtra.tpcCrossedRows(), negTrackExtra.itsNCls());
             histos.fill(HIST("Lambda/h2dPositivePtVsPhi"), v0.positivept(), computePhiMod(v0.positivephi(), 1));
             histos.fill(HIST("Lambda/h2dNegativePtVsPhi"), v0.negativept(), computePhiMod(v0.negativephi(), -1));
+
+            // Doing the extra check for V0Radius vs Rapidity:
+            histos.fill(HIST("Lambda/hV0RadiusVsY"), v0.v0radius(), v0.yLambda()); // Rapidity variable extracted from computeReconstructionBitmap
+            histos.fill(HIST("Lambda/hV0RadiusVsYVsMass"), v0.v0radius(), v0.yLambda(), v0.mLambda());
         }
         if (doDetectPropQA == 1) {
             histos.fill(HIST("Lambda/h6dDetectPropVsCentrality"), centrality, posDetMap, posITSclusMap, negDetMap, negITSclusMap, pt);
@@ -1580,6 +1599,19 @@ struct asymmetric_rapidity_test{
         return true;
     }
 
+    // // Helper task --> No longer needed! Updated to directly use the histogram's findBin function
+    // int getRapidityBin(const float y)
+    // {
+    //     // const auto& edges = ConfigurableAxis.axisRapidity.binEdges();
+    //     const auto& edges = axisConfigurations.axisRapidity.binEdges(); // This is the proper syntax for this case!
+    //     for (int i = 0; i < edges.size() - 1; ++i) {
+    //         if (y >= edges[i] && y < edges[i+1]) {
+    //             return i;
+    //         }
+    //     }
+    //     return -1;   // not in any bin
+    // }
+
     // ______________________________________________________
     // Real data processing - no MC subscription
     template <typename TCollision, typename TV0s>
@@ -1633,10 +1665,127 @@ struct asymmetric_rapidity_test{
         // fill the histograms with the number of reconstructed Lambda per collision
         if (analyseLambda) {
             histos.fill(HIST("h2dNbrOfLambdaVsCentrality"), centrality, nLambdas);
+
+            ///////////////// DISCLAIMER! /////////////////
+            // This fit should be done afterwards, in another smaller code!
+            // You should never do this inside the O2 code: O2 is meant to manipulate
+            // large volumes of data, produce small output files and then you analyze
+            // the output afterwards! Just bin it all as V0RadiusVsYVsMass, fit the 
+            // invariant mass spectrum afterwards and then apply the 3Sigma cut in this
+            // other TH3D!
+            ///////////////////////////////////////////////
+
+            // // Should probably include something here that does an invariant mass fit, then goes through all of the V0s again: 
+            // //////////////////////////////////////////////
+            // // Fitting:
+            
+            // auto hMass2D_sp = histos.get<TH2D>(HIST("Lambda/hMassVsY"));
+            // if (!hMass2D_sp) {
+            //     LOG(warn) << "Missing hist Lambda/hMassVsY";
+            //     return;
+            // }
+            // TH2D* hMass2D = hMass2D_sp.get(); // Getting raw pointer for convenience
+            // TAxis* massAxis = hMass2D->GetXaxis();
+            // const double massMin = massAxis->GetBinLowEdge(1);
+            // const double massMax = massAxis->GetBinUpEdge(massAxis->GetNbins());
+            // TAxis* yAxis = hMass2D->GetYaxis();
+            // const int nYbins = yAxis->GetNbins();
+
+            // // auto* hMass2D = histos.get<TH2D>("Lambda/hMassVsY");
+            // // auto mass_edges = axisConfigurations.axisLambdaMass.binEdges(); // Correct syntax does not have an axisConfigurations.axisLambdaMass as preceding part
+            // //
+            // // // Rapiditiy axis edges:
+            // // auto yEdges = axisConfigurations.axisRapidity.binEdges();
+            // // int nYbins = yEdges.size() - 1;
+
+            // // Storage vectors:
+            // std::vector<float> meanVals(nYbins);
+            // std::vector<float> sigmaVals(nYbins);
+
+            // // Loop over rapidity bins:
+            // for (int i = 0; i < nYbins; ++i) {
+
+            //     // int yBinLow = i + 1;       // ROOT bins start at 1
+            //     // int yBinHigh = i + 1;
+            //     // Projects only one bin at a time, thus the value is the same:
+            //     const int yBin = i+1;
+
+            //     // Projection along X axis (mass axis)
+            //     std::string projName = TString::Format("massProj_ybin%d", i).Data();
+            //     TH1D* hProj = hMass2D->ProjectionX(projName.c_str(), yBin, yBin);
+
+            //     if (hProj->GetEntries() < 20) {
+            //         LOG(warn) << "Skipping empty bin " << i;
+            //         continue;
+            //     }
+
+            //     // Fit with a Gaussian
+            //     TF1 gaus("gaus", "gaus", massMin, massMax);
+            //     hProj->Fit(&gaus, "QNR");
+
+            //     // Store parameters
+            //     meanVals[i] = gaus.GetParameter(1);   // μ
+            //     sigmaVals[i] = gaus.GetParameter(2);  // σ
+            // }
+            // //////////////////////////////////////////////
+
+            // for (auto const& v0 : fullV0s) {
+            //     bool passLambdaSelections = false;
+
+            //     // Redefining the selMap for this loop here too
+            //     uint64_t selMap = computeReconstructionBitmap(v0, collision, v0.yLambda(), v0.pt()); // Removed unneeded K0Short info
+
+            //     // consider for histograms for all species
+            //     BITSET(selMap, selConsiderLambda);
+            //     BITSET(selMap, selPhysPrimLambda);
+
+            //     // machine learning is on, go for calculation of thresholds
+            //     // FIXME THIS NEEDS ADJUSTING
+            //     std::vector<float> inputFeatures{v0.pt(), 0.0f, 0.0f, v0.v0radius(), v0.v0cosPA(), v0.dcaV0daughters(), v0.dcapostopv(), v0.dcanegtopv()};
+
+            //     if (mlConfigurations.useLambdaScores) {
+            //     float lambdaScore = -1;
+            //     if (mlConfigurations.calculateLambdaScores) {
+            //         // evaluate machine-learning scores
+            //         float* lambdaProbability = mlCustomModelLambda.evalModel(inputFeatures);
+            //         lambdaScore = lambdaProbability[1];
+            //     } else {
+            //         lambdaScore = v0.lambdaBDTScore();
+            //     }
+            //     if (lambdaScore > mlConfigurations.thresholdK0Short.value) {
+            //         passLambdaSelections = true;
+            //     }
+            //     } else {
+            //     passLambdaSelections = verifyMask(selMap, maskSelectionLambda);
+            //     }
+
+            //     if (passLambdaSelections && analyseLambda) {
+            //         // Getting ybin from the previous edges definition
+            //         // const int ybin = getRapidityBin(v0.yLambda());
+            //         const int rootBin = yAxis->FindBin(v0.yLambda());
+
+            //         // Skip if not in any of the bins in axisConfigurations.axisRapidity:
+            //         if (rootBin < 1 || rootBin > nYbins) {
+            //             continue;
+            //         }
+
+            //         // Get mean and sigma for this rapidity bin
+            //         const float mean  = meanVals[rootBin-1];
+            //         const float sigma = sigmaVals[rootBin-1];
+
+            //         // 3 sigma mass-selection window
+            //         const bool passes3SigCut = std::abs(v0.mLambda() - mean) < LambdaInvMassOptions.InvMassNSigma * sigma;
+
+            //         if (passes3SigCut){
+            //             // Doing the extra check for V0Radius vs Rapidity:
+            //             histos.fill(HIST("Lambda/hV0RadiusVsY_3SigMassCut"), v0.v0radius(), v0.yLambda()); // Rapidity variable extracted from computeReconstructionBitmap
+            //         }
+            //     }
+            // }
         }
     }
     
-    // Subscriping to the appropriate tables and running the code:
+    // Subscribing to the appropriate tables and running the code:
     // ______________________________________________________
     // Real data processing in Run 3 - no MC subscription
     void processRealDataRun3(soa::Join<aod::StraCollisions, aod::StraCents, aod::StraEvSels, aod::StraStamps>::iterator const& collision, V0Candidates const& fullV0s, DauTracks const&)
