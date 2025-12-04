@@ -209,6 +209,9 @@ struct asymmetric_rapidity_test{
         Configurable<float> v0radiusMax{"v0radiusMax", 1E5, "maximum V0 radius (cm)"};
         Configurable<LabeledArray<float>> lifetimecut{"lifetimecut", {DefaultLifetimeCuts[0], 2, {"lifetimecutLambda", "lifetimecutK0S"}}, "lifetimecut"};
 
+        // invariant mass selection
+        Configurable<float> compMassRejection{"compMassRejection", -1, "Competing mass rejection (GeV/#it{c}^{2})"};
+
         // // Additional selection on the AP plot (exclusive for K0Short)
         // // original equation: lArmPt*5>TMath::Abs(lArmAlpha)
         // Configurable<float> armPodCut{"armPodCut", 5.0f, "pT * (cut) > |alpha|, AP cut. Negative: no cut"};
@@ -222,6 +225,9 @@ struct asymmetric_rapidity_test{
         Configurable<float> maxITSchi2PerNcls{"maxITSchi2PerNcls", 1e+09, "maximum ITS chi2 per clusters"};
         Configurable<float> maxTPCchi2PerNcls{"maxTPCchi2PerNcls", 1e+09, "maximum TPC chi2 per clusters"};
         Configurable<bool> skipTPConly{"skipTPConly", false, "skip V0s comprised of at least one TPC only prong"};
+        Configurable<bool> atLeastOneProngTPConly{"atLeastOneProngTPConly", false, "use exclusively V0s comprised of at least one TPC only prong"};
+        Configurable<bool> bothProngsTPConly{"bothProngsTPConly", false, "use exclusively V0s comprised of two TPC only prongs"};        
+        Configurable<bool> hasTPCnoITS{"hasTPCnoITS", false, "use exclusively V0s that have at least one TPC only prong and DON'T have ITS tracks"};
         Configurable<bool> requirePosITSonly{"requirePosITSonly", false, "require that positive track is ITSonly (overrides TPC quality)"};
         Configurable<bool> requireNegITSonly{"requireNegITSonly", false, "require that negative track is ITSonly (overrides TPC quality)"};
         Configurable<bool> rejectPosITSafterburner{"rejectPosITSafterburner", false, "reject positive track formed out of afterburner ITS tracks"};
@@ -427,8 +433,12 @@ struct asymmetric_rapidity_test{
                                 selNegGoodITSTrack, // at least min # ITS clusters
                                 selPosItsOnly,
                                 selNegItsOnly,
+                                selPosNoItsHasTPC, // New -- should only have tracks AFTER the ITS --> TPC only (not anything farther) was too strict
+                                selNegNoItsHasTPC, // New -- should only have tracks AFTER the ITS --> TPC only (not anything farther) was too strict
                                 selPosNotTPCOnly,
                                 selNegNotTPCOnly,
+                                selPosTPCOnly, // New complementary bits -- Demand having TPC and NO OTHER detectors
+                                selNegTPCOnly, // New complementary bits -- Demand having TPC and NO OTHER detectors
                                 selConsiderK0Short,    // for mc tagging
                                 selConsiderLambda,     // for mc tagging
                                 selConsiderAntiLambda, // for mc tagging
@@ -466,6 +476,192 @@ struct asymmetric_rapidity_test{
         histos.add("Lambda/hMass", "hMass", kTH1D, {axisConfigurations.axisLambdaMass});
         histos.add("Lambda/hMassVsY", "hMassVsY", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisRapidity});
         // histos.add("ptQAHist", "ptQAHist", kTH1F, {axisPtQA});
+
+
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Adding the masks and other stuff that should already be included -- Probably forgot this before and some masks are being forgotten!
+            // setting CCDB service
+        ccdb->setURL(ccdbConfigurations.ccdbUrl);
+        ccdb->setCaching(true);
+        ccdb->setFatalWhenNull(false);
+
+        // initialise bit masks
+        // Mask with all topologic selections
+        maskTopological = 0;
+        BITSET(maskTopological, selCosPA);
+        BITSET(maskTopological, selRadius);
+        BITSET(maskTopological, selDCANegToPV);
+        BITSET(maskTopological, selDCAPosToPV);
+        BITSET(maskTopological, selDCAV0Dau);
+        BITSET(maskTopological, selRadiusMax);
+        // Mask with all topologic selections, except for V0 radius
+        maskTopoNoV0Radius = 0;
+        BITSET(maskTopoNoV0Radius, selCosPA);
+        BITSET(maskTopoNoV0Radius, selDCANegToPV);
+        BITSET(maskTopoNoV0Radius, selDCAPosToPV);
+        BITSET(maskTopoNoV0Radius, selDCAV0Dau);
+        BITSET(maskTopoNoV0Radius, selRadiusMax);
+        // Mask with all topologic selections, except for DCA neg. to PV
+        maskTopoNoDCANegToPV = 0;
+        BITSET(maskTopoNoDCANegToPV, selCosPA);
+        BITSET(maskTopoNoDCANegToPV, selRadius);
+        BITSET(maskTopoNoDCANegToPV, selDCAPosToPV);
+        BITSET(maskTopoNoDCANegToPV, selDCAV0Dau);
+        BITSET(maskTopoNoDCANegToPV, selRadiusMax);
+        // Mask with all topologic selections, except for DCA pos. to PV
+        maskTopoNoDCAPosToPV = 0;
+        BITSET(maskTopoNoDCAPosToPV, selCosPA);
+        BITSET(maskTopoNoDCAPosToPV, selRadius);
+        BITSET(maskTopoNoDCAPosToPV, selDCANegToPV);
+        BITSET(maskTopoNoDCAPosToPV, selDCAV0Dau);
+        BITSET(maskTopoNoDCAPosToPV, selRadiusMax);
+        // Mask with all topologic selections, except for cosPA
+        maskTopoNoCosPA = 0;
+        BITSET(maskTopoNoCosPA, selRadius);
+        BITSET(maskTopoNoCosPA, selDCANegToPV);
+        BITSET(maskTopoNoCosPA, selDCAPosToPV);
+        BITSET(maskTopoNoCosPA, selDCAV0Dau);
+        BITSET(maskTopoNoCosPA, selRadiusMax);
+        // Mask with all topologic selections, except for DCA between V0 dau
+        maskTopoNoDCAV0Dau = 0;
+        BITSET(maskTopoNoDCAV0Dau, selCosPA);
+        BITSET(maskTopoNoDCAV0Dau, selRadius);
+        BITSET(maskTopoNoDCAV0Dau, selDCANegToPV);
+        BITSET(maskTopoNoDCAV0Dau, selDCAPosToPV);
+        BITSET(maskTopoNoDCAV0Dau, selRadiusMax);
+
+        // Mask for specifically selecting K0Short
+        maskK0ShortSpecific = 0;
+        BITSET(maskK0ShortSpecific, selK0ShortRapidity);
+        BITSET(maskK0ShortSpecific, selK0ShortCTau);
+        BITSET(maskK0ShortSpecific, selK0ShortArmenteros);
+        BITSET(maskK0ShortSpecific, selConsiderK0Short);
+        // Mask for specifically selecting Lambda
+        maskLambdaSpecific = 0;
+        BITSET(maskLambdaSpecific, selLambdaRapidity);
+        BITSET(maskLambdaSpecific, selLambdaCTau);
+        BITSET(maskLambdaSpecific, selConsiderLambda);
+        // Mask for specifically selecting AntiLambda
+        maskAntiLambdaSpecific = 0;
+        BITSET(maskAntiLambdaSpecific, selLambdaRapidity);
+        BITSET(maskAntiLambdaSpecific, selLambdaCTau);
+        BITSET(maskAntiLambdaSpecific, selConsiderAntiLambda);
+
+        // ask for specific TPC/TOF PID selections
+        maskTrackProperties = 0;
+        if (v0Selections.requirePosITSonly) {
+        BITSET(maskTrackProperties, selPosItsOnly);
+        BITSET(maskTrackProperties, selPosGoodITSTrack);
+        } else {
+        BITSET(maskTrackProperties, selPosGoodTPCTrack);
+        BITSET(maskTrackProperties, selPosGoodITSTrack);
+        // TPC signal is available: ask for positive track PID
+        if (v0Selections.tpcPidNsigmaCut < 1e+5) { // safeguard for no cut
+            BITSET(maskK0ShortSpecific, selTPCPIDPositivePion);
+            BITSET(maskLambdaSpecific, selTPCPIDPositiveProton);
+            BITSET(maskAntiLambdaSpecific, selTPCPIDPositivePion);
+        }
+        // TOF PID
+        if (v0Selections.tofPidNsigmaCutK0Pi < 1e+5) { // safeguard for no cut
+            BITSET(maskK0ShortSpecific, selTOFNSigmaPositivePionK0Short);
+            BITSET(maskK0ShortSpecific, selTOFDeltaTPositivePionK0Short);
+        }
+        if (v0Selections.tofPidNsigmaCutLaPr < 1e+5) { // safeguard for no cut
+            BITSET(maskLambdaSpecific, selTOFNSigmaPositiveProtonLambda);
+            BITSET(maskLambdaSpecific, selTOFDeltaTPositiveProtonLambda);
+        }
+        if (v0Selections.tofPidNsigmaCutLaPi < 1e+5) { // safeguard for no cut
+            BITSET(maskAntiLambdaSpecific, selTOFNSigmaPositivePionLambda);
+            BITSET(maskAntiLambdaSpecific, selTOFDeltaTPositivePionLambda);
+        }
+        }
+        if (v0Selections.requireNegITSonly) {
+        BITSET(maskTrackProperties, selNegItsOnly);
+        BITSET(maskTrackProperties, selNegGoodITSTrack);
+        } else {
+        BITSET(maskTrackProperties, selNegGoodTPCTrack);
+        BITSET(maskTrackProperties, selNegGoodITSTrack);
+        // TPC signal is available: ask for negative track PID
+        if (v0Selections.tpcPidNsigmaCut < 1e+5) { // safeguard for no cut
+            BITSET(maskK0ShortSpecific, selTPCPIDNegativePion);
+            BITSET(maskLambdaSpecific, selTPCPIDNegativePion);
+            BITSET(maskAntiLambdaSpecific, selTPCPIDNegativeProton);
+        }
+        // TOF PID
+        if (v0Selections.tofPidNsigmaCutK0Pi < 1e+5) { // safeguard for no cut
+            BITSET(maskK0ShortSpecific, selTOFNSigmaNegativePionK0Short);
+            BITSET(maskK0ShortSpecific, selTOFDeltaTNegativePionK0Short);
+        }
+        if (v0Selections.tofPidNsigmaCutLaPi < 1e+5) { // safeguard for no cut
+            BITSET(maskLambdaSpecific, selTOFNSigmaNegativePionLambda);
+            BITSET(maskLambdaSpecific, selTOFDeltaTNegativePionLambda);
+        }
+        if (v0Selections.tofPidNsigmaCutLaPr < 1e+5) { // safeguard for no cut
+            BITSET(maskAntiLambdaSpecific, selTOFNSigmaNegativeProtonLambda);
+            BITSET(maskAntiLambdaSpecific, selTOFDeltaTNegativeProtonLambda);
+        }
+        }
+
+        if (v0Selections.skipTPConly) {
+        BITSET(maskK0ShortSpecific, selPosNotTPCOnly);
+        BITSET(maskLambdaSpecific, selPosNotTPCOnly);
+        BITSET(maskAntiLambdaSpecific, selPosNotTPCOnly);
+
+        BITSET(maskK0ShortSpecific, selNegNotTPCOnly);
+        BITSET(maskLambdaSpecific, selNegNotTPCOnly);
+        BITSET(maskAntiLambdaSpecific, selNegNotTPCOnly);
+        }
+
+        // Complimentary bit checks to exclude tracks that are exclusively measured in the TPC
+        else if (v0Selections.bothProngsTPConly) {
+        BITSET(maskK0ShortSpecific, selPosTPCOnly);
+        BITSET(maskLambdaSpecific, selPosTPCOnly);
+        BITSET(maskAntiLambdaSpecific, selPosTPCOnly);
+
+        BITSET(maskK0ShortSpecific, selNegTPCOnly);
+        BITSET(maskLambdaSpecific, selNegTPCOnly);
+        BITSET(maskAntiLambdaSpecific, selNegTPCOnly);
+        }
+        // The atLeastOneProngTPConly cannot be expressed as a single mask!
+        // Masks represent AND conditions, not OR.
+        // Included as a check after verifyMask for lambda candidates!
+
+        // Not added this part in the code -- must be new from the latest derivedlambdakzeroanalysis code -- to-do!!!
+        // if (v0Selections.compMassRejection > -1) {
+        // BITSET(maskK0ShortSpecific, selLambdaMassRejection);
+        // BITSET(maskLambdaSpecific, selK0ShortMassRejection);
+        // BITSET(maskAntiLambdaSpecific, selK0ShortMassRejection);
+        // }
+
+        // Additional less strict check to see if the y assymetry is coming from tracks that started off in the TPC
+        // The other checks would be ideal to perform a test that relies only on the TPC, but they are way too restrictive.
+        // This one is a good place to start!
+        if (v0Selections.hasTPCnoITS){
+        BITSET(maskK0ShortSpecific, selPosNoItsHasTPC);
+        BITSET(maskLambdaSpecific, selPosNoItsHasTPC);
+        BITSET(maskAntiLambdaSpecific, selPosNoItsHasTPC);
+
+        BITSET(maskK0ShortSpecific, selNegNoItsHasTPC);
+        BITSET(maskLambdaSpecific, selNegNoItsHasTPC);
+        BITSET(maskAntiLambdaSpecific, selNegNoItsHasTPC);
+        }
+
+        // Primary particle selection, central to analysis
+        maskSelectionK0Short = maskTopological | maskTrackProperties | maskK0ShortSpecific;
+        maskSelectionLambda = maskTopological | maskTrackProperties | maskLambdaSpecific;
+        maskSelectionAntiLambda = maskTopological | maskTrackProperties | maskAntiLambdaSpecific;
+
+        BITSET(maskSelectionK0Short, selPhysPrimK0Short);
+        BITSET(maskSelectionLambda, selPhysPrimLambda);
+        BITSET(maskSelectionAntiLambda, selPhysPrimAntiLambda);
+
+        // No primary requirement for feeddown matrix
+        secondaryMaskSelectionLambda = maskTopological | maskTrackProperties | maskLambdaSpecific;
+        secondaryMaskSelectionAntiLambda = maskTopological | maskTrackProperties | maskAntiLambdaSpecific;
+
+        // Initialise the RCTFlagsChecker
+        rctFlagsChecker.init(rctConfigurations.cfgRCTLabel.value, rctConfigurations.cfgCheckZDC, rctConfigurations.cfgTreatLimitedAcceptanceAsBad);
+        ////////////////////////////////////////////////////////////////////////////////////////
 
 
         ///////////////////////////////////////////////////////////
@@ -628,8 +824,12 @@ struct asymmetric_rapidity_test{
         hSelectionV0s->GetXaxis()->SetBinLabel(selNegGoodITSTrack + 2, "Neg. good ITS track");
         hSelectionV0s->GetXaxis()->SetBinLabel(selPosItsOnly + 2, "Pos. ITS-only");
         hSelectionV0s->GetXaxis()->SetBinLabel(selNegItsOnly + 2, "Neg. ITS-only");
+        hSelectionV0s->GetXaxis()->SetBinLabel(selPosNoItsHasTPC + 2, "Pos. no ITS, has TPC"); // NEW
+        hSelectionV0s->GetXaxis()->SetBinLabel(selNegNoItsHasTPC + 2, "Neg. no ITS, has TPC"); // NEW
         hSelectionV0s->GetXaxis()->SetBinLabel(selPosNotTPCOnly + 2, "Pos. not TPC-only");
         hSelectionV0s->GetXaxis()->SetBinLabel(selNegNotTPCOnly + 2, "Neg. not TPC-only");
+        hSelectionV0s->GetXaxis()->SetBinLabel(selPosTPCOnly + 2, "Pos. TPC-only"); // NEW
+        hSelectionV0s->GetXaxis()->SetBinLabel(selNegTPCOnly + 2, "Neg. TPC-only"); // NEW
         hSelectionV0s->GetXaxis()->SetBinLabel(selConsiderK0Short + 2, "True K^{0}_{S}");
         hSelectionV0s->GetXaxis()->SetBinLabel(selConsiderLambda + 2, "True #Lambda");
         hSelectionV0s->GetXaxis()->SetBinLabel(selConsiderAntiLambda + 2, "True #bar{#Lambda}");
@@ -847,11 +1047,74 @@ struct asymmetric_rapidity_test{
         if (negTrackExtra.tpcCrossedRows() < 1)
             BITSET(bitMap, selNegItsOnly);
 
-        // TPC only tag
-        if (posTrackExtra.detectorMap() != o2::aod::track::TPC)
+        // // TPC only tag
+        // if (posTrackExtra.detectorMap() != o2::aod::track::TPC) // Checks if has TPC
+        //     BITSET(bitMap, selPosNotTPCOnly);
+        // if (negTrackExtra.detectorMap() != o2::aod::track::TPC)
+        //     BITSET(bitMap, selNegNotTPCOnly);
+
+        // Defining new bits that check if the TPC was the ONLY detector present
+        // -- The previous bit just checks to see if anything other than the TPC was used. It does not check if the TPC was the only detector!
+        ///////////////////////
+        //// First version ////
+        /// This version has the problem of not allowing any other 
+        /// detector to be flagged, and this might have been too
+        /// restrictive if their flags were switch on for sharing
+        /// some metadata and the sorts. Now I do a slightly more
+        /// verbose check, but one that should work.
+        // if ( (posTrackExtra.detectorMap() & o2::aod::track::TPC) &&
+        //     !(posTrackExtra.detectorMap() & ~o2::aod::track::TPC) )
+        //     // In order: must include the TPC, must not include anything other than the TPC
+        //     BITSET(bitMap, selPosTPCOnly);
+        // else
+        //     // The negation is: "1) the track does not have TPC or 2) the track has some detector other than TPC".
+        //     // As the track must have at least one detector to be detected, than "not having TPC tracks" is the same
+        //     // as "having tracks from other detectors and not being TPC-only"!
+        //     BITSET(bitMap, selPosNotTPCOnly);
+
+        // if ( (negTrackExtra.detectorMap() & o2::aod::track::TPC) &&
+        //     !(negTrackExtra.detectorMap() & ~o2::aod::track::TPC) )
+        //     BITSET(bitMap, selNegTPCOnly);
+        // else
+        //     BITSET(bitMap, selNegNotTPCOnly);
+        ///////////////////////
+        //// Second version:
+        // Code idea for how to conduct the checks came from PWGLF/TableProducer/Strangeness/lambdakzeromcfinder.cxx
+        auto detectorPos = posTrackExtra.detectorMap();
+        auto detectorNeg = negTrackExtra.detectorMap();
+
+        bool hasTPCpos = (detectorPos & o2::aod::track::TPC) == o2::aod::track::TPC;
+        bool hasITSpos = (detectorPos & o2::aod::track::ITS) == o2::aod::track::ITS;
+        bool hasTRDpos = (detectorPos & o2::aod::track::TRD) == o2::aod::track::TRD;
+        bool hasTOFpos = (detectorPos & o2::aod::track::TOF) == o2::aod::track::TOF;
+
+        bool posTPCOnly = hasTPCpos && !hasITSpos && !hasTRDpos && !hasTOFpos;
+
+        bool hasTPCneg = (detectorNeg & o2::aod::track::TPC) == o2::aod::track::TPC;
+        bool hasITSneg = (detectorNeg & o2::aod::track::ITS) == o2::aod::track::ITS;
+        bool hasTRDneg = (detectorNeg & o2::aod::track::TRD) == o2::aod::track::TRD;
+        bool hasTOFneg = (detectorNeg & o2::aod::track::TOF) == o2::aod::track::TOF;
+
+        bool negTPCOnly = hasTPCneg && !hasITSneg && !hasTRDneg && !hasTOFneg;
+
+        if (posTPCOnly)
+            BITSET(bitMap, selPosTPCOnly);
+        else
             BITSET(bitMap, selPosNotTPCOnly);
-        if (negTrackExtra.detectorMap() != o2::aod::track::TPC)
+
+        if (negTPCOnly)
+            BITSET(bitMap, selNegTPCOnly);
+        else
             BITSET(bitMap, selNegNotTPCOnly);
+
+        // A bit that just excludes tracks that have ITS
+        // -- This should be less strict than the checks that demand V0s that did not go past the TPC
+        // (which is the very strict check I have been doing with selPosTPCOnly and selNegTPCOnly)
+        if (hasTPCpos && !hasITSpos)
+            BITSET(bitMap, selPosNoItsHasTPC);
+        if (hasTPCneg && !hasITSneg)
+            BITSET(bitMap, selNegNoItsHasTPC);
+        ///////////////////////
 
         // proper lifetime
         if (v0.distovertotmom(collision.posX(), collision.posY(), collision.posZ()) * o2::constants::physics::MassLambda0 < v0Selections.lifetimecut->get("lifetimecutLambda"))
@@ -1053,95 +1316,110 @@ struct asymmetric_rapidity_test{
         }
         }
 
+        // Adding a new check to select the Lambdas based on them being TPC-only or not!
+        // Created two additional checks that can come in hand
+        // -- One catches V0s that have at least one prong TPC only.
+        // -- The other requires both prongs to be TPC only, which could be more sensitive to TPC-only problems!
+        // The first type of selection could not happen inside a mask, so included it as a separate candidate
+        // check below
+        if (v0Selections.atLeastOneProngTPConly) {
+            if (!BITCHECK(selMap, selPosTPCOnly) && !BITCHECK(selMap, selNegTPCOnly)) {
+                passLambdaSelections = false;
+            }
+        }
+
         // __________________________________________
         // main analysis
         if (passLambdaSelections && analyseLambda) {
-        histos.fill(HIST("GeneralQA/hSelectionV0s"), selPhysPrimAntiLambda + 2); //
-        histos.fill(HIST("h3dMassLambda"), centrality, pt, v0.mLambda());
-        if (gapSide == 0)
-            histos.fill(HIST("h3dMassLambdaSGA"), centrality, pt, v0.mLambda());
-        else if (gapSide == 1)
-            histos.fill(HIST("h3dMassLambdaSGC"), centrality, pt, v0.mLambda());
-        else if (gapSide == 2)
-            histos.fill(HIST("h3dMassLambdaDG"), centrality, pt, v0.mLambda());
-        else
-            histos.fill(HIST("h3dMassLambdaHadronic"), centrality, pt, v0.mLambda());
-        histos.fill(HIST("Lambda/hMass"), v0.mLambda());
-        histos.fill(HIST("Lambda/hMassVsY"), v0.mLambda(), v0.yLambda());
-        if (doPlainTopoQA) {
-            histos.fill(HIST("Lambda/hPosDCAToPV"), v0.dcapostopv());
-            histos.fill(HIST("Lambda/hNegDCAToPV"), v0.dcanegtopv());
-            histos.fill(HIST("Lambda/hDCADaughters"), v0.dcaV0daughters());
-            histos.fill(HIST("Lambda/hPointingAngle"), std::acos(v0.v0cosPA()));
-            histos.fill(HIST("Lambda/hV0Radius"), v0.v0radius());
-            histos.fill(HIST("Lambda/h2dPositiveITSvsTPCpts"), posTrackExtra.tpcCrossedRows(), posTrackExtra.itsNCls());
-            histos.fill(HIST("Lambda/h2dNegativeITSvsTPCpts"), negTrackExtra.tpcCrossedRows(), negTrackExtra.itsNCls());
-            histos.fill(HIST("Lambda/h2dPositivePtVsPhi"), v0.positivept(), computePhiMod(v0.positivephi(), 1));
-            histos.fill(HIST("Lambda/h2dNegativePtVsPhi"), v0.negativept(), computePhiMod(v0.negativephi(), -1));
+        ////////////////////////
+        if (verifyMask(selMap, maskLambdaSpecific)){ // Added this to only include the lambdas that agree with this specific mask!
+            histos.fill(HIST("GeneralQA/hSelectionV0s"), selPhysPrimAntiLambda + 2); //
+            histos.fill(HIST("h3dMassLambda"), centrality, pt, v0.mLambda());
+            if (gapSide == 0)
+                histos.fill(HIST("h3dMassLambdaSGA"), centrality, pt, v0.mLambda());
+            else if (gapSide == 1)
+                histos.fill(HIST("h3dMassLambdaSGC"), centrality, pt, v0.mLambda());
+            else if (gapSide == 2)
+                histos.fill(HIST("h3dMassLambdaDG"), centrality, pt, v0.mLambda());
+            else
+                histos.fill(HIST("h3dMassLambdaHadronic"), centrality, pt, v0.mLambda());
+            histos.fill(HIST("Lambda/hMass"), v0.mLambda());
+            histos.fill(HIST("Lambda/hMassVsY"), v0.mLambda(), v0.yLambda());
+            if (doPlainTopoQA) {
+                histos.fill(HIST("Lambda/hPosDCAToPV"), v0.dcapostopv());
+                histos.fill(HIST("Lambda/hNegDCAToPV"), v0.dcanegtopv());
+                histos.fill(HIST("Lambda/hDCADaughters"), v0.dcaV0daughters());
+                histos.fill(HIST("Lambda/hPointingAngle"), std::acos(v0.v0cosPA()));
+                histos.fill(HIST("Lambda/hV0Radius"), v0.v0radius());
+                histos.fill(HIST("Lambda/h2dPositiveITSvsTPCpts"), posTrackExtra.tpcCrossedRows(), posTrackExtra.itsNCls());
+                histos.fill(HIST("Lambda/h2dNegativeITSvsTPCpts"), negTrackExtra.tpcCrossedRows(), negTrackExtra.itsNCls());
+                histos.fill(HIST("Lambda/h2dPositivePtVsPhi"), v0.positivept(), computePhiMod(v0.positivephi(), 1));
+                histos.fill(HIST("Lambda/h2dNegativePtVsPhi"), v0.negativept(), computePhiMod(v0.negativephi(), -1));
 
-            // Doing the extra check for V0Radius vs Rapidity:
-            histos.fill(HIST("Lambda/hV0RadiusVsY"), v0.v0radius(), v0.yLambda()); // Rapidity variable extracted from computeReconstructionBitmap
-            histos.fill(HIST("Lambda/hV0RadiusVsYVsMass"), v0.v0radius(), v0.yLambda(), v0.mLambda());
-        }
-        if (doDetectPropQA == 1) {
-            histos.fill(HIST("Lambda/h6dDetectPropVsCentrality"), centrality, posDetMap, posITSclusMap, negDetMap, negITSclusMap, pt);
-            histos.fill(HIST("Lambda/h4dPosDetectPropVsCentrality"), centrality, posTrackExtra.detectorMap(), posTrackExtra.itsClusterMap(), pt);
-            histos.fill(HIST("Lambda/h4dNegDetectPropVsCentrality"), centrality, negTrackExtra.detectorMap(), negTrackExtra.itsClusterMap(), pt);
-        }
-        if (doDetectPropQA == 2) {
-            histos.fill(HIST("Lambda/h7dDetectPropVsCentrality"), centrality, posDetMap, posITSclusMap, negDetMap, negITSclusMap, pt, v0.mLambda());
-            histos.fill(HIST("Lambda/h5dPosDetectPropVsCentrality"), centrality, posTrackExtra.detectorMap(), posTrackExtra.itsClusterMap(), pt, v0.mLambda());
-            histos.fill(HIST("Lambda/h5dNegDetectPropVsCentrality"), centrality, negTrackExtra.detectorMap(), negTrackExtra.itsClusterMap(), pt, v0.mLambda());
-        }
-        if (doDetectPropQA == 3) {
-            histos.fill(HIST("Lambda/h3dITSchi2"), centrality, pt, std::max(posTrackExtra.itsChi2NCl(), negTrackExtra.itsChi2NCl()));
-            histos.fill(HIST("Lambda/h3dTPCchi2"), centrality, pt, std::max(posTrackExtra.tpcChi2NCl(), negTrackExtra.tpcChi2NCl()));
-            histos.fill(HIST("Lambda/h3dTPCFoundOverFindable"), centrality, pt, std::min(posTrackExtra.tpcFoundOverFindableCls(), negTrackExtra.tpcFoundOverFindableCls()));
-            histos.fill(HIST("Lambda/h3dTPCrowsOverFindable"), centrality, pt, std::min(posTrackExtra.tpcCrossedRowsOverFindableCls(), negTrackExtra.tpcCrossedRowsOverFindableCls()));
-            histos.fill(HIST("Lambda/h3dTPCsharedCls"), centrality, pt, std::max(posTrackExtra.tpcFractionSharedCls(), negTrackExtra.tpcFractionSharedCls()));
-            histos.fill(HIST("Lambda/h3dPositiveITSchi2"), centrality, pt, posTrackExtra.itsChi2NCl());
-            histos.fill(HIST("Lambda/h3dNegativeITSchi2"), centrality, pt, negTrackExtra.itsChi2NCl());
-            histos.fill(HIST("Lambda/h3dPositiveTPCchi2"), centrality, pt, posTrackExtra.tpcChi2NCl());
-            histos.fill(HIST("Lambda/h3dNegativeTPCchi2"), centrality, pt, negTrackExtra.tpcChi2NCl());
-            histos.fill(HIST("Lambda/h3dPositiveITSclusters"), centrality, pt, posTrackExtra.itsNCls());
-            histos.fill(HIST("Lambda/h3dNegativeITSclusters"), centrality, pt, negTrackExtra.itsNCls());
-            histos.fill(HIST("Lambda/h3dPositiveTPCcrossedRows"), centrality, pt, posTrackExtra.tpcCrossedRows());
-            histos.fill(HIST("Lambda/h3dNegativeTPCcrossedRows"), centrality, pt, negTrackExtra.tpcCrossedRows());
-        }
-        if (doTPCQA) {
-            histos.fill(HIST("Lambda/h3dPosNsigmaTPC"), centrality, pt, posTrackExtra.tpcNSigmaPr());
-            histos.fill(HIST("Lambda/h3dNegNsigmaTPC"), centrality, pt, negTrackExtra.tpcNSigmaPi());
-            histos.fill(HIST("Lambda/h3dPosTPCsignal"), centrality, pt, posTrackExtra.tpcSignal());
-            histos.fill(HIST("Lambda/h3dNegTPCsignal"), centrality, pt, negTrackExtra.tpcSignal());
-            histos.fill(HIST("Lambda/h3dPosNsigmaTPCvsTrackPtot"), centrality, v0.pfracpos() * v0.p(), posTrackExtra.tpcNSigmaPr());
-            histos.fill(HIST("Lambda/h3dNegNsigmaTPCvsTrackPtot"), centrality, v0.pfracneg() * v0.p(), negTrackExtra.tpcNSigmaPi());
-            histos.fill(HIST("Lambda/h3dPosTPCsignalVsTrackPtot"), centrality, v0.pfracpos() * v0.p(), posTrackExtra.tpcSignal());
-            histos.fill(HIST("Lambda/h3dNegTPCsignalVsTrackPtot"), centrality, v0.pfracneg() * v0.p(), negTrackExtra.tpcSignal());
-            histos.fill(HIST("Lambda/h3dPosNsigmaTPCvsTrackPt"), centrality, v0.positivept(), posTrackExtra.tpcNSigmaPr());
-            histos.fill(HIST("Lambda/h3dNegNsigmaTPCvsTrackPt"), centrality, v0.negativept(), negTrackExtra.tpcNSigmaPi());
-            histos.fill(HIST("Lambda/h3dPosTPCsignalVsTrackPt"), centrality, v0.positivept(), posTrackExtra.tpcSignal());
-            histos.fill(HIST("Lambda/h3dNegTPCsignalVsTrackPt"), centrality, v0.negativept(), negTrackExtra.tpcSignal());
-        }
-        if (doTOFQA) {
-            histos.fill(HIST("Lambda/h3dPosNsigmaTOF"), centrality, pt, v0.tofNSigmaLaPr());
-            histos.fill(HIST("Lambda/h3dNegNsigmaTOF"), centrality, pt, v0.tofNSigmaLaPi());
-            histos.fill(HIST("Lambda/h3dPosTOFdeltaT"), centrality, pt, v0.posTOFDeltaTLaPr());
-            histos.fill(HIST("Lambda/h3dNegTOFdeltaT"), centrality, pt, v0.negTOFDeltaTLaPi());
-            histos.fill(HIST("Lambda/h3dPosNsigmaTOFvsTrackPtot"), centrality, v0.pfracpos() * v0.p(), v0.tofNSigmaLaPr());
-            histos.fill(HIST("Lambda/h3dNegNsigmaTOFvsTrackPtot"), centrality, v0.pfracneg() * v0.p(), v0.tofNSigmaLaPi());
-            histos.fill(HIST("Lambda/h3dPosTOFdeltaTvsTrackPtot"), centrality, v0.pfracpos() * v0.p(), v0.posTOFDeltaTLaPr());
-            histos.fill(HIST("Lambda/h3dNegTOFdeltaTvsTrackPtot"), centrality, v0.pfracneg() * v0.p(), v0.negTOFDeltaTLaPi());
-            histos.fill(HIST("Lambda/h3dPosNsigmaTOFvsTrackPt"), centrality, v0.positivept(), v0.tofNSigmaLaPr());
-            histos.fill(HIST("Lambda/h3dNegNsigmaTOFvsTrackPt"), centrality, v0.negativept(), v0.tofNSigmaLaPi());
-            histos.fill(HIST("Lambda/h3dPosTOFdeltaTvsTrackPt"), centrality, v0.positivept(), v0.posTOFDeltaTLaPr());
-            histos.fill(HIST("Lambda/h3dNegTOFdeltaTvsTrackPt"), centrality, v0.negativept(), v0.negTOFDeltaTLaPi());
-        }
-        if (doEtaPhiQA) {
-            histos.fill(HIST("Lambda/h5dV0PhiVsEta"), centrality, pt, v0.mLambda(), v0.phi(), v0.eta());
-            histos.fill(HIST("Lambda/h5dPosPhiVsEta"), centrality, v0.positivept(), v0.mLambda(), v0.positivephi(), v0.positiveeta());
-            histos.fill(HIST("Lambda/h5dNegPhiVsEta"), centrality, v0.negativept(), v0.mLambda(), v0.negativephi(), v0.negativeeta());
-        }
-        nLambdas++;
+                // Doing the extra check for V0Radius vs Rapidity:
+                histos.fill(HIST("Lambda/hV0RadiusVsY"), v0.v0radius(), v0.yLambda()); // Rapidity variable extracted from computeReconstructionBitmap
+                histos.fill(HIST("Lambda/hV0RadiusVsYVsMass"), v0.v0radius(), v0.yLambda(), v0.mLambda());
+            }
+            if (doDetectPropQA == 1) {
+                histos.fill(HIST("Lambda/h6dDetectPropVsCentrality"), centrality, posDetMap, posITSclusMap, negDetMap, negITSclusMap, pt);
+                histos.fill(HIST("Lambda/h4dPosDetectPropVsCentrality"), centrality, posTrackExtra.detectorMap(), posTrackExtra.itsClusterMap(), pt);
+                histos.fill(HIST("Lambda/h4dNegDetectPropVsCentrality"), centrality, negTrackExtra.detectorMap(), negTrackExtra.itsClusterMap(), pt);
+            }
+            if (doDetectPropQA == 2) {
+                histos.fill(HIST("Lambda/h7dDetectPropVsCentrality"), centrality, posDetMap, posITSclusMap, negDetMap, negITSclusMap, pt, v0.mLambda());
+                histos.fill(HIST("Lambda/h5dPosDetectPropVsCentrality"), centrality, posTrackExtra.detectorMap(), posTrackExtra.itsClusterMap(), pt, v0.mLambda());
+                histos.fill(HIST("Lambda/h5dNegDetectPropVsCentrality"), centrality, negTrackExtra.detectorMap(), negTrackExtra.itsClusterMap(), pt, v0.mLambda());
+            }
+            if (doDetectPropQA == 3) {
+                histos.fill(HIST("Lambda/h3dITSchi2"), centrality, pt, std::max(posTrackExtra.itsChi2NCl(), negTrackExtra.itsChi2NCl()));
+                histos.fill(HIST("Lambda/h3dTPCchi2"), centrality, pt, std::max(posTrackExtra.tpcChi2NCl(), negTrackExtra.tpcChi2NCl()));
+                histos.fill(HIST("Lambda/h3dTPCFoundOverFindable"), centrality, pt, std::min(posTrackExtra.tpcFoundOverFindableCls(), negTrackExtra.tpcFoundOverFindableCls()));
+                histos.fill(HIST("Lambda/h3dTPCrowsOverFindable"), centrality, pt, std::min(posTrackExtra.tpcCrossedRowsOverFindableCls(), negTrackExtra.tpcCrossedRowsOverFindableCls()));
+                histos.fill(HIST("Lambda/h3dTPCsharedCls"), centrality, pt, std::max(posTrackExtra.tpcFractionSharedCls(), negTrackExtra.tpcFractionSharedCls()));
+                histos.fill(HIST("Lambda/h3dPositiveITSchi2"), centrality, pt, posTrackExtra.itsChi2NCl());
+                histos.fill(HIST("Lambda/h3dNegativeITSchi2"), centrality, pt, negTrackExtra.itsChi2NCl());
+                histos.fill(HIST("Lambda/h3dPositiveTPCchi2"), centrality, pt, posTrackExtra.tpcChi2NCl());
+                histos.fill(HIST("Lambda/h3dNegativeTPCchi2"), centrality, pt, negTrackExtra.tpcChi2NCl());
+                histos.fill(HIST("Lambda/h3dPositiveITSclusters"), centrality, pt, posTrackExtra.itsNCls());
+                histos.fill(HIST("Lambda/h3dNegativeITSclusters"), centrality, pt, negTrackExtra.itsNCls());
+                histos.fill(HIST("Lambda/h3dPositiveTPCcrossedRows"), centrality, pt, posTrackExtra.tpcCrossedRows());
+                histos.fill(HIST("Lambda/h3dNegativeTPCcrossedRows"), centrality, pt, negTrackExtra.tpcCrossedRows());
+            }
+            if (doTPCQA) {
+                histos.fill(HIST("Lambda/h3dPosNsigmaTPC"), centrality, pt, posTrackExtra.tpcNSigmaPr());
+                histos.fill(HIST("Lambda/h3dNegNsigmaTPC"), centrality, pt, negTrackExtra.tpcNSigmaPi());
+                histos.fill(HIST("Lambda/h3dPosTPCsignal"), centrality, pt, posTrackExtra.tpcSignal());
+                histos.fill(HIST("Lambda/h3dNegTPCsignal"), centrality, pt, negTrackExtra.tpcSignal());
+                histos.fill(HIST("Lambda/h3dPosNsigmaTPCvsTrackPtot"), centrality, v0.pfracpos() * v0.p(), posTrackExtra.tpcNSigmaPr());
+                histos.fill(HIST("Lambda/h3dNegNsigmaTPCvsTrackPtot"), centrality, v0.pfracneg() * v0.p(), negTrackExtra.tpcNSigmaPi());
+                histos.fill(HIST("Lambda/h3dPosTPCsignalVsTrackPtot"), centrality, v0.pfracpos() * v0.p(), posTrackExtra.tpcSignal());
+                histos.fill(HIST("Lambda/h3dNegTPCsignalVsTrackPtot"), centrality, v0.pfracneg() * v0.p(), negTrackExtra.tpcSignal());
+                histos.fill(HIST("Lambda/h3dPosNsigmaTPCvsTrackPt"), centrality, v0.positivept(), posTrackExtra.tpcNSigmaPr());
+                histos.fill(HIST("Lambda/h3dNegNsigmaTPCvsTrackPt"), centrality, v0.negativept(), negTrackExtra.tpcNSigmaPi());
+                histos.fill(HIST("Lambda/h3dPosTPCsignalVsTrackPt"), centrality, v0.positivept(), posTrackExtra.tpcSignal());
+                histos.fill(HIST("Lambda/h3dNegTPCsignalVsTrackPt"), centrality, v0.negativept(), negTrackExtra.tpcSignal());
+            }
+            if (doTOFQA) {
+                histos.fill(HIST("Lambda/h3dPosNsigmaTOF"), centrality, pt, v0.tofNSigmaLaPr());
+                histos.fill(HIST("Lambda/h3dNegNsigmaTOF"), centrality, pt, v0.tofNSigmaLaPi());
+                histos.fill(HIST("Lambda/h3dPosTOFdeltaT"), centrality, pt, v0.posTOFDeltaTLaPr());
+                histos.fill(HIST("Lambda/h3dNegTOFdeltaT"), centrality, pt, v0.negTOFDeltaTLaPi());
+                histos.fill(HIST("Lambda/h3dPosNsigmaTOFvsTrackPtot"), centrality, v0.pfracpos() * v0.p(), v0.tofNSigmaLaPr());
+                histos.fill(HIST("Lambda/h3dNegNsigmaTOFvsTrackPtot"), centrality, v0.pfracneg() * v0.p(), v0.tofNSigmaLaPi());
+                histos.fill(HIST("Lambda/h3dPosTOFdeltaTvsTrackPtot"), centrality, v0.pfracpos() * v0.p(), v0.posTOFDeltaTLaPr());
+                histos.fill(HIST("Lambda/h3dNegTOFdeltaTvsTrackPtot"), centrality, v0.pfracneg() * v0.p(), v0.negTOFDeltaTLaPi());
+                histos.fill(HIST("Lambda/h3dPosNsigmaTOFvsTrackPt"), centrality, v0.positivept(), v0.tofNSigmaLaPr());
+                histos.fill(HIST("Lambda/h3dNegNsigmaTOFvsTrackPt"), centrality, v0.negativept(), v0.tofNSigmaLaPi());
+                histos.fill(HIST("Lambda/h3dPosTOFdeltaTvsTrackPt"), centrality, v0.positivept(), v0.posTOFDeltaTLaPr());
+                histos.fill(HIST("Lambda/h3dNegTOFdeltaTvsTrackPt"), centrality, v0.negativept(), v0.negTOFDeltaTLaPi());
+            }
+            if (doEtaPhiQA) {
+                histos.fill(HIST("Lambda/h5dV0PhiVsEta"), centrality, pt, v0.mLambda(), v0.phi(), v0.eta());
+                histos.fill(HIST("Lambda/h5dPosPhiVsEta"), centrality, v0.positivept(), v0.mLambda(), v0.positivephi(), v0.positiveeta());
+                histos.fill(HIST("Lambda/h5dNegPhiVsEta"), centrality, v0.negativept(), v0.mLambda(), v0.negativephi(), v0.negativeeta());
+            }
+            nLambdas++;
+            }
         }
 
         // // __________________________________________
