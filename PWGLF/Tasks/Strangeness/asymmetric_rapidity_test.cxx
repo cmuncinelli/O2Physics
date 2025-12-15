@@ -728,7 +728,7 @@ struct asymmetric_rapidity_test{
         }
         }
 
-        histos.add("hEventCentrality", "hEventCentrality", kTH1D, {{101, 0.0f, 101.0f}});
+        histos.add("hEventCentrality", "hEventCentrality", kTH1D, {{101, 0.0f, 101.0f}}); // Which is different from the AxisCentrality definition, by the way! 
         histos.add("hCentralityVsNch", "hCentralityVsNch", kTH2D, {{101, 0.0f, 101.0f}, axisConfigurations.axisNch});
         if (doEventQA) {
         if (isRun3) {
@@ -2449,7 +2449,7 @@ struct asymmetric_rapidity_test{
         // Fire up CCDB
         if ((mlConfigurations.useLambdaScores && mlConfigurations.calculateLambdaScores) ||
             v0Selections.rejectTPCsectorBoundary) {
-        initCCDB(collision);
+            initCCDB(collision);
         }
 
         if (!isEventAccepted(collision, true)) {
