@@ -17,6 +17,7 @@
 
 #include "PWGHF/Core/CentralityEstimation.h"
 #include "PWGHF/Core/HfHelper.h"
+#include "PWGHF/DataModel/AliasTables.h"
 #include "PWGHF/DataModel/CandidateReconstructionTables.h"
 #include "PWGHF/DataModel/CandidateSelectionTables.h"
 #include "PWGHF/HFC/DataModel/DerivedDataCorrelationTables.h"
@@ -101,7 +102,6 @@ struct HfDerivedDataCreatorCorrelationsReduced {
   Configurable<std::vector<double>> binsPtTrig{"binsPtTrig", std::vector<double>{0., 1., 2., 3., 5., 8., 12., 24., 36.}, "pT bin limits for trigger candidates"};
   Configurable<std::vector<double>> binsPtAssoc{"binsPtAssoc", std::vector<double>{0.2, 1., 2., 50.}, "pT bin limits for associated particles"};
 
-  HfHelper hfHelper;
   HfEventSelection hfEvSel; // event selection and monitoring
   o2::framework::Service<o2::ccdb::BasicCCDBManager> ccdb;
   SliceCache cache;
@@ -197,19 +197,19 @@ struct HfDerivedDataCreatorCorrelationsReduced {
   double getCandMass(const TCand& candidate)
   {
     if constexpr (CandType == CandidateType::DsToKKPi) {
-      return hfHelper.invMassDsToKKPi(candidate);
+      return HfHelper::invMassDsToKKPi(candidate);
     }
     if constexpr (CandType == CandidateType::DsToPiKK) {
-      return hfHelper.invMassDsToPiKK(candidate);
+      return HfHelper::invMassDsToPiKK(candidate);
     }
     if constexpr (CandType == CandidateType::DplusToPiKPi) {
-      return hfHelper.invMassDplusToPiKPi(candidate);
+      return HfHelper::invMassDplusToPiKPi(candidate);
     }
     if constexpr (CandType == CandidateType::D0ToPiK) {
-      return hfHelper.invMassD0ToPiK(candidate);
+      return HfHelper::invMassD0ToPiK(candidate);
     }
     if constexpr (CandType == CandidateType::D0ToKPi) {
-      return hfHelper.invMassD0barToKPi(candidate);
+      return HfHelper::invMassD0barToKPi(candidate);
     }
     return -1.;
   }
@@ -324,10 +324,10 @@ struct HfDerivedDataCreatorCorrelationsReduced {
       registry.fill(HIST("hPhiVsPtTrig"), RecoDecay::constrainAngle(trigCand.phi(), -o2::constants::math::PIHalf), trigCandPt);
       registry.fill(HIST("hEtaVsPtTrig"), trigCand.eta(), trigCandPt);
       if constexpr (CandType == CandidateType::Hadron) {
-        rowTrigHads(trigCandPt, trigCand.tpcNClsCrossedRows(), trigCand.itsClusterMap(), trigCand.itsNCls(), trigCand.dcaXY(), trigCand.dcaZ());
+        rowTrigHads(rowCollisions.lastIndex(), trigCandPt, trigCand.tpcNClsCrossedRows(), trigCand.itsClusterMap(), trigCand.itsNCls(), trigCand.dcaXY(), trigCand.dcaZ());
       } else {
         std::array<float, 2> outputMl = getCandMlScores<CandType>(trigCand);
-        rowTrigCharms(trigCandPt, getCandMass<CandType>(trigCand), outputMl[0], outputMl[1]);
+        rowTrigCharms(rowCollisions.lastIndex(), trigCandPt, getCandMass<CandType>(trigCand), outputMl[0], outputMl[1]);
       }
 
       for (const auto& assTrk : assTrks) {
@@ -377,8 +377,8 @@ struct HfDerivedDataCreatorCorrelationsReduced {
       registry.fill(HIST("hEtaVsPtTrig"), trigCand.eta(), trigCand.pt());
 
       std::array<float, 2> outputMl = getCandMlScores<CandType>(trigCand);
-      rowTrigBases(rowCollisions.lastIndex(), trigCand.phi(), trigCand.eta());
-      rowTrigCharms(trigCand.pt(), getCandMass<CandType>(trigCand), outputMl[0], outputMl[1]);
+      rowTrigBases(trigCand.phi(), trigCand.eta());
+      rowTrigCharms(rowCollisions.lastIndex(), trigCand.pt(), getCandMass<CandType>(trigCand), outputMl[0], outputMl[1]);
     }
   }
 
@@ -545,7 +545,7 @@ struct HfDerivedDataCreatorCorrelationsReduced {
     rowCollisions(mult, coll.numContrib(), cent, coll.posZ());
     fillSameEvent<CandidateType::Hadron>(tracks, tracks, cent);
   }
-  PROCESS_SWITCH(HfDerivedDataCreatorCorrelationsReduced, processHadronHadronSameEvent, "Process Same Event for hadron candidates", true);
+  PROCESS_SWITCH(HfDerivedDataCreatorCorrelationsReduced, processHadronHadronSameEvent, "Process Same Event for hadron candidates", false);
 
   // Hadron Hadron Mixed Event
   void processHadronHadronMixedEvent(CollsWithCentMult::iterator const& coll,
