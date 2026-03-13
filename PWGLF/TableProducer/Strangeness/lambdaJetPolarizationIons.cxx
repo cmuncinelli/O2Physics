@@ -475,6 +475,9 @@ struct lambdajetpolarizationions {
     // Configurable<float> minTPCrowsOverFindableClusters{"minTPCrowsOverFindableClusters", -1, "minimum nbr of TPC crossed rows over findable clusters"};
     // Configurable<float> minTPCfoundOverFindableClusters{"minTPCfoundOverFindableClusters", 0.8f, "minimum nbr of found over findable TPC clusters"};
 
+    // QA checks for detector asymmetry:
+    Configurable<bool> forceNoITS{"forceNoITS", false, "Use onlt TPC-onwards tracks as pseudoJet candidates to QA asymmetries/pile-up in detector"};
+
     // Jets typical cuts (suppress non-primary candidates):
     Configurable<bool> doDCAcuts{"doDCAcuts", false, "Apply DCA cuts to jet candidates (biases towards primary-vertex/prompt hadron jets)"};
     Configurable<float> maxDCAz{"maxDCAz", 3.2f, "Max DCAz to primary vertex [cm] (remove pileup influence)"};
@@ -664,6 +667,7 @@ struct lambdajetpolarizationions {
     // makes that cut active, so disabled stages are shown in grey in the output.
     std::vector<CutLabel> jetTrackSelectionLabels = {
       {"All track candidates", true},
+      {"forceNoITS", pseudoJetCandidateTrackSelections.forceNoITS},
       {"ITS clusters (min)", pseudoJetCandidateTrackSelections.minITSnCls >= 0},
       {"TPC crossed rows (min)", pseudoJetCandidateTrackSelections.minNCrossedRowsTPC > 0},
       {"TPC #chi^{2}/N_{cls} (max)", pseudoJetCandidateTrackSelections.maxChi2TPC < 1.e8f},
@@ -775,6 +779,8 @@ struct lambdajetpolarizationions {
     if (analyseLambda && analyseAntiLambda) {
       histos.add("hAmbiguousLambdaCandidates", "hAmbiguousLambdaCandidates", kTH1D, {{1, 0, 1}});
       histos.add("hAmbiguousPerEvent", "hAmbiguousPerEvent", kTH1D, {{15, 0, 15}});
+      histos.add("hNonAmbiguousPerEvent", "hNonAmbiguousPerEvent", kTH1D, {{25, 0, 25}}); // To understand the population of correlated Lambda-likes per event
+      histos.add("hLambdasAndAntiLambdasPerEvent", "hLambdasAndAntiLambdasPerEvent", kTH1D, {{25, 0, 25}}); // Alternative check that shows how bad is the possibly correlated full population (Ambig+NonAmbig)
     }
 
     // QA histograms if requested
@@ -1210,6 +1216,13 @@ struct lambdajetpolarizationions {
   { // (TODO: add an equivalent for photon jets and Z jets, which don't consider charged particles)
     // if (track.sign() == 0) return false; // Tracks are always either positive or negative, at least in TPC and ITS, which are the ones used (not looking at photon-jets right now)
     // ITS/TPC cuts:
+    if (pseudoJetCandidateTrackSelections.forceNoITS) { // reject tracks that have ITS bits (no need to reject hasTPC as we always demand minNCrossedRowsTPC > 70 in all analyses)
+      const auto detMap = track.detectorMap();
+      if (detMap & o2::aod::track::ITS)
+        return false;
+    }
+    JetTrackSelCounter.fill(); // bin: forceNoITS
+
     if (pseudoJetCandidateTrackSelections.minITSnCls >= 0) {
       if (track.itsNCls() < pseudoJetCandidateTrackSelections.minITSnCls)
         return false;
@@ -1657,7 +1670,7 @@ struct lambdajetpolarizationions {
       if (doEventQA)
         fillEventSelectionQA(lastBinEvSel - 1, centrality); // hasRingJet passes
 
-      const auto& leadingJet = jets[0];
+      const auto& leadingJet = jets[0]; // A leading jet before eta cuts. Different type of QA from what we will be able to do down the consumer pipeline
       for (const auto& jet : jets) {
         // Jet must be fully contained in the acceptance (0.9 for ITS+TPC barrel)
         const float jet_eta = jet.eta();
@@ -1775,8 +1788,10 @@ struct lambdajetpolarizationions {
     // Call to jets process:
     jetsProcess(V0DauTracks, ringCollIdx, centrality); // V0DauTracks takes the place of jetTracks now
 
-    uint NLambdas = 0; // Counting particles per event
+    // Counting particles per event:
+    uint NLambdas = 0;
     uint NAntiLambdas = 0;
+    uint NNonAmbiguous = 0;
     uint NAmbiguous = 0;
     for (auto const& v0 : V0s) {
       V0SelCounter.resetForNewV0();
@@ -1816,8 +1831,10 @@ struct lambdajetpolarizationions {
         histos.fill(HIST("GeneralQA/h2dArmenterosFullSelectedAntiLambda"), v0.alpha(), v0.qtarm());
 
       // XOR check:
-      if (isLambda ^ isAntiLambda)
+      if (isLambda ^ isAntiLambda){
         histos.fill(HIST("GeneralQA/h2dArmenterosFullSelectedNonAmbiguous"), v0.alpha(), v0.qtarm());
+        NNonAmbiguous++;
+      }
 
       // int lambdaIdx = -1; // No need to pass armenteros
       if (isLambda && isAntiLambda) {
@@ -2002,11 +2019,19 @@ struct lambdajetpolarizationions {
     } // end V0s loop
 
     // Fill histograms on a per-event level:
-    histos.fill(HIST("Lambda/hLambdasPerEvent"), NLambdas);
-    histos.fill(HIST("AntiLambda/hAntiLambdasPerEvent"), NAntiLambdas);
-    histos.fill(HIST("hAmbiguousPerEvent"), NAmbiguous);
-    histos.fill(HIST("Lambda/h2dNbrOfLambdaVsCentrality"), centrality, NLambdas);
-    histos.fill(HIST("AntiLambda/h2dNbrOfAntiLambdaVsCentrality"), centrality, NAntiLambdas);
+    if (analyseLambda) {
+      histos.fill(HIST("Lambda/hLambdasPerEvent"), NLambdas);
+      histos.fill(HIST("Lambda/h2dNbrOfLambdaVsCentrality"), centrality, NLambdas);
+    }
+    if (analyseAntiLambda) {
+      histos.fill(HIST("AntiLambda/hAntiLambdasPerEvent"), NAntiLambdas);
+      histos.fill(HIST("AntiLambda/h2dNbrOfAntiLambdaVsCentrality"), centrality, NAntiLambdas);
+    }
+    if (analyseLambda && analyseAntiLambda) {
+      histos.fill(HIST("hAmbiguousPerEvent"), NAmbiguous);
+      histos.fill(HIST("hNonAmbiguousPerEvent"), NNonAmbiguous); // The actual 
+      histos.fill(HIST("hLambdasAndAntiLambdasPerEvent"), NLambdas + NAntiLambdas);
+    }
   }
 
   void processData(SelCollisions::iterator const& collision, aod::V0Datas const& V0s, DauTracks const& V0DauTracks, aod::BCsWithTimestamps const& bcs)

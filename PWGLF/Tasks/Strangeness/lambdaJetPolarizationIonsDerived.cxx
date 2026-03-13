@@ -206,6 +206,7 @@ struct lambdajetpolarizationionsderived {
     // Jet axes:
     ConfigurableAxis axisLeadingParticlePt{"axisLeadingParticlePt", {100, 0.f, 200.f}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
     ConfigurableAxis axisJetPt{"axisJetPt", {50, 0.f, 200.f}, "Jet p_{t} (GeV)"};
+    ConfigurableAxis axisEta{"axisEta", {50, -1.0f, 1.0f}, "#eta"};
     ConfigurableAxis axisDeltaTheta{"axisDeltaTheta", {40, 0, constants::math::PI}, "#Delta #theta_{jet}"};
     ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {40, -constants::math::PI, constants::math::PI}, "#Delta #phi_{jet}"};
 
@@ -410,6 +411,16 @@ struct lambdajetpolarizationionsderived {
     histos.get<TProfile>(HIST("pRingCutsLeadingP"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
     histos.get<TProfile>(HIST("pRingCutsLeadingP"))->GetXaxis()->SetBinLabel(3, "|LeadP_{#eta}|<0.5");
     histos.get<TProfile>(HIST("pRingCutsLeadingP"))->GetXaxis()->SetBinLabel(4, "#Lambda + LeadP cuts");
+
+    // Integrated observable for events with NLambda+NAntiLambda V0s per event
+    // (an interesting measurement of correlation between <R> and Lambda-like V0s multiplicity. A proxy of covariance)
+    // (calculated for leading jets only)
+    histos.add("pRingVsNV0s", "pRingVsNV0s; N_{#Lambda}+N_{#bar{#Lambda}};<#it{R}>", kTProfile, {{20, 0, 20}});
+
+    // Leading Jet QA:
+    histos.add("JetKinematicsQA/hLeadJetEta", "hLeadJetEta", kTH1D, {axisConfigurations.axisEta});
+    histos.add("JetKinematicsQA/hSubLeadJetEta", "hSubLeadJetEta", kTH1D, {axisConfigurations.axisEta});
+    histos.add("JetKinematicsQA/hLeadPEta", "hLeadPEta", kTH1D, {axisConfigurations.axisEta});
   }
 
   // Helper to get centrality (same from TableProducer, thanks to templating!):
@@ -480,6 +491,7 @@ struct lambdajetpolarizationionsderived {
       // Discard events with no leading particle (FastJet didn't even run in these cases!):
       if (leadPPt < 0.)
         continue;
+      histos.fill(HIST("JetKinematicsQA/hLeadPEta"), leadPEta);
 
       // Build leading particle unit vector, outside the V0 loop for performance:
       XYZVector leadPUnitVec = XYZVector(leadPPx, leadPPy, leadPPz).Unit();
@@ -521,6 +533,7 @@ struct lambdajetpolarizationionsderived {
         leadingJetPhi = leadingJet->jetPhi();
         // Using internal getters to make code cleaner:
         leadingJetUnitVec = XYZVector(leadingJet->jetPx(), leadingJet->jetPy(), leadingJet->jetPz()).Unit();
+        histos.fill(HIST("JetKinematicsQA/hLeadJetEta"), leadingJetEta); // This will not be subject to the forcePerpToJet nor the forceJetDirectionSmudge QAs, for simplicity
 
         // QA block -- Purposefully changing the jet direction (should kill signal, if any):
         if (forcePerpToJet) { // Use modified jet direction (done outside loop to guarantee all V0s inside event use same fake jet)
@@ -578,12 +591,22 @@ struct lambdajetpolarizationionsderived {
         subleadingJetPhi = subleadingJet->jetPhi();
         // Using internal getters to make code cleaner:
         subJetUnitVec = XYZVector(subleadingJet->jetPx(), subleadingJet->jetPy(), subleadingJet->jetPz()).Unit();
+
+        histos.fill(HIST("JetKinematicsQA/hSubLeadJetEta"), subleadingJetEta);
       }
 
       // (jet eta cuts only meaningful when the jet actually exists)
       const bool kinematicJetCheck = hasValidLeadingJet && (std::abs(leadingJetEta) < 0.5);
       const bool kinematic2ndJetCheck = hasValidSubJet && (std::abs(subleadingJetEta) < 0.5);
       const bool kinematicLeadPCheck = std::abs(leadPEta) < 0.5;
+
+      // Fetching number of Lambda-like V0s in collision (must be known before full loop, to fill "pRingVsNV0s"):
+      int NLambdaLikeV0s = 0;
+      for (auto const& v0 : v0sInColl) {
+        if (v0.isLambda() ^ v0.isAntiLambda()){ // XOR (only the non-ambiguous candidates)
+          NLambdaLikeV0s++;
+        }
+      }
 
       for (auto const& v0 : v0sInColl) {
         const bool isLambda = v0.isLambda();
@@ -711,6 +734,7 @@ struct lambdajetpolarizationionsderived {
         if (hasValidLeadingJet) {
           RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "Ring")
           histos.fill(HIST("pRingCuts"), 0, ringObservable);
+          histos.fill(HIST("pRingVsNV0s"), NLambdaLikeV0s, ringObservable);
         }
         if (hasValidSubJet) {
           RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "Ring")
