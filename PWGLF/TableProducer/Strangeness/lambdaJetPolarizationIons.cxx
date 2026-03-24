@@ -151,9 +151,6 @@ enum BkgSubtraction {
 
 //////////////////////////////////////////////
 struct lambdajetpolarizationions {
-
-  // struct : ProducesGroup {
-  // } products;
   Produces<o2::aod::RingLaV0s> tableV0s;
   Produces<o2::aod::RingJets> tableJets;
   Produces<o2::aod::RingLeadPs> tableLeadParticles;
@@ -164,23 +161,20 @@ struct lambdajetpolarizationions {
 
   // master analysis switches
   Configurable<bool> analyseLambda{"analyseLambda", true, "process Lambda-like candidates"};
-  Configurable<bool> analyseAntiLambda{"analyseAntiLambda", false, "process AntiLambda-like candidates"}; // Will work only with Lambdas, in a first analysis
+  Configurable<bool> analyseAntiLambda{"analyseAntiLambda", true, "process AntiLambda-like candidates"};
 
   Configurable<bool> doPPAnalysis{"doPPAnalysis", false, "if in pp, set to true. Default is HI"};
   Configurable<std::string> irSource{"irSource", "ZNChadronic", "Estimator of the interaction rate (Recommended: pp --> T0VTX, Pb-Pb --> ZNChadronic)"}; // Renamed David's "ZNC hadronic" to the proper code "ZNChadronic"
   Configurable<int> centralityEstimatorForQA{"centralityEstimatorForQA", kCentFT0M, "Run 3 centrality estimator (0:CentFT0C, 1:CentFT0M, 2:CentFV0A)"};  // Default is FT0M
-  // (Now saving all centralities at the derived data level -- Makes them all available for consumer)
-  // (But still using this variable for QA histograms)
 
   /////////////////////////////////////////////
-  Configurable<bool> doEventQA{"doEventQA", false, "do event QA histograms"};
+  Configurable<bool> doEventQA{"doEventQA", true, "do event QA histograms"};
   // Configurable<bool> qaCentrality{"qaCentrality", false, "qa centrality flag: check base raw values"};
-  Configurable<bool> doCompleteTopoQA{"doCompleteTopoQA", false, "do topological variables QA histograms"}; // Includes doPlainTopoQA from derivedlambdakzeroanalysis
-  Configurable<bool> doV0KinematicQA{"doV0KinematicQA", false, "do kinematic variables QA histograms"};
+  Configurable<bool> doTopoQA{"doTopoQA", true, "do topological variables QA histograms"};
+  Configurable<bool> doV0KinematicQA{"doV0KinematicQA", true, "do kinematic variables QA histograms"};
   Configurable<bool> doArmenterosQA{"doArmenterosQA", false, "do Armenteros QA histograms"};
   Configurable<bool> doTPCQA{"doTPCQA", false, "do TPC QA histograms"};
   Configurable<bool> doTOFQA{"doTOFQA", false, "do TOF QA histograms"};
-  Configurable<bool> doEtaPhiQA{"doEtaPhiQA", false, "do Eta/Phi QA histograms for V0s and daughters"};
   Configurable<bool> doJetKinematicsQA{"doJetKinematicsQA", false, "do pT,Eta,Phi QA histograms for jets"};
   /////////////////////////////////////////////
 
@@ -331,6 +325,7 @@ struct lambdajetpolarizationions {
     ConfigurableAxis axisPtXi{"axisPtXi", {VARIABLE_WIDTH, 0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f, 1.8f, 1.9f, 2.0f, 2.2f, 2.4f, 2.6f, 2.8f, 3.0f, 3.2f, 3.4f, 3.6f, 3.8f, 4.0f, 4.4f, 4.8f, 5.2f, 5.6f, 6.0f, 6.5f, 7.0f, 7.5f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 17.0f, 19.0f, 21.0f, 23.0f, 25.0f, 30.0f, 35.0f, 40.0f, 50.0f}, "pt axis for feeddown from Xi"};
     ConfigurableAxis axisPtCoarse{"axisPtCoarse", {VARIABLE_WIDTH, 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 7.0f, 10.0f, 15.0f}, "pt axis for QA"};
     ConfigurableAxis axisLambdaMass{"axisLambdaMass", {450, 1.08f, 1.15f}, ""}; // Default is {200, 1.101f, 1.131f}
+    ConfigurableAxis axisLambdaMassCoarse{"axisLambdaMassCoarse", {200, 1.101f, 1.131f}, ""};
     ConfigurableAxis axisCentrality{"axisCentrality", {VARIABLE_WIDTH, 0.0f, 5.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f}, "Centrality"};
     ConfigurableAxis axisNch{"axisNch", {500, 0.0f, +5000.0f}, "Number of charged particles"};
     ConfigurableAxis axisIRBinning{"axisIRBinning", {500, 0, 50}, "Binning for the interaction rate (kHz)"};
@@ -661,6 +656,28 @@ struct lambdajetpolarizationions {
         lbl = "#color[16]{(off) " + lbl + "}";
       hSelectionV0s->GetXaxis()->SetBinLabel(i + 1, lbl.c_str()); // First non-underflow bin is bin 1
     }
+
+    // TH2D: "selection flow" vs "Lambda invariant mass" (to investigate whether we are removing background or just signal)
+    auto h2dSelectionLambdaMass = histos.add<TH2>("GeneralQA/h2dSelectionLambdaMass", "V0 selection flow vs M_{#Lambda}; ; M_{#Lambda} (GeV/#it{c}^{2})", kTH2D,
+                                                  {{static_cast<int>(v0LambdaSelectionLabels.size()), -0.5, static_cast<double>(v0LambdaSelectionLabels.size()) - 0.5},
+                                                    axisConfigurations.axisLambdaMassCoarse});
+    for (size_t i = 0; i < v0LambdaSelectionLabels.size(); ++i) {
+      auto lbl = v0LambdaSelectionLabels[i].label;
+      if (!v0LambdaSelectionLabels[i].enabled)
+        lbl = "#color[16]{(off) " + lbl + "}";
+      h2dSelectionLambdaMass->GetXaxis()->SetBinLabel(i + 1, lbl.c_str());
+    }
+
+    // Same for AntiLambda mass hypothesis:
+    auto h2dSelectionAntiLambdaMass = histos.add<TH2>("GeneralQA/h2dSelectionAntiLambdaMass", "V0 selection flow vs M_{#bar{#Lambda}}; ; M_{#bar{#Lambda}} (GeV/#it{c}^{2})", kTH2D,
+                                                      {{static_cast<int>(v0LambdaSelectionLabels.size()), -0.5, static_cast<double>(v0LambdaSelectionLabels.size()) - 0.5},
+                                                        axisConfigurations.axisLambdaMassCoarse});
+    for (size_t i = 0; i < v0LambdaSelectionLabels.size(); ++i) {
+      auto lbl = v0LambdaSelectionLabels[i].label;
+      if (!v0LambdaSelectionLabels[i].enabled)
+        lbl = "#color[16]{(off) " + lbl + "}";
+      h2dSelectionAntiLambdaMass->GetXaxis()->SetBinLabel(i + 1, lbl.c_str());
+    }
     ////////////////////////////////////////////////
     // Jet track candidate selection flow (analogous to hSelectionV0s):
     // Each label's "enabled" flag reflects whether the corresponding configurable
@@ -722,11 +739,6 @@ struct lambdajetpolarizationions {
         histos.add("Lambda/h3dNegTOFdeltaTvsTrackPt", "h3dNegTOFdeltaTvsTrackPt", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisTOFdeltaT});
       }
       // (TODO: add collision association capabilities in MC)
-      if (doEtaPhiQA) {
-        histos.add("Lambda/h5dV0PhiVsEta", "h5dV0PhiVsEta", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPhi, axisConfigurations.axisEta});
-        histos.add("Lambda/h5dPosPhiVsEta", "h5dPosPhiVsEta", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPhi, axisConfigurations.axisEta});
-        histos.add("Lambda/h5dNegPhiVsEta", "h5dNegPhiVsEta", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPhi, axisConfigurations.axisEta});
-      }
     }
     if (analyseAntiLambda) {
       histos.add("AntiLambda/h2dNbrOfAntiLambdaVsCentrality", "h2dNbrOfAntiLambdaVsCentrality", kTH2D, {axisConfigurations.axisCentrality, {10, -0.5f, 9.5f}});
@@ -760,11 +772,6 @@ struct lambdajetpolarizationions {
         histos.add("AntiLambda/h3dNegNsigmaTOFvsTrackPt", "h3dNegNsigmaTOFvsTrackPt", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisNsigmaTOF});
         histos.add("AntiLambda/h3dPosTOFdeltaTvsTrackPt", "h3dPosTOFdeltaTvsTrackPt", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisTOFdeltaT});
         histos.add("AntiLambda/h3dNegTOFdeltaTvsTrackPt", "h3dNegTOFdeltaTvsTrackPt", kTH3D, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisTOFdeltaT});
-      }
-      if (doEtaPhiQA) {
-        histos.add("AntiLambda/h5dV0PhiVsEta", "h5dV0PhiVsEta", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPhi, axisConfigurations.axisEta});
-        histos.add("AntiLambda/h5dPosPhiVsEta", "h5dPosPhiVsEta", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPhi, axisConfigurations.axisEta});
-        histos.add("AntiLambda/h5dNegPhiVsEta", "h5dNegPhiVsEta", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPhi, axisConfigurations.axisEta});
       }
     }
 
@@ -813,22 +820,7 @@ struct lambdajetpolarizationions {
       }
     }
 
-    if (doCompleteTopoQA) {
-      if (analyseLambda) {
-        histos.add("Lambda/h4dPosDCAToPV", "h4dPosDCAToPV", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisDCAtoPV});
-        histos.add("Lambda/h4dNegDCAToPV", "h4dNegDCAToPV", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisDCAtoPV});
-        histos.add("Lambda/h4dDCADaughters", "h4dDCADaughters", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisDCAdau});
-        histos.add("Lambda/h4dPointingAngle", "h4dPointingAngle", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPointingAngle});
-        histos.add("Lambda/h4dV0Radius", "h4dV0Radius", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisV0Radius});
-      }
-      if (analyseAntiLambda) {
-        histos.add("AntiLambda/h4dPosDCAToPV", "h4dPosDCAToPV", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisDCAtoPV});
-        histos.add("AntiLambda/h4dNegDCAToPV", "h4dNegDCAToPV", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisDCAtoPV});
-        histos.add("AntiLambda/h4dDCADaughters", "h4dDCADaughters", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisDCAdau});
-        histos.add("AntiLambda/h4dPointingAngle", "h4dPointingAngle", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisPointingAngle});
-        histos.add("AntiLambda/h4dV0Radius", "h4dV0Radius", kTHnD, {axisConfigurations.axisCentrality, axisConfigurations.axisPtCoarse, axisConfigurations.axisLambdaMass, axisConfigurations.axisV0Radius});
-      }
-
+    if (doTopoQA) {
       // For all received candidates:
       histos.add("V0KinematicQA/hPosDCAToPV", "hPosDCAToPV", kTH1D, {axisConfigurations.axisDCAtoPV});
       histos.add("V0KinematicQA/hNegDCAToPV", "hNegDCAToPV", kTH1D, {axisConfigurations.axisDCAtoPV});
@@ -984,22 +976,21 @@ struct lambdajetpolarizationions {
     int binValue = -1;                   // Starts at x=-1, which will go to bin 0 (underflow) in the definition of hSelectionV0s
                                          // Made it like this because we use ++binValue when filling, so the first filled
                                          // bin will always be x=0 due to operator precedence.
-    HistogramRegistry* histos = nullptr; // Had to pass the histos group to this struct, as it was not visible to the members of this struct
+    HistogramRegistry* histos = nullptr; // Had to pass the histos group to this struct, as it was not visible to the members of the struct
+    float mL = -1.f;  // mLambda for current V0, -1 at initialization
+    float mAL = -1.f; // mAntiLambda for current V0, -1 at initialization
+    void resetForNewV0(float massLambda, float massAntiLambda) { binValue = -1; mL = massLambda; mAL = massAntiLambda; }
+    void advanceTo(int targetBinX) { binValue = targetBinX - 1; } // next fill() lands at targetBin. Needed to deal with early exits at isLambda vs isAntiLambda checks
 
-    void resetForNewV0() { binValue = -1; }
-    // Advance to targetBinX, filling all intermediate bins.
-    // Use this for DISABLED cuts within a single hypothesis
-    // (shows pass-through count as a flat line, making it visually
-    // clear that the stage was not active).
-    // (Replaces N dummy fill() calls)
-    void fillUpTo(int targetBinX)
-    {
-      while (binValue < targetBinX)
-        histos->fill(HIST("GeneralQA/hSelectionV0s"), ++binValue);
+    void fill() {
+      histos->fill(HIST("GeneralQA/hSelectionV0s"), ++binValue); // Hardcoded hSelectionV0s histogram, as it will not change. Increments before filling, by default
+      histos->fill(HIST("GeneralQA/h2dSelectionLambdaMass"), binValue, mL);
+      histos->fill(HIST("GeneralQA/h2dSelectionAntiLambdaMass"), binValue, mAL);
     }
-
-    void advanceTo(int targetBinX) { binValue = targetBinX - 1; }              // next fill() lands at targetBin. Needed to deal with early exits at isLambda vs isAntiLambda checks
-    void fill() { histos->fill(HIST("GeneralQA/hSelectionV0s"), ++binValue); } // Hardcoded hSelectionV0s histogram, as it will not change. Increments before filling, by default
+    // Use this for DISABLED cuts within a single hypothesis
+    // (shows pass-through count as a flat line, making it visually clear that the stage was not active. Replaces N dummy fill() calls)
+    // fillUpTo advances through disabled bins, filling all three histograms uniformly.
+    void fillUpTo(int targetBinX) { while (binValue < targetBinX) fill(); }
   };
   V0SelectionFlowCounter V0SelCounter{-1, &histos}; // Could initialize with any index (resetForNewV0 is always called for a new V0 anyways)
                                                     // Calculating some bins, for convenience:
@@ -1794,7 +1785,7 @@ struct lambdajetpolarizationions {
     uint NNonAmbiguous = 0;
     uint NAmbiguous = 0;
     for (auto const& v0 : V0s) {
-      V0SelCounter.resetForNewV0();
+      V0SelCounter.resetForNewV0(v0.mLambda(), v0.mAntiLambda());
       V0SelCounter.fill(); // Fill for all v0 candidates
       if (doArmenterosQA)
         histos.fill(HIST("GeneralQA/h2dArmenterosAll"), v0.alpha(), v0.qtarm()); // fill AP plot for all V0s
@@ -1908,7 +1899,7 @@ struct lambdajetpolarizationions {
         }
       }
 
-      if (doCompleteTopoQA) {
+      if (doTopoQA) {
         // Remaking these variables outside of the passesLambdaLambdaBarHypothesis. Loses performance, but that should be OK for QA
         histos.fill(HIST("V0KinematicQA/hPosDCAToPV"), v0.dcapostopv());
         histos.fill(HIST("V0KinematicQA/hNegDCAToPV"), v0.dcanegtopv());
@@ -1961,11 +1952,6 @@ struct lambdajetpolarizationions {
               histos.fill(HIST("Lambda/h3dNegTOFdeltaTvsTrackPt"), centrality, v0.negativept(), v0.negTOFDeltaTLaPi());
             }
           }
-          if (doEtaPhiQA) {
-            histos.fill(HIST("Lambda/h5dV0PhiVsEta"), centrality, v0pt, v0.mLambda(), v0.phi(), v0.eta());
-            histos.fill(HIST("Lambda/h5dPosPhiVsEta"), centrality, v0.positivept(), v0.mLambda(), v0.positivephi(), v0.positiveeta());
-            histos.fill(HIST("Lambda/h5dNegPhiVsEta"), centrality, v0.negativept(), v0.mLambda(), v0.negativephi(), v0.negativeeta());
-          }
         }
         if (isAntiLambda && analyseAntiLambda) {
           histos.fill(HIST("hMassAntiLambda"), v0.mAntiLambda());
@@ -2008,11 +1994,6 @@ struct lambdajetpolarizationions {
               histos.fill(HIST("AntiLambda/h3dPosTOFdeltaTvsTrackPt"), centrality, v0.positivept(), v0.posTOFDeltaTLaPi());
               histos.fill(HIST("AntiLambda/h3dNegTOFdeltaTvsTrackPt"), centrality, v0.negativept(), v0.negTOFDeltaTLaPr());
             }
-          }
-          if (doEtaPhiQA) {
-            histos.fill(HIST("AntiLambda/h5dV0PhiVsEta"), centrality, v0pt, v0.mAntiLambda(), v0.phi(), v0.eta());
-            histos.fill(HIST("AntiLambda/h5dPosPhiVsEta"), centrality, v0.positivept(), v0.mAntiLambda(), v0.positivephi(), v0.positiveeta());
-            histos.fill(HIST("AntiLambda/h5dNegPhiVsEta"), centrality, v0.negativept(), v0.mAntiLambda(), v0.negativephi(), v0.negativeeta());
           }
         }
       } // end CompleteTopoQA
