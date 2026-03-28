@@ -236,7 +236,7 @@ struct lambdajetpolarizationionsderived {
   // Master analysis switches
   Configurable<bool> analyseLambda{"analyseLambda", true, "process Lambda-like candidates"};
   Configurable<bool> analyseAntiLambda{"analyseAntiLambda", false, "process AntiLambda-like candidates"};
-  // Configurable<bool> analyseMagField{"analyseMagField", true, "analyse efficiency effects wrt magnetic field"}; // Older DerivedData lacks magField. "if constexpr (requires { collision.magField(); })" would only see the current header definition, so need a flag for retro-comp.
+  Configurable<bool> analyseMagField{"analyseMagField", true, "analyse efficiency effects wrt magnetic field"}; // Older DerivedData lacks magField. "if constexpr (requires { collision.magField(); })" would only see the current header definition, so need a flag for retro-comp.
   Configurable<bool> doPPAnalysis{"doPPAnalysis", false, "if in pp, set to true. Default is HI"};
 
   // Centrality:
@@ -664,12 +664,12 @@ struct lambdajetpolarizationionsderived {
 
     // Studying the magnetic field dependence of particle reconstruction efficiency (not magnitude, just sign of field):
     // (also for the "negative helicity" problem)
-    // if (analyseMagField) {
-    //   histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomRight", "hLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-    //   histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft", "hLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-    //   histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight", "hAntiLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-    //   histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft", "hAntiLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-    // }
+    if (analyseMagField) {
+      histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomRight", "hLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft", "hLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight", "hAntiLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft", "hAntiLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
+    }
 
     // Integrated observable for events with NLambda+NAntiLambda V0s per event
     // (an interesting measurement of correlation between <R> and Lambda-like V0s multiplicity. A proxy of covariance)
@@ -685,14 +685,6 @@ struct lambdajetpolarizationionsderived {
     mAxisPt = histos.get<TH2>(HIST("Ring/DeltaMethod/h2dLambdaPtVsDeltaComp"))->GetXaxis();
     mAxisMass = histos.get<TH2>(HIST("Ring/DeltaMethod/h2dMassVsDeltaComp"))->GetXaxis();
     mAxisDTheta = histos.get<TH2>(HIST("Ring/DeltaMethod/h2dDeltaThetaVsDeltaComp"))->GetXaxis();
-
-    // // DEBUG! (commit this, then remove from final version)
-    // histos.add("hPxDebug", "hPxDebug", kTH1D, {{30, -5, 25}});
-    // histos.add("hPyDebug", "hPyDebug", kTH1D, {{30, -5, 25}});
-    // histos.add("hPzDebug", "hPzDebug", kTH1D, {{30, -5, 25}});
-    // histos.add("hPstar", "hPstar", kTH1D, {{20, 0, 0.5}});
-    // histos.add("hBetaMag", "hBetaMag", kTH1D, {{30, 0, 3}});
-    // histos.add("hMassConsistency", "hMassConsistency", kTH1D, {{100, 0, 1.5}});
   }
 
   // Helper to get centrality (same from TableProducer, thanks to templating!):
@@ -724,9 +716,9 @@ struct lambdajetpolarizationionsderived {
       const double centrality = getCentrality(collision);
       
       // Fetch magnetic field only if DataModel is in the latest version:
-      // float magField = 0.f; // Dummy value
-      // if (analyseMagField) 
-      //   magField = collision.magField();
+      float magField = 1.f; // Dummy value
+      if (analyseMagField) 
+        magField = collision.magField();
 
       // Slice jets, V0s and leading particle belonging to this collision:
       // (global collision indices repeat a lot, but they are unique to a same TimeFrame (TF) subfolder in the derived data)
@@ -985,17 +977,6 @@ struct lambdajetpolarizationionsderived {
         // Boosting proton into lambda frame:
         XYZVector beta = lambdaLike4Vec.BoostToCM(); // Boost trivector that goes from laboratory frame to Lambda's rest frame (convenient new function, different from TLorentzVector's BoostVector())
         auto protonLike4VecStar = ROOT::Math::VectorUtil::boost(protonLike4Vec, beta);
-        // auto lambdaStar = ROOT::Math::VectorUtil::boost(lambdaLike4Vec, beta); // DEBUG!
-        // histos.fill(HIST("hPxDebug"), lambdaStar.Px());
-        // histos.fill(HIST("hPyDebug"), lambdaStar.Py());
-        // histos.fill(HIST("hPzDebug"), lambdaStar.Pz());
-        // histos.fill(HIST("hPstar"), protonLike4VecStar.P()); // Should be a constant at ~100 MeV
-        // histos.fill(HIST("hBetaMag"), beta.R());
-        // // More QA:
-        // float E = lambdaLike4Vec.E();
-        // float p2 = lambdaLike4Vec.P2();
-        // float m2 = v0LambdaLikeMass * v0LambdaLikeMass;
-        // histos.fill(HIST("hMassConsistency"), E*E - p2 - m2);
 
         // Getting unit vectors and 3-components:
         XYZVector lambdaLike3Vec = lambdaLike4Vec.Vect();
@@ -1008,19 +989,19 @@ struct lambdajetpolarizationionsderived {
 
         // Another reconstruction efficiency measure:
         // (Formula is: p_{Lambda} \cross p_{Daughter}^{*} \cdot B, and B points in Z)
-        // if (analyseMagField) {
-        //   auto crossGeom = lambdaLike3Vec.Cross(protonLikeStarUnit3Vec);
-        //   const bool positiveGeom = crossGeom.Z() * magField > 0;
+        if (analyseMagField) {
+          auto crossGeom = lambdaLike3Vec.Cross(protonLikeStarUnit3Vec);
+          const bool positiveGeom = crossGeom.Z() * magField > 0;
 
-        //   if (isLambda && positiveGeom)
-        //     histos.fill(HIST("HelicityEfficiencyQA/hLambdaMassDecayGeomRight"), v0LambdaLikeMass);
-        //   else if (isLambda && !positiveGeom)
-        //     histos.fill(HIST("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft"), v0LambdaLikeMass);
-        //   else if (isAntiLambda && positiveGeom)
-        //     histos.fill(HIST("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight"), v0LambdaLikeMass);
-        //   else
-        //     histos.fill(HIST("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft"), v0LambdaLikeMass);
-        // }
+          if (isLambda && positiveGeom)
+            histos.fill(HIST("HelicityEfficiencyQA/hLambdaMassDecayGeomRight"), v0LambdaLikeMass);
+          else if (isLambda && !positiveGeom)
+            histos.fill(HIST("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft"), v0LambdaLikeMass);
+          else if (isAntiLambda && positiveGeom)
+            histos.fill(HIST("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight"), v0LambdaLikeMass);
+          else
+            histos.fill(HIST("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft"), v0LambdaLikeMass);
+        }
 
         ////////////////////////////////////////////
         // Ring observable: Leading particle proxy

@@ -33,6 +33,7 @@ namespace lambdajetpol
 DECLARE_SOA_COLUMN(CentFT0M, centFT0M, float);
 DECLARE_SOA_COLUMN(CentFT0C, centFT0C, float);
 DECLARE_SOA_COLUMN(CentFV0A, centFV0A, float);
+DECLARE_SOA_COLUMN(MagField, magField, float);
 
 // Jet (and jet proxies) information:
 DECLARE_SOA_COLUMN(JetPt, jetPt, float);
@@ -92,7 +93,8 @@ DECLARE_SOA_TABLE(RingCollisions, "AOD", "RINGCOLLISION",
                   o2::soa::Index<>, // self-index: auto-assigned row number
                   lambdajetpol::CentFT0M,
                   lambdajetpol::CentFT0C,
-                  lambdajetpol::CentFV0A);
+                  lambdajetpol::CentFV0A,
+                  lambdajetpol::MagField);
 
 namespace lambdajetpol
 {

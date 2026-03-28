@@ -1771,7 +1771,8 @@ struct lambdajetpolarizationions {
     // Fill event table:
     tableCollisions(collision.centFT0M(),
                     collision.centFT0C(),
-                    collision.centFV0A()); // (TODO: add InteractionRate info and other useful cuts for later on in the analysis)
+                    collision.centFV0A(),
+                    magField); // (TODO: add InteractionRate info and other useful cuts for later on in the analysis)
 
     // Get the derived collision row index for this event:
     const int ringCollIdx = tableCollisions.lastIndex();
