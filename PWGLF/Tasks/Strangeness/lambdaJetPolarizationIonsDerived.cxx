@@ -86,6 +86,7 @@ enum CentEstimator {
   X(FOLDER "/QA/hDeltaTheta", deltaThetaJet)                                                                               \
   X(FOLDER "/QA/hCosDeltaTheta", cosDeltaThetaJet)                                                                         \
   X(FOLDER "/QA/hIntegrated", 0.)                                                                                          \
+  X(FOLDER "/QA/hPtJet", leadingJetPt)                                                                                     \
   /* Lambda pT variation -- Youpeng's proposal */                                                                          \
   X(FOLDER "/QA/hLambdaPt", v0pt)                                                                                          \
   /* Counters */                                                                                                           \
@@ -98,6 +99,9 @@ enum CentEstimator {
   X(FOLDER "/pRingObservableEtaJet", leadingJetEta, ringObservable)                                                        \
   X(FOLDER "/pRingObservableIntegrated", 0., ringObservable)                                                               \
   X(FOLDER "/pRingObservableLambdaPt", v0pt, ringObservable)                                                               \
+  X(FOLDER "/pRingIntVsPtJet", leadingJetPt, ringObservable)                                                               \
+  X(FOLDER "/pRingIntVsPtJetVsEtaJet", leadingJetPt, leadingJetEta, ringObservable)                                        \
+  X(FOLDER "/pRingIntVsPtJetVsEtaV0", leadingJetPt, v0eta, ringObservable)                                                 \
   /* 2D Profiles */                                                                                                        \
   X(FOLDER "/p2dRingObservableDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, ringObservable)                                      \
   X(FOLDER "/p2dRingObservableDeltaThetaVsLambdaPt", deltaThetaJet, v0pt, ringObservable)                                  \
@@ -144,6 +148,7 @@ enum CentEstimator {
 #define RING_OBSERVABLE_LEADP_FILL_LIST(X, FOLDER)                                  \
   X(FOLDER "/QA/hDeltaPhiLeadP", deltaPhiLeadP)                                     \
   X(FOLDER "/QA/hDeltaThetaLeadP", deltaThetaLeadP)                                 \
+  X(FOLDER "/QA/hPtLeadP", leadPPt)                                                 \
   X(FOLDER "/QA/hCosDeltaThetaLeadP", cosDeltaThetaLeadP)                           \
   X(FOLDER "/pRingObservableLeadPDeltaPhi", deltaPhiLeadP, ringObservableLeadP)     \
   X(FOLDER "/pRingObservableLeadPDeltaTheta", deltaThetaLeadP, ringObservableLeadP) \
@@ -151,19 +156,26 @@ enum CentEstimator {
   X(FOLDER "/pRingObservableEtaLeadP", leadPEta, ringObservableLeadP)               \
   X(FOLDER "/pRingObservableLeadPIntegrated", 0., ringObservableLeadP)              \
   X(FOLDER "/pRingObservableLeadPLambdaPt", v0pt, ringObservableLeadP)              \
+  X(FOLDER "/pRingIntVsPtLeadP", leadPPt, ringObservableLeadP)                      \
+  X(FOLDER "/pRingIntVsPtLeadPVsEtaLeadP", leadPPt, leadPEta, ringObservableLeadP)  \
+  X(FOLDER "/pRingIntVsPtLeadPVsEtaV0", leadPPt, v0eta, ringObservableLeadP)        \
   X(FOLDER "/p2dRingObservableEtaLambdaVsEtaLeadP", v0eta, leadPEta, ringObservableLeadP)
 
 // For subleading jet:
-#define RING_OBSERVABLE_2NDJET_FILL_LIST(X, FOLDER)                                    \
-  X(FOLDER "/QA/hDeltaPhi2ndJet", deltaPhi2ndJet)                                      \
-  X(FOLDER "/QA/hDeltaTheta2ndJet", deltaTheta2ndJet)                                  \
-  X(FOLDER "/QA/hCosDeltaTheta2ndJet", cosDeltaTheta2ndJet)                            \
-  X(FOLDER "/pRingObservable2ndJetDeltaPhi", deltaPhi2ndJet, ringObservable2ndJet)     \
-  X(FOLDER "/pRingObservable2ndJetDeltaTheta", deltaTheta2ndJet, ringObservable2ndJet) \
-  X(FOLDER "/pRingObservableEtaLambda2ndJet", v0eta, ringObservable2ndJet)             \
-  X(FOLDER "/pRingObservableEta2ndJet", subleadingJetEta, ringObservable2ndJet)        \
-  X(FOLDER "/pRingObservable2ndJetIntegrated", 0., ringObservable2ndJet)               \
-  X(FOLDER "/pRingObservable2ndJetLambdaPt", v0pt, ringObservable2ndJet)               \
+#define RING_OBSERVABLE_2NDJET_FILL_LIST(X, FOLDER)                                                   \
+  X(FOLDER "/QA/hDeltaPhi2ndJet", deltaPhi2ndJet)                                                     \
+  X(FOLDER "/QA/hDeltaTheta2ndJet", deltaTheta2ndJet)                                                 \
+  X(FOLDER "/QA/hCosDeltaTheta2ndJet", cosDeltaTheta2ndJet)                                           \
+  X(FOLDER "/QA/hPt2ndJet", subleadingJetPt)                                                          \
+  X(FOLDER "/pRingObservable2ndJetDeltaPhi", deltaPhi2ndJet, ringObservable2ndJet)                    \
+  X(FOLDER "/pRingObservable2ndJetDeltaTheta", deltaTheta2ndJet, ringObservable2ndJet)                \
+  X(FOLDER "/pRingObservableEtaLambda2ndJet", v0eta, ringObservable2ndJet)                            \
+  X(FOLDER "/pRingObservableEta2ndJet", subleadingJetEta, ringObservable2ndJet)                       \
+  X(FOLDER "/pRingObservable2ndJetIntegrated", 0., ringObservable2ndJet)                              \
+  X(FOLDER "/pRingObservable2ndJetLambdaPt", v0pt, ringObservable2ndJet)                              \
+  X(FOLDER "/pRingIntVsPt2ndJet", subleadingJetPt, ringObservable2ndJet)                              \
+  X(FOLDER "/pRingIntVsPt2ndJetVsEta2ndJet", subleadingJetPt, subleadingJetEta, ringObservable2ndJet) \
+  X(FOLDER "/pRingIntVsPt2ndJetVsEtaV0", subleadingJetPt, v0eta, ringObservable2ndJet)                \
   X(FOLDER "/p2dRingObservableEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta, ringObservable2ndJet)
 
 #define POLARIZATION_PROFILE_FILL_LIST(X, FOLDER)                          \
@@ -249,7 +261,7 @@ struct lambdajetpolarizationionsderived {
   Configurable<bool> forceJetDirectionSmudge{"forceJetDirectionSmudge", false, "fluctuate jet direction by 10% of R around original axis. For QA (tests sensibility)"};
   // Configurable<float> jetRForSmudging{"jetRForSmudging", 0.4, "QA quantity: the chosen R scale for the jet direction smudge"}; // Superseeded by jetR: kept the same scale in analysis and QA
   Configurable<float> jetR{"jetR", 0.4f, "Radius of the jet"}; // Provide manually, please.
-  Configurable<float> minLeadParticlePt{"minLeadParticlePt", 2.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet"};
+  Configurable<float> minLeadParticlePt{"minLeadParticlePt", 2.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
   Configurable<float> minLeadJetPt{"minLeadJetPt", 10.0f, "Minimum Pt for leading jet to be considered valid (may be more restrictive than TableProducer)"};
   Configurable<float> minSubLeadJetPt{"minSubLeadJetPt", 5.0f, "Minimum Pt for subleading jet to be considered valid (may be more restrictive than TableProducer)"};
 
@@ -394,6 +406,25 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/pRingObservableDeltaTheta").c_str(), "pRingObservableDeltaTheta;#Delta#theta_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
       histos.add((folder + "/pRingObservableIntegrated").c_str(), "pRingObservableIntegrated; ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
       histos.add((folder + "/pRingObservableLambdaPt").c_str(), "pRingObservableLambdaPt;#it{p}_{T}^{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisPt});
+
+      // Ring vs Jet proxy pT:
+      histos.add((folder + "/pRingIntVsPtJet").c_str(), "pRingIntVsPtJet; p_{T}^{Jet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/pRingIntVsPtLeadP").c_str(), "pRingIntVsPtLeadP; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/pRingIntVsPt2ndJet").c_str(), "pRingIntVsPt2ndJet; p_{T}^{SubJet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+        // And some counters to be aware of the amount of Lambdas (and jets) in each pT interval:
+      histos.add((folder + "/QA/hPtJet").c_str(), "hPtJet", kTH1D, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/QA/hPtLeadP").c_str(), "hPtLeadP", kTH1D, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/QA/hPt2ndJet").c_str(), "hPt2ndJet", kTH1D, {axisConfigurations.axisJetPt});
+      
+      // Splitting into positive and negative eta contributions:
+      histos.add((folder + "/pRingIntVsPtJetVsEtaJet").c_str(), "pRingIntVsPtJetVsEtaJet; p_{T}^{Jet} (GeV/c);#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/pRingIntVsPtLeadPVsEtaLeadP").c_str(), "pRingIntVsPtLeadPVsEtaLeadP; p_{T}^{LeadP} (GeV/c);#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/pRingIntVsPt2ndJetVsEta2ndJet").c_str(), "pRingIntVsPt2ndJetVsEta2ndJet; p_{T}^{SubJet} (GeV/c);#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+        // For each Lambda's eta:
+      histos.add((folder + "/pRingIntVsPtJetVsEtaV0").c_str(), "pRingIntVsPtJetVsEtaV0; p_{T}^{Jet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/pRingIntVsPtLeadPVsEtaV0").c_str(), "pRingIntVsPtLeadPVsEtaV0; p_{T}^{LeadP} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/pRingIntVsPt2ndJetVsEtaV0").c_str(), "pRingIntVsPt2ndJetVsEtaV0; p_{T}^{SubJet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+
       // Understanding eta dependence seen in pRingEtaCuts:
       histos.add((folder + "/pRingObservableEtaLambda").c_str(), "pRingObservableEtaLambda;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
       histos.add((folder + "/pRingObservableEtaJet").c_str(), "pRingObservableEtaJet;#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
@@ -665,10 +696,10 @@ struct lambdajetpolarizationionsderived {
     // Studying the magnetic field dependence of particle reconstruction efficiency (not magnitude, just sign of field):
     // (also for the "negative helicity" problem)
     if (analyseMagField) {
-      histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomRight", "hLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft", "hLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight", "hAntiLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft", "hAntiLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomRight", "hLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+      histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft", "hLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+      histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight", "hAntiLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+      histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft", "hAntiLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
     }
 
     // Integrated observable for events with NLambda+NAntiLambda V0s per event
@@ -680,6 +711,11 @@ struct lambdajetpolarizationionsderived {
     histos.add("JetKinematicsQA/hLeadJetEta", "hLeadJetEta", kTH1D, {axisConfigurations.axisEta});
     histos.add("JetKinematicsQA/hSubLeadJetEta", "hSubLeadJetEta", kTH1D, {axisConfigurations.axisEta});
     histos.add("JetKinematicsQA/hLeadPEta", "hLeadPEta", kTH1D, {axisConfigurations.axisEta});
+
+    // Counting the number of jets/proxies themselves (these count at most once per event) -- Similar to the FOLDER/QA/hPtJet counters:
+    histos.add("JetKinematicsQA/hJetCounterPtJet", "hJetCounterPtJet; p_{T}^{Jet} (GeV/c)", kTH1D, {axisConfigurations.axisJetPt});
+    histos.add("JetKinematicsQA/hJetCounterPtLeadP", "hJetCounterPtLeadP; p_{T}^{LeadP} (GeV/c)", kTH1D, {axisConfigurations.axisJetPt});
+    histos.add("JetKinematicsQA/hJetCounterPt2ndJet", "hJetCounterPt2ndJet; p_{T}^{SubJet} (GeV/c)", kTH1D, {axisConfigurations.axisJetPt});
 
     // Fetch the X-axes from one of the families (since they all share the same ConfigurableAxis binning)
     mAxisPt = histos.get<TH2>(HIST("Ring/DeltaMethod/h2dLambdaPtVsDeltaComp"))->GetXaxis();
@@ -716,9 +752,9 @@ struct lambdajetpolarizationionsderived {
       const double centrality = getCentrality(collision);
       
       // Fetch magnetic field only if DataModel is in the latest version:
-      float magField = 1.f; // Dummy value
-      if (analyseMagField) 
-        magField = collision.magField();
+      float magField = 1.f; // Used this dummy for backwards compatibility, under the reasonable assumption that the field points always in the same *direction* in the used runs
+      // if (analyseMagField) 
+      //   magField = collision.magField();
 
       // Slice jets, V0s and leading particle belonging to this collision:
       // (global collision indices repeat a lot, but they are unique to a same TimeFrame (TF) subfolder in the derived data)
@@ -769,6 +805,8 @@ struct lambdajetpolarizationionsderived {
       XYZVector leadPUnitVec(1., 0., 0.); // dummy (overwritten below when hasValidLeadingP)
       if (hasValidLeadingP) {
         histos.fill(HIST("JetKinematicsQA/hLeadPEta"), leadPEta);
+        histos.fill(HIST("JetKinematicsQA/hJetCounterPtLeadP"), leadPPt);
+
         leadPUnitVec = XYZVector(leadPPx, leadPPy, leadPPz).Unit();
         // QA: same direction-smearing/perp logic as for the leading jet estimator.
         // The hLeadPEta histogram above intentionally uses the unmodified direction.
@@ -830,6 +868,7 @@ struct lambdajetpolarizationionsderived {
         // Using internal getters to make code cleaner:
         leadingJetUnitVec = XYZVector(leadingJet->jetPx(), leadingJet->jetPy(), leadingJet->jetPz()).Unit();
         histos.fill(HIST("JetKinematicsQA/hLeadJetEta"), leadingJetEta); // This will not be subject to the forcePerpToJet nor the forceJetDirectionSmudge QAs, for simplicity
+        histos.fill(HIST("JetKinematicsQA/hJetCounterPtJet"), leadingJetPt);
 
         // QA block -- Purposefully changing the jet direction (should kill signal, if any):
         if (forcePerpToJet) { // Use modified jet direction (done outside loop to guarantee all V0s inside event use same fake jet)
@@ -887,6 +926,7 @@ struct lambdajetpolarizationionsderived {
         subleadingJetPhi = subleadingJet->jetPhi();
         subJetUnitVec = XYZVector(subleadingJet->jetPx(), subleadingJet->jetPy(), subleadingJet->jetPz()).Unit();
         histos.fill(HIST("JetKinematicsQA/hSubLeadJetEta"), subleadingJetEta); // Unmodified direction
+        histos.fill(HIST("JetKinematicsQA/hJetCounterPt2ndJet"), subleadingJetPt);
         // QA: same direction-smearing/perp logic as for the leading jet estimator.
         if (forcePerpToJet) {
           XYZVector refVec(1., 0., 0.);
