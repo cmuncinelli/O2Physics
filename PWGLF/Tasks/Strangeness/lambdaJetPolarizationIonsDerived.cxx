@@ -95,13 +95,13 @@ enum CentEstimator {
   /* Additional plots for instant gratification - 1D Profiles */                                                           \
   X(FOLDER "/pRingObservableDeltaPhi", deltaPhiJet, ringObservable)                                                        \
   X(FOLDER "/pRingObservableDeltaTheta", deltaThetaJet, ringObservable)                                                    \
-  X(FOLDER "/pRingObservableEtaLambda", v0eta, ringObservable)                                                             \
-  X(FOLDER "/pRingObservableEtaJet", leadingJetEta, ringObservable)                                                        \
+  X(FOLDER "/EtaDependence/pRingObservableEtaLambda", v0eta, ringObservable)                                               \
+  X(FOLDER "/EtaDependence/pRingObservableEtaJet", leadingJetEta, ringObservable)                                          \
   X(FOLDER "/pRingObservableIntegrated", 0., ringObservable)                                                               \
   X(FOLDER "/pRingObservableLambdaPt", v0pt, ringObservable)                                                               \
-  X(FOLDER "/pRingIntVsPtJet", leadingJetPt, ringObservable)                                                               \
-  X(FOLDER "/pRingIntVsPtJetVsEtaJet", leadingJetPt, leadingJetEta, ringObservable)                                        \
-  X(FOLDER "/pRingIntVsPtJetVsEtaV0", leadingJetPt, v0eta, ringObservable)                                                 \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtJet", leadingJetPt, ringObservable)                                                \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtJetVsEtaJet", leadingJetPt, leadingJetEta, ringObservable)                         \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtJetVsEtaV0", leadingJetPt, v0eta, ringObservable)                                  \
   /* 2D Profiles */                                                                                                        \
   X(FOLDER "/p2dRingObservableDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, ringObservable)                                      \
   X(FOLDER "/p2dRingObservableDeltaThetaVsLambdaPt", deltaThetaJet, v0pt, ringObservable)                                  \
@@ -141,7 +141,7 @@ enum CentEstimator {
   /* 3D Profiles: Angle vs Mass vs Centrality */                                                                           \
   X(FOLDER "/p3dRingObservableDeltaPhiVsMassVsCent", deltaPhiJet, v0LambdaLikeMass, centrality, ringObservable)            \
   X(FOLDER "/p3dRingObservableDeltaThetaVsMassVsCent", deltaThetaJet, v0LambdaLikeMass, centrality, ringObservable)        \
-  X(FOLDER "/pRingIntVsCentrality", centrality, ringObservable)
+  X(FOLDER "/pRingVsCentrality", centrality, ringObservable)
 // (TODO: add counters for regular TH2Ds about centrality)
 
 // For leading particle
@@ -152,14 +152,52 @@ enum CentEstimator {
   X(FOLDER "/QA/hCosDeltaThetaLeadP", cosDeltaThetaLeadP)                           \
   X(FOLDER "/pRingObservableLeadPDeltaPhi", deltaPhiLeadP, ringObservableLeadP)     \
   X(FOLDER "/pRingObservableLeadPDeltaTheta", deltaThetaLeadP, ringObservableLeadP) \
-  X(FOLDER "/pRingObservableEtaLambdaLeadP", v0eta, ringObservableLeadP)            \
-  X(FOLDER "/pRingObservableEtaLeadP", leadPEta, ringObservableLeadP)               \
+  X(FOLDER "/EtaDependence/pRingObservableEtaLambdaLeadP", v0eta, ringObservableLeadP)            \
+  X(FOLDER "/EtaDependence/pRingObservableEtaLeadP", leadPEta, ringObservableLeadP)               \
   X(FOLDER "/pRingObservableLeadPIntegrated", 0., ringObservableLeadP)              \
   X(FOLDER "/pRingObservableLeadPLambdaPt", v0pt, ringObservableLeadP)              \
-  X(FOLDER "/pRingIntVsPtLeadP", leadPPt, ringObservableLeadP)                      \
-  X(FOLDER "/pRingIntVsPtLeadPVsEtaLeadP", leadPPt, leadPEta, ringObservableLeadP)  \
-  X(FOLDER "/pRingIntVsPtLeadPVsEtaV0", leadPPt, v0eta, ringObservableLeadP)        \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtLeadP", leadPPt, ringObservableLeadP)                      \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtLeadPVsEtaLeadP", leadPPt, leadPEta, ringObservableLeadP)  \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtLeadPVsEtaV0", leadPPt, v0eta, ringObservableLeadP)        \
   X(FOLDER "/p2dRingObservableEtaLambdaVsEtaLeadP", v0eta, leadPEta, ringObservableLeadP)
+
+// A macro that encapsulates all eta checks for leading particle and V0s, along with the fills
+// Parameters:
+//   FOLDER       -- histogram folder string (compile-time literal)
+//   LEADP_IS_POS -- bool: leadPEtaPos
+//   V0_IS_POS    -- bool: lambdaEtaPos
+#define RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST(FOLDER, LEADP_IS_POS, V0_IS_POS)       \
+  do {                                                                                   \
+    if (LEADP_IS_POS) {                                                                  \
+      /* leadP marginal: positive side */                                                \
+      APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP", leadPPt, ringObservableLeadP) \
+      if (V0_IS_POS) {                                                                   \
+        /* V0 marginal: positive side */                                                 \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0", leadPPt, ringObservableLeadP) \
+        /* Joint: (+leadP, +V0) */                                                       \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_PosEtaV0", leadPPt, ringObservableLeadP) \
+      } else {                                                                           \
+        /* V0 marginal: negative side */                                                 \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0", leadPPt, ringObservableLeadP) \
+        /* Joint: (+leadP, -V0) */                                                       \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_NegEtaV0", leadPPt, ringObservableLeadP) \
+      }                                                                                  \
+    } else {                                                                             \
+      /* leadP marginal: negative side */                                                \
+      APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP", leadPPt, ringObservableLeadP) \
+      if (V0_IS_POS) {                                                                   \
+        /* V0 marginal: positive side */                                                 \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0", leadPPt, ringObservableLeadP) \
+        /* Joint: (-leadP, +V0) */                                                       \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_PosEtaV0", leadPPt, ringObservableLeadP) \
+      } else {                                                                           \
+        /* V0 marginal: negative side */                                                 \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0", leadPPt, ringObservableLeadP) \
+        /* Joint: (-leadP, -V0) */                                                       \
+        APPLY_HISTO_FILL(FOLDER "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_NegEtaV0", leadPPt, ringObservableLeadP) \
+      }                                                                                  \
+    }                                                                                    \
+  } while (0)
 
 // For subleading jet:
 #define RING_OBSERVABLE_2NDJET_FILL_LIST(X, FOLDER)                                                   \
@@ -169,13 +207,13 @@ enum CentEstimator {
   X(FOLDER "/QA/hPt2ndJet", subleadingJetPt)                                                          \
   X(FOLDER "/pRingObservable2ndJetDeltaPhi", deltaPhi2ndJet, ringObservable2ndJet)                    \
   X(FOLDER "/pRingObservable2ndJetDeltaTheta", deltaTheta2ndJet, ringObservable2ndJet)                \
-  X(FOLDER "/pRingObservableEtaLambda2ndJet", v0eta, ringObservable2ndJet)                            \
-  X(FOLDER "/pRingObservableEta2ndJet", subleadingJetEta, ringObservable2ndJet)                       \
+  X(FOLDER "/EtaDependence/pRingObservableEtaLambda2ndJet", v0eta, ringObservable2ndJet)                            \
+  X(FOLDER "/EtaDependence/pRingObservableEta2ndJet", subleadingJetEta, ringObservable2ndJet)                       \
   X(FOLDER "/pRingObservable2ndJetIntegrated", 0., ringObservable2ndJet)                              \
   X(FOLDER "/pRingObservable2ndJetLambdaPt", v0pt, ringObservable2ndJet)                              \
-  X(FOLDER "/pRingIntVsPt2ndJet", subleadingJetPt, ringObservable2ndJet)                              \
-  X(FOLDER "/pRingIntVsPt2ndJetVsEta2ndJet", subleadingJetPt, subleadingJetEta, ringObservable2ndJet) \
-  X(FOLDER "/pRingIntVsPt2ndJetVsEtaV0", subleadingJetPt, v0eta, ringObservable2ndJet)                \
+  X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJet", subleadingJetPt, ringObservable2ndJet)                              \
+  X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJetVsEta2ndJet", subleadingJetPt, subleadingJetEta, ringObservable2ndJet) \
+  X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJetVsEtaV0", subleadingJetPt, v0eta, ringObservable2ndJet)                \
   X(FOLDER "/p2dRingObservableEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta, ringObservable2ndJet)
 
 #define POLARIZATION_PROFILE_FILL_LIST(X, FOLDER)                          \
@@ -275,8 +313,17 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisLambdaMass{"axisLambdaMass", {450, 1.08f, 1.15f}, "Lambda mass in GeV/c"}; // Default is {200, 1.101f, 1.131f}
 
     // Jet axes:
-    ConfigurableAxis axisLeadingParticlePt{"axisLeadingParticlePt", {100, 0.f, 200.f}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
-    ConfigurableAxis axisJetPt{"axisJetPt", {50, 0.f, 200.f}, "Jet p_{t} (GeV)"};
+    // ConfigurableAxis axisLeadingParticlePt{"axisLeadingParticlePt", {100, 0.f, 200.f}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
+    // ConfigurableAxis axisJetPt{"axisJetPt", {50, 0.f, 200.f}, "Jet p_{t} (GeV)"};
+    ConfigurableAxis axisJetPt{
+      "axisJetPt",
+      {VARIABLE_WIDTH,
+        0, 2, 4, 6, 8, 10, // 2 GeV bins
+        15, 20, 25, 30,    // 5 GeV bins
+        40, 50, 60,        // 10 GeV bins
+        80, 120, 160, 200}, // wider bins (20 and 40 GeV)
+      "Jet p_{T} (GeV)"};
+    ConfigurableAxis axisJetPtSigExtract{"axisJetPtSigExtract", {VARIABLE_WIDTH, 0, 5, 10, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Jet p_{t} (GeV)"};
     ConfigurableAxis axisEta{"axisEta", {50, -1.0f, 1.0f}, "#eta"};
     ConfigurableAxis axisEtaCoarse{"axisEtaCoarse", {20, -0.9f, 0.9f}, "#eta coarse axis"};
     ConfigurableAxis axisDeltaTheta{"axisDeltaTheta", {40, 0, constants::math::PI}, "#Delta #theta_{jet}"};
@@ -290,18 +337,17 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisLambdaMassSigExtract{
       "axisLambdaMassSigExtract",
       {VARIABLE_WIDTH,
-       // Left sideband (7 bins, 0.004 width)
-       1.0800, 1.0840, 1.0880, 1.0920,
-       1.0960, 1.1000, 1.1040, 1.1080,
-       // Fine peak region (8 bins, 0.0016 width)
-       1.1096, 1.1112, 1.1128, 1.1144,
-       1.1160, 1.1176, 1.1192, 1.1208,
-       // Right sideband (7 bins, 0.004 width)
-       1.1248, 1.1288, 1.1328, 1.1368,
-       1.1408, 1.1448, 1.1488},
+        // Left sideband (7 bins, 0.004 width)
+        1.0800, 1.0840, 1.0880, 1.0920,
+        1.0960, 1.1000, 1.1040, 1.1080,
+        // Fine peak region (8 bins, 0.0016 width)
+        1.1096, 1.1112, 1.1128, 1.1144,
+        1.1160, 1.1176, 1.1192, 1.1208,
+        // Right sideband (7 bins, 0.004 width)
+        1.1248, 1.1288, 1.1328, 1.1368,
+        1.1408, 1.1448, 1.1488},
       "Lambda mass in GeV/c"};
-    ConfigurableAxis axisLeadingParticlePtSigExtract{"axisLeadingParticlePtSigExtract", {VARIABLE_WIDTH, 0, 4, 8, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
-    ConfigurableAxis axisJetPtSigExtract{"axisJetPtSigExtract", {VARIABLE_WIDTH, 0, 5, 10, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Jet p_{t} (GeV)"};
+    // ConfigurableAxis axisLeadingParticlePtSigExtract{"axisLeadingParticlePtSigExtract", {VARIABLE_WIDTH, 0, 4, 8, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
 
     // (TODO: add a lambdaPt axis that is pre-selected only on the 0.5 to 1.5 Pt region for the Ring observable with lambda cuts to not store a huge histogram with empty bins by construction)
 
@@ -408,32 +454,45 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/pRingObservableLambdaPt").c_str(), "pRingObservableLambdaPt;#it{p}_{T}^{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisPt});
 
       // Ring vs Jet proxy pT:
-      histos.add((folder + "/pRingIntVsPtJet").c_str(), "pRingIntVsPtJet; p_{T}^{Jet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histos.add((folder + "/pRingIntVsPtLeadP").c_str(), "pRingIntVsPtLeadP; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histos.add((folder + "/pRingIntVsPt2ndJet").c_str(), "pRingIntVsPt2ndJet; p_{T}^{SubJet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtJet").c_str(), "pRingVsPtJet; p_{T}^{Jet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP").c_str(), "pRingVsPtLeadP; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPt2ndJet").c_str(), "pRingVsPt2ndJet; p_{T}^{SubJet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
         // And some counters to be aware of the amount of Lambdas (and jets) in each pT interval:
       histos.add((folder + "/QA/hPtJet").c_str(), "hPtJet", kTH1D, {axisConfigurations.axisJetPt});
       histos.add((folder + "/QA/hPtLeadP").c_str(), "hPtLeadP", kTH1D, {axisConfigurations.axisJetPt});
       histos.add((folder + "/QA/hPt2ndJet").c_str(), "hPt2ndJet", kTH1D, {axisConfigurations.axisJetPt});
       
       // Splitting into positive and negative eta contributions:
-      histos.add((folder + "/pRingIntVsPtJetVsEtaJet").c_str(), "pRingIntVsPtJetVsEtaJet; p_{T}^{Jet} (GeV/c);#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histos.add((folder + "/pRingIntVsPtLeadPVsEtaLeadP").c_str(), "pRingIntVsPtLeadPVsEtaLeadP; p_{T}^{LeadP} (GeV/c);#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histos.add((folder + "/pRingIntVsPt2ndJetVsEta2ndJet").c_str(), "pRingIntVsPt2ndJetVsEta2ndJet; p_{T}^{SubJet} (GeV/c);#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtJetVsEtaJet").c_str(), "Ring, PtJet Vs EtaJet; p_{T}^{Jet} (GeV/c);#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadPVsEtaLeadP").c_str(), "Ring, PtLeadP Vs EtaLeadP; p_{T}^{LeadP} (GeV/c);#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPt2ndJetVsEta2ndJet").c_str(), "Ring, Pt2ndJet Vs Eta2ndJet; p_{T}^{SubJet} (GeV/c);#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
         // For each Lambda's eta:
-      histos.add((folder + "/pRingIntVsPtJetVsEtaV0").c_str(), "pRingIntVsPtJetVsEtaV0; p_{T}^{Jet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histos.add((folder + "/pRingIntVsPtLeadPVsEtaV0").c_str(), "pRingIntVsPtLeadPVsEtaV0; p_{T}^{LeadP} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histos.add((folder + "/pRingIntVsPt2ndJetVsEtaV0").c_str(), "pRingIntVsPt2ndJetVsEtaV0; p_{T}^{SubJet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtJetVsEtaV0").c_str(), "Ring, PtJetVs Vs EtaV0; p_{T}^{Jet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadPVsEtaV0").c_str(), "Ring, PtLeadPVs Vs EtaV0; p_{T}^{LeadP} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPt2ndJetVsEtaV0").c_str(), "Ring, Pt2ndJetVs Vs EtaV0; p_{T}^{SubJet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+
+      // Rasterizing, only for LeadP the TProfile2D into two TProfile 1Ds (easier to draw with "same")
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP").c_str(), "Ring Vs PtLeadP, #eta_{LeadP}>0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP").c_str(), "Ring Vs PtLeadP, #eta_{LeadP}<0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+        // V0 eta:
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0").c_str(), "Ring Vs PtLeadP, #eta_{V0}>0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0").c_str(), "Ring Vs PtLeadP, #eta_{V0}<0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      
+      // Looking at V0Eta and JetEta combinations (only for LeadP):
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_PosEtaV0").c_str(), "Ring Vs PtLeadP, #eta_{LeadP}>0,#eta_{V0}>0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_PosEtaV0").c_str(), "Ring Vs PtLeadP, #eta_{LeadP}<0,#eta_{V0}>0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_NegEtaV0").c_str(), "Ring Vs PtLeadP, #eta_{LeadP}>0,#eta_{V0}<0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_NegEtaV0").c_str(), "Ring Vs PtLeadP, #eta_{LeadP}<0,#eta_{V0}<0; p_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
 
       // Understanding eta dependence seen in pRingEtaCuts:
-      histos.add((folder + "/pRingObservableEtaLambda").c_str(), "pRingObservableEtaLambda;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histos.add((folder + "/pRingObservableEtaJet").c_str(), "pRingObservableEtaJet;#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaLambda").c_str(), "pRingObservableEtaLambda;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaJet").c_str(), "pRingObservableEtaJet;#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
       
-      histos.add((folder + "/pRingObservableEtaLambda2ndJet").c_str(), "pRingObservableEtaLambda2ndJet;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histos.add((folder + "/pRingObservableEta2ndJet").c_str(), "pRingObservableEta2ndJet;#eta_{2ndJet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaLambda2ndJet").c_str(), "pRingObservableEtaLambda2ndJet;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEta2ndJet").c_str(), "pRingObservableEta2ndJet;#eta_{2ndJet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
       
-      histos.add((folder + "/pRingObservableEtaLambdaLeadP").c_str(), "pRingObservableEtaLambdaLeadP;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histos.add((folder + "/pRingObservableEtaLeadP").c_str(), "pRingObservableEtaLeadP;#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaLambdaLeadP").c_str(), "pRingObservableEtaLambdaLeadP;#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaLeadP").c_str(), "pRingObservableEtaLeadP;#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
       // For the leading particle:
       histos.add((folder + "/pRingObservableLeadPDeltaPhi").c_str(), "pRingObservableLeadPDeltaPhi;#Delta#varphi_{leadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
       histos.add((folder + "/pRingObservableLeadPDeltaTheta").c_str(), "pRingObservableLeadPDeltaTheta;#Delta#theta_{leadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
@@ -506,7 +565,7 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/QA/h3dDeltaThetaVsMassVsCent").c_str(), "h3dDeltaThetaVsMassVsCent", kTH3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
       // Useful TProfiles:
       // --- TProfile1D: Integrated <R> vs Centrality:
-      histos.add((folder + "/pRingIntVsCentrality").c_str(), "pRingIntVsCentrality; Centrality (%);<#it{R}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add((folder + "/pRingVsCentrality").c_str(), "pRingVsCentrality; Centrality (%);<#it{R}>", kTProfile, {axisConfigurations.axisCentrality});
       // --- TProfile2D: <R> vs Mass vs Centrality ---
       histos.add((folder + "/p2dRingObservableMassVsCent").c_str(), "p2dRingObservableMassVsCent;m_{p#pi};Centrality;<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
       // --- TProfile3D: <R> vs DeltaPhi vs Mass vs Centrality ---
@@ -1043,6 +1102,12 @@ struct lambdajetpolarizationionsderived {
             histos.fill(HIST("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft"), v0LambdaLikeMass);
         }
 
+        // Useful kinematic bools:
+        const bool lambdaEtaPos = v0eta >= 0.;
+        const bool pTLambdaCheck = v0pt > 0.5 && v0pt < 1.5;
+        const bool rapidityLambdaCheck = std::abs(lambdaRapidity) < 0.5;
+        const bool kinematicLambdaCheck = pTLambdaCheck && rapidityLambdaCheck;
+
         ////////////////////////////////////////////
         // Ring observable: Leading particle proxy
         // Only computed when a valid leading particle exists (pT > minLeadParticlePt)
@@ -1134,6 +1199,9 @@ struct lambdajetpolarizationionsderived {
                                                                           // No, there should NOT be any ";" here! Read the macro definition for an explanation
           histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 0, ringObservableLeadP); // First bin of comparison
           histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 0);
+
+          // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
+          RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("Ring", leadPEtaPos, lambdaEtaPos);
         }
         POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "Ring")
 
@@ -1160,10 +1228,6 @@ struct lambdajetpolarizationionsderived {
         }
 
         // Filling eta dependence QAs of the result (both for V0 and jet proxy):
-        const bool lambdaEtaPos = v0eta >= 0.;
-        const bool pTLambdaCheck = v0pt > 0.5 && v0pt < 1.5;
-        const bool rapidityLambdaCheck = std::abs(lambdaRapidity) < 0.5;
-        const bool kinematicLambdaCheck = pTLambdaCheck && rapidityLambdaCheck;
         if (hasValidLeadingJet) {
           histos.fill(HIST("ProxyEta/pRingEtaCuts"), 0, ringObservable);
           histos.fill(HIST("ProxyEta/pRingEtaCuts"), lambdaEtaPos ? 3 : 4, ringObservable);
@@ -1283,6 +1347,9 @@ struct lambdajetpolarizationionsderived {
             RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
             histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 1, ringObservableLeadP);
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 1);
+
+            // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
+            RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("RingKinematicCuts", leadPEtaPos, lambdaEtaPos);
           }
           POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
           if (hasValidLeadingJet) {
@@ -1323,6 +1390,9 @@ struct lambdajetpolarizationionsderived {
           RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
           histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 2, ringObservableLeadP);
           histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 2);
+
+          // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
+          RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetKinematicCuts", leadPEtaPos, lambdaEtaPos);
         }
         if (kinematic2ndJetCheck) {
           RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
@@ -1333,6 +1403,9 @@ struct lambdajetpolarizationionsderived {
           RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
           histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 3, ringObservableLeadP);
           histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 3);
+
+          // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
+          RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetAndLambdaKinematicCuts", leadPEtaPos, lambdaEtaPos);
         }
         if (kinematicLambdaCheck && kinematic2ndJetCheck) {
           RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
