@@ -354,6 +354,7 @@ struct lambdajetpolarizationionsderived {
   struct : ConfigurableGroup {
     std::string prefix = "qaSwitches";                                                                                                           // JSON group name
     Configurable<bool> doFakePolDiagnosticsQA{"doFakePolDiagnosticsQA", true, "Book and fill the EtaStudy/ and HelicityEfficiencyQA/ folders."}; // The largest per-V0 fill cost in this task
+    Configurable<bool> doEventMixingQA{"doEventMixingQA", true, "Book and fill the EventMixingQA/ folder. Requires fakePolSwitches.doMixedEventProxies."};
   } qaSwitches;
 
   // Centrality:
@@ -371,7 +372,7 @@ struct lambdajetpolarizationionsderived {
     Configurable<bool> forcePreviousJet{"forcePreviousJet", false, "uses previous event's jet direction instead of a random sample. A baseline for fake signal removal"};
     Configurable<bool> forceDatalikeJet{"forceDatalikeJet", false, "a compromise between forceRandJet and forcePreviousJet. Parameterized distribution from data"};
     Configurable<bool> doMixedEventProxies{"doMixedEventProxies", false, "mix leadP/leadJet/subJet directions between events using (proxy pt, Zvtx, centrality) bins -- three independent mixings, one per proxy"};
-    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 10, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once (shared by all 3 proxies)."};
+    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 50, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
     Configurable<int> nProxyResamples{"nProxyResamples", 1, "The amount of resamplings of jet direction per event. Use ONLY for forceRandJet and forceDatalikeJet"};
   } fakePolSwitches;
 
@@ -422,7 +423,15 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisPhi{"axisPhi", {40, 0., constants::math::TwoPI}, "#varphi"};
     ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {40, -constants::math::PI, constants::math::PI}, "#Delta #phi_{jet}"};
     ConfigurableAxis axisRingCounts{"axisRingCounts", {90, -4.5, 4.5}, "<#it{R}>"};
-    ConfigurableAxis axisDeltaCollisionIndex{"axisDeltaCollisionIndex", {200, -0.5f, 199.5f}, "#Delta collision index"}; // Always positive: SameKindPair pairs strictly upper
+    ConfigurableAxis axisDeltaCollisionIndex{"axisDeltaCollisionIndex", {500, -0.5f, 499.5f}, "#Delta collision index"}; // Always positive: SameKindPair pairs strictly upper
+
+    // Source-vs-target comparison for event mixing QA:
+    ConfigurableAxis axisMixDeltaPt{"axisMixDeltaPt", {4000, -40.f, 40.f}, "#Delta p_{T} (source - target) (GeV/c)"};
+    ConfigurableAxis axisMixDeltaZvtx{"axisMixDeltaZvtx", {2000, -30.f, 30.f}, "#Delta Z_{Vtx} (source - target) (cm)"};
+    ConfigurableAxis axisMixDeltaCentrality{"axisMixDeltaCentrality", {1000, -100.f, 100.f}, "#Delta Centrality (source - target) (%)"};
+    ConfigurableAxis axisMixDeltaEta{"axisMixDeltaEta", {90, -1.8f, 1.8f}, "#Delta#eta (source - target)"};
+    ConfigurableAxis axisMixDeltaPhi{"axisMixDeltaPhi", {90, -constants::math::PI, constants::math::PI}, "#Delta#varphi (source - target)"};
+    ConfigurableAxis axisMixCandidates{"axisMixCandidates", {50, -0.5f, 50.5f}, "Mixing candidates seen by this collision"};
 
     ConfigurableAxis axisDCAdau{"axisDCAdau", {10, 0., 2.0}, "DCA V0 daughters (cm)"};
     ConfigurableAxis axisDCAdauPV{"axisDCAdauPV", {10, 0., 1.2}, "DCA dauPV (cm)"}; // v0Selections.dcav0dau's default maximum is 1.2f in the TableProducer
@@ -1104,48 +1113,94 @@ struct lambdajetpolarizationionsderived {
 
     // doMixedEventProxies QA: gauge the size of the "too few collisions per bin" problem (see resonanceMergeDF.cxx)
     // Booked per proxy, since the three mixings are independent and can succeed/fail at different rates.
-    if (fakePolSwitches.doMixedEventProxies) {
-      histos.add("EventMixingQA/hMixedEventLeadPOutcome", "hMixedEventLeadPOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
-      histos.add("EventMixingQA/hMixedEventLeadJetOutcome", "hMixedEventLeadJetOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
-      histos.add("EventMixingQA/hMixedEventSubJetOutcome", "hMixedEventSubJetOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
+    if (fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA) {
+      // These histograms are filled in the collision loop, so we are QAing only the collisions with V0s
+      histos.add("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome", "hMixedEventLeadPOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
+      histos.add("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome", "hMixedEventLeadJetOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
+      histos.add("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome", "hMixedEventSubJetOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
+        // 2D histograms on every mixing variable:
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceZVtx", "h2dMixedEventLeadPOutcomeVsSourceZVtx;Outcome (0=skipped, 1=found);Source primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceZVtx", "h2dMixedEventLeadJetOutcomeVsSourceZVtx;Outcome (0=skipped, 1=found);Source primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceZVtx", "h2dMixedEventSubJetOutcomeVsSourceZVtx;Outcome (0=skipped, 1=found);Source primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
 
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceCentrality", "h2dMixedEventLeadPOutcomeVsSourceCentrality;Outcome (0=skipped, 1=found);Source centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceCentrality", "h2dMixedEventLeadJetOutcomeVsSourceCentrality;Outcome (0=skipped, 1=found);Source centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceCentrality", "h2dMixedEventSubJetOutcomeVsSourceCentrality;Outcome (0=skipped, 1=found);Source centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
+
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceProxyPt", "h2dMixedEventLeadPOutcomeVsSourceProxyPt;Outcome (0=skipped, 1=found);Source proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceProxyPt", "h2dMixedEventLeadJetOutcomeVsSourceProxyPt;Outcome (0=skipped, 1=found);Source proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceProxyPt", "h2dMixedEventSubJetOutcomeVsSourceProxyPt;Outcome (0=skipped, 1=found);Source proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
+
+      // QA at LUT building time:
       histos.add("EventMixingQA/hMixedEventLeadPWindowNeighbours", "hMixedEventLeadPWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {{22, -0.5f, 21.5f}});
       histos.add("EventMixingQA/hMixedEventLeadJetWindowNeighbours", "hMixedEventLeadJetWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {{22, -0.5f, 21.5f}});
       histos.add("EventMixingQA/hMixedEventSubJetWindowNeighbours", "hMixedEventSubJetWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {{22, -0.5f, 21.5f}});
 
-      histos.add("EventMixingQA/h2dMixedLeadPEtaVsLeadPEta", "MixedLeadP #eta vs LeadP #eta;MixedLeadP #eta; LeadP #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
-      histos.add("EventMixingQA/h2dMixedLeadPPhiVsLeadPPhi", "MixedLeadP #phi vs LeadP #phi;MixedLeadP #phi; LeadP #phi;Counts", kTH2D, {axisConfigurations.axisPhi, axisConfigurations.axisPhi});
-      histos.add("EventMixingQA/h2dMixedLeadJetEtaVsLeadJetEta", "MixedLeadJet #eta vs LeadJet #eta;MixedLeadJet #eta; LeadJet #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
-      histos.add("EventMixingQA/h2dMixedLeadJetPhiVsLeadJetPhi", "MixedLeadJet #phi vs LeadJet #phi;MixedLeadJet #phi; LeadJet #phi;Counts", kTH2D, {axisConfigurations.axisPhi, axisConfigurations.axisPhi});
-      histos.add("EventMixingQA/h2dMixedSubJetEtaVsSubJetEta", "MixedSubJet #eta vs SubJet #eta;MixedSubJet #eta; SubJet #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
-      histos.add("EventMixingQA/h2dMixedSubJetPhiVsSubJetPhi", "MixedSubJet #phi vs SubJet #phi;MixedSubJet #phi; SubJet #phi;Counts", kTH2D, {axisConfigurations.axisPhi, axisConfigurations.axisPhi});
+      histos.add("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta", "MixedLeadP #eta vs LeadP #eta;MixedLeadP #eta; LeadP #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
+      histos.add("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta", "MixedLeadJet #eta vs LeadJet #eta;MixedLeadJet #eta; LeadJet #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
+      histos.add("EventMixingQA/AnglrCorrltns/h2dMixedSubJetEtaVsSubJetEta", "MixedSubJet #eta vs SubJet #eta;MixedSubJet #eta; SubJet #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
+      histos.add("EventMixingQA/AnglrCorrltns/h2dMixedLeadPPhiVsLeadPPhi", "MixedLeadP #phi vs LeadP #phi;MixedLeadP #phi; LeadP #phi;Counts", kTH2D, {axisConfigurations.axisPhi, axisConfigurations.axisPhi});
+      histos.add("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetPhiVsLeadJetPhi", "MixedLeadJet #phi vs LeadJet #phi;MixedLeadJet #phi; LeadJet #phi;Counts", kTH2D, {axisConfigurations.axisPhi, axisConfigurations.axisPhi});
+      histos.add("EventMixingQA/AnglrCorrltns/h2dMixedSubJetPhiVsSubJetPhi", "MixedSubJet #phi vs SubJet #phi;MixedSubJet #phi; SubJet #phi;Counts", kTH2D, {axisConfigurations.axisPhi, axisConfigurations.axisPhi});
 
       // Collision-index proximity QA:
       // (To understand possible continous readout effects on the choice of event mixing sources -- do notice index and time are both monotonic, but there is a conversion factor)
       // The shape of the whole candidate pool:
-      histos.add("EventMixingQA/hMixedEventLeadPDeltaIndexEligible", "hMixedEventLeadPDeltaIndexEligible;#Delta collision index (pair);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
-      histos.add("EventMixingQA/hMixedEventLeadJetDeltaIndexEligible", "hMixedEventLeadJetDeltaIndexEligible;#Delta collision index (pair);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
-      histos.add("EventMixingQA/hMixedEventSubJetDeltaIndexEligible", "hMixedEventSubJetDeltaIndexEligible;#Delta collision index (pair);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      histos.add("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexEligible", "hMixedEventLeadPDeltaIndexEligible;#Delta collision index (pair);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      histos.add("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexEligible", "hMixedEventLeadJetDeltaIndexEligible;#Delta collision index (pair);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      histos.add("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexEligible", "hMixedEventSubJetDeltaIndexEligible;#Delta collision index (pair);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
 
       // What the reservoir actually picked:
       // (should be equally as narrow as the whole candidate pool, if no preferential mixing exists)
-      histos.add("EventMixingQA/hMixedEventLeadPDeltaIndexSelected", "hMixedEventLeadPDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
-      histos.add("EventMixingQA/hMixedEventLeadJetDeltaIndexSelected", "hMixedEventLeadJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
-      histos.add("EventMixingQA/hMixedEventSubJetDeltaIndexSelected", "hMixedEventSubJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      histos.add("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected", "hMixedEventLeadPDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      histos.add("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected", "hMixedEventLeadJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      histos.add("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected", "hMixedEventSubJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
 
       // Event mixing source QA -- How repeated is each collision in the mix:
       // For each source collision for mixing, counts how many times it was used. Flat distribution is ideal.
-      histos.add("EventMixingQA/hMixedEventLeadPSourceUsageCount", "hMixedEventLeadPSourceUsageCount;Times collision was used;Counts", kTH1D, {{50, -0.5f, 49.5f}});
-      histos.add("EventMixingQA/hMixedEventLeadJetSourceUsageCount", "hMixedEventLeadJetSourceUsageCount;Times collision was used;Counts", kTH1D, {{50, -0.5f, 49.5f}});
-      histos.add("EventMixingQA/hMixedEventSubJetSourceUsageCount", "hMixedEventSubJetSourceUsageCount;Times collision was used;Counts", kTH1D, {{50, -0.5f, 49.5f}});
+      histos.add("EventMixingQA/SourceUsage/hMixedEventLeadPSourceUsageCount", "hMixedEventLeadPSourceUsageCount;Times collision was used;Counts", kTH1D, {{50, -0.5f, 49.5f}});
+      histos.add("EventMixingQA/SourceUsage/hMixedEventLeadJetSourceUsageCount", "hMixedEventLeadJetSourceUsageCount;Times collision was used;Counts", kTH1D, {{50, -0.5f, 49.5f}});
+      histos.add("EventMixingQA/SourceUsage/hMixedEventSubJetSourceUsageCount", "hMixedEventSubJetSourceUsageCount;Times collision was used;Counts", kTH1D, {{50, -0.5f, 49.5f}});
       // Useful TProfiles -- the mean number of times a given source was used, as a function of eta or phi
       // (more convenient than a single TH1, as it gives an average, not the raw counter)
-      histos.add("EventMixingQA/pMixedEventLeadPSourceUsageVsEta", "pMixedEventLeadPSourceUsageVsEta;Source #eta;<Times used>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histos.add("EventMixingQA/pMixedEventLeadPSourceUsageVsPhi", "pMixedEventLeadPSourceUsageVsPhi;Source #varphi;<Times used>", kTProfile, {axisConfigurations.axisPhi});
-      histos.add("EventMixingQA/pMixedEventLeadJetSourceUsageVsEta", "pMixedEventLeadJetSourceUsageVsEta;Source #eta;<Times used>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histos.add("EventMixingQA/pMixedEventLeadJetSourceUsageVsPhi", "pMixedEventLeadJetSourceUsageVsPhi;Source #varphi;<Times used>", kTProfile, {axisConfigurations.axisPhi});
-      histos.add("EventMixingQA/pMixedEventSubJetSourceUsageVsEta", "pMixedEventSubJetSourceUsageVsEta;Source #eta;<Times used>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histos.add("EventMixingQA/pMixedEventSubJetSourceUsageVsPhi", "pMixedEventSubJetSourceUsageVsPhi;Source #varphi;<Times used>", kTProfile, {axisConfigurations.axisPhi});
+      histos.add("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsEta", "pMixedEventLeadPSourceUsageVsEta;Source #eta;<Times used>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsPhi", "pMixedEventLeadPSourceUsageVsPhi;Source #varphi;<Times used>", kTProfile, {axisConfigurations.axisPhi});
+      histos.add("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsEta", "pMixedEventLeadJetSourceUsageVsEta;Source #eta;<Times used>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsPhi", "pMixedEventLeadJetSourceUsageVsPhi;Source #varphi;<Times used>", kTProfile, {axisConfigurations.axisPhi});
+      histos.add("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsEta", "pMixedEventSubJetSourceUsageVsEta;Source #eta;<Times used>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsPhi", "pMixedEventSubJetSourceUsageVsPhi;Source #varphi;<Times used>", kTProfile, {axisConfigurations.axisPhi});
+
+      // Source-vs-target kinematics for the borrowed proxy, filled before applyProxyDistortion runs:
+      // These include "V0less" collisions that can be mixing sources, so it probes a different subset of events from hMixedEventLeadPOutcome's.
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPt", "hMixedEventLeadPDeltaPt;#Delta p_{T};Counts", kTH1D, {axisConfigurations.axisMixDeltaPt});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPt", "hMixedEventLeadJetDeltaPt;#Delta p_{T};Counts", kTH1D, {axisConfigurations.axisMixDeltaPt});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPt", "hMixedEventSubJetDeltaPt;#Delta p_{T};Counts", kTH1D, {axisConfigurations.axisMixDeltaPt});
+
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx", "hMixedEventLeadPDeltaZvtx;#Delta Z_{Vtx};Counts", kTH1D, {axisConfigurations.axisMixDeltaZvtx});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx", "hMixedEventLeadJetDeltaZvtx;#Delta Z_{Vtx};Counts", kTH1D, {axisConfigurations.axisMixDeltaZvtx}); // There should be no noticeable change between LeadP and LeadJet's collision-related histograms (if they don't bias event selection)
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx", "hMixedEventSubJetDeltaZvtx;#Delta Z_{Vtx};Counts", kTH1D, {axisConfigurations.axisMixDeltaZvtx});
+
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent", "hMixedEventLeadPDeltaCent;Centrality(%);Counts", kTH1D, {axisConfigurations.axisMixDeltaCentrality});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent", "hMixedEventLeadJetDeltaCent;Centrality(%);Counts", kTH1D, {axisConfigurations.axisMixDeltaCentrality});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent", "hMixedEventSubJetDeltaCent;Centrality(%);Counts", kTH1D, {axisConfigurations.axisMixDeltaCentrality});
+      
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaEta", "hMixedEventLeadPDeltaEta;#Delta#eta;Counts", kTH1D, {axisConfigurations.axisMixDeltaEta});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaEta", "hMixedEventLeadJetDeltaEta;#Delta#eta;Counts", kTH1D, {axisConfigurations.axisMixDeltaEta});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaEta", "hMixedEventSubJetDeltaEta;#Delta#eta;Counts", kTH1D, {axisConfigurations.axisMixDeltaEta});
+      
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi", "hMixedEventLeadPDeltaPhi;#Delta#varphi;Counts", kTH1D, {axisConfigurations.axisMixDeltaPhi});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi", "hMixedEventLeadJetDeltaPhi;#Delta#varphi;Counts", kTH1D, {axisConfigurations.axisMixDeltaPhi});
+      histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi", "hMixedEventSubJetDeltaPhi;#Delta#varphi;Counts", kTH1D, {axisConfigurations.axisMixDeltaPhi});
+
+      // How many mixing candidates a collision actually had:
+      histos.add("EventMixingQA/CollLoopOutcome/hMixedEventLeadPCandidates", "hMixedEventLeadPCandidates;Candidates seen by this collision;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
+      histos.add("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetCandidates", "hMixedEventLeadJetCandidates;Candidates seen by this collision;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
+      histos.add("EventMixingQA/CollLoopOutcome/hMixedEventSubJetCandidates", "hMixedEventSubJetCandidates;Candidates seen by this collision;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
+
+      // The same count resolved against the pt bin the collision was mixed in (source and target share it):
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedLeadPCandidatesVsPt", "h2dMixedLeadPCandidatesVsPt;Candidates;LeadP p_{T} (GeV/c);Counts", kTH2D, {axisConfigurations.axisMixCandidates, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedLeadJetCandidatesVsPt", "h2dMixedLeadJetCandidatesVsPt;Candidates;LeadJet p_{T} (GeV/c);Counts", kTH2D, {axisConfigurations.axisMixCandidates, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedSubJetCandidatesVsPt", "h2dMixedSubJetCandidatesVsPt;Candidates;SubJet p_{T} (GeV/c);Counts", kTH2D, {axisConfigurations.axisMixCandidates, axisConfigurations.axisJetPt});
     }
 
     // Fetch the X-axes from one of the families (since they all share the same ConfigurableAxis binning)
@@ -1191,9 +1246,9 @@ struct lambdajetpolarizationionsderived {
     XYZVector& unitVec; //! the proxy direction as a unit vector
   };
 
-  /// \brief The cache slots shared by forcePreviousJet and doMixedEventProxies, also bound by reference.
+  /// \brief The cache slots holding the source proxy for forcePreviousJet and doMixedEventProxies. Read-only and by reference.
   /// \note  Fallback skips this event using ProxyState::hasValidProxy.
-  /// \note  forcePreviousJet updates these here for the next collision, in a simplistic event event mixing approach.
+  /// \note  forcePreviousJet fills these in the main loop, from the previous analysed collision's own proxy.
   //         doMixedEventProxies instead overwrites the caller's cache fields with this collision's mixed proxy right before the call.
   struct ProxyCacheRef {
     bool& hadProxy;
@@ -1205,12 +1260,12 @@ struct lambdajetpolarizationionsderived {
   /// \brief Applies whichever fakePolSwitches distortion is active to a jet-proxy direction, in place. No-op if none are on.
   /// \param proxy input/edited in-place: the proxy's kinematics, overwritten by whichever distortion is active.
   /// \param minPtThreshold pT threshold for re-evaluating hasValidProxy after distortion.
-  /// \param cache input/edited in-place: the previous-jet/mixed-event caches.
-  /// \param etaDist,phiDist,rng sampling distributions/generator for forceRandJet and forceDatalikeJet.
+  /// \param cache input only: the previous-jet/mixed-event source proxy. The caller keeps it up to date. not this function.
+  /// \param etaDist,phiDist sampling distributions for forceDatalikeJet (drawn from the task's own rng member).
   /// \note  Shared across leadP/leadJet/subJet: the caller resolves which proxy-specific procedure (e.g., LUT for evtMixing) applies.
   // Helper to modify the jet direction for QA and for spurious signal baseline removal tests:
   inline void applyProxyDistortion(ProxyState proxy, float minPtThreshold, ProxyCacheRef cache,
-                                   std::discrete_distribution<int>& etaDist, std::discrete_distribution<int>& phiDist, std::mt19937& rng)
+                                   std::discrete_distribution<int>& etaDist, std::discrete_distribution<int>& phiDist)
   {
     if (!fakePolSwitches.forcePerpToJet && !fakePolSwitches.forceJetDirectionSmudge && !fakePolSwitches.forceRandJet && !fakePolSwitches.forcePreviousJet && !fakePolSwitches.forceDatalikeJet && !fakePolSwitches.doMixedEventProxies) [[likely]] {
       return; // Skip this function if none of the modifications are actually being executed!
@@ -1221,7 +1276,7 @@ struct lambdajetpolarizationionsderived {
     const bool borrowedPhysicalProxy = fakePolSwitches.forcePreviousJet || fakePolSwitches.doMixedEventProxies;
 
     // Total momentum of this collision's own proxy, before distortions:
-    const double beforeDistTotalMomentum = proxy.pt * std::cosh(proxy.eta);
+    const double beforeDistTotalMomentum = borrowedPhysicalProxy ? 0. : proxy.pt * std::cosh(proxy.eta); // Only needs to be calculated when borrowedPhysicalProxy is false
 
     // QA block -- Purposefully changing the jet direction (should kill signal, if any):
     if (fakePolSwitches.forcePerpToJet) {
@@ -1282,16 +1337,8 @@ struct lambdajetpolarizationionsderived {
 
       // 2) Construct the new random unit vector (there is no need to use the magnitude at all! We only need direction here):
       proxy.unitVec = XYZVector(sinTheta * std::cos(randPhi), sinTheta * std::sin(randPhi), cosTheta);
-    } else if (fakePolSwitches.forcePreviousJet) { // Use the jet from the immediately preceding collision. The simplest event mixing
-      const bool usableProxy = cache.hadProxy;
-
-      // Snapshot this collision's own proxy before overwriting it:
-      // (so that it acts as the next collision's "previous jet")
-      const float beforeDistPt = proxy.pt;
-      const float beforeDistEta = proxy.eta;
-      const float beforeDistPhi = proxy.phi;
-
-      if (usableProxy) {
+    } else if (borrowedPhysicalProxy) { // forcePreviousJet or doMixedEventProxies: a real proxy reconstructed in another collision
+      if (cache.hadProxy) {
         // Adopt the source proxy wholesale:
         // From here on this collision is treated as if it had had that leading particle/jet all along.
         proxy.pt = cache.pt;
@@ -1301,17 +1348,11 @@ struct lambdajetpolarizationionsderived {
         const double sinPhi = std::sin(cache.phi);
         const double cosPhi = std::cos(cache.phi);
         proxy.unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(cache.eta));
-      }
-
-      // Hand this collision's own proxy to the next one:
-      cache.hadProxy = proxy.hasValidProxy;
-      cache.pt = beforeDistPt;
-      cache.eta = beforeDistEta;
-      cache.phi = beforeDistPhi;
-
-      // Current event cannot use previous-jet mixing if previous event lacked a proxy
-      if (!usableProxy)
+      } else {
+        // No source proxy for this collision: the previous collision had none, or the mixing bins were too sparse.
+        // Either way this collision cannot be used.
         proxy.hasValidProxy = false;
+      }
     } else if (fakePolSwitches.forceDatalikeJet) { // A compromise between forceRandJet and forcePreviousJet, using data-like weights for sampling jets
       const float etaMin = -0.92f;
       const float etaBinWidth = 0.04f;
@@ -1329,25 +1370,9 @@ struct lambdajetpolarizationionsderived {
       const double sinPhi = std::sin(proxy.phi);
       const double cosPhi = std::cos(proxy.phi);
       proxy.unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(proxy.eta));
-    } else if (fakePolSwitches.doMixedEventProxies) {
-      // Takes this proxy from a real, similar other collision, rather than sampling a fitted distribution as datalikeJet.
-      if (cache.hadProxy) {
-        // Adopt the source proxy wholesale as forcePreviousJet:
-        proxy.pt = cache.pt;
-        proxy.eta = cache.eta;
-        proxy.phi = cache.phi;
-        const double inverseCoshEta = 1.0 / std::cosh(cache.eta);
-        const double sinPhi = std::sin(cache.phi);
-        const double cosPhi = std::cos(cache.phi);
-        proxy.unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(cache.eta));
-      } else {
-        // No mixing partner found for this collision (sparse bins!).
-        // Same skip that forcePreviousJet does above: an event without a valid mixed proxy cannot be used.
-        proxy.hasValidProxy = false;
-      }
     }
 
-    if (proxy.hasValidProxy) { // If you don't check this flag here, the "if (!usableProxy)" change would be silently overwritten
+    if (proxy.hasValidProxy) { // If you don't check this flag here, the borrowed-proxy miss above would be silently overwritten
       // if (borrowedPhysicalProxy) {
       //   // The adopted proxy is a real one that already passed this same cut when the pool was built
       //   // (minimum-pT gates on the mixing LUTs, hasValidProxy on the previous collision).
@@ -1509,6 +1534,12 @@ struct lambdajetpolarizationionsderived {
     std::unordered_map<int64_t, MixedProxyInfo> mixedLeadPByCollision;
     std::unordered_map<int64_t, MixedProxyInfo> mixedLeadJetByCollision;
     std::unordered_map<int64_t, MixedProxyInfo> mixedSubJetByCollision;
+    // Candidate counters for the the mixing: main loop below reads them back for QA.
+    std::unordered_map<int64_t, int> leadPCandidateCount;
+    std::unordered_map<int64_t, int> leadJetCandidateCount;
+    std::unordered_map<int64_t, int> subJetCandidateCount;
+    // A small guard:
+    const bool doMixingQA = fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA;
     // First we build lookup tables based on current dataframe's collisions (connects pairs of jet proxies from similar collisions):
     // (these proxies may come from collisions with no valid Lambdas, by construction, enabling more mixes)
     // (This is performed out of the resampling loop, so nProxyResamples will not resample event mixing candidates)
@@ -1537,7 +1568,6 @@ struct lambdajetpolarizationionsderived {
       SameKindPair<o2::aod::RingCollisions, o2::aod::RingLeadPs, LeadPBinningType> leadPPair{
         leadPBinning, fakePolSwitches.mixedEventWindowSize, -1, collisions, std::make_tuple(leadPs), &mixCache};
 
-      std::unordered_map<int64_t, int> leadPCandidateCount;
       for (auto it = leadPPair.begin(); it != leadPPair.end(); ++it) {
         auto& [c1, leadP1, c2, leadP2] = *it;         // Iterates over collision pairs and leading particle pairs (structured binding)
         if (leadP1.size() > 0 && leadP2.size() > 0) { // There should always be at least one leadP, given the overflow exclusion above
@@ -1557,9 +1587,10 @@ struct lambdajetpolarizationionsderived {
           // Each side of the pair is one more candidate for the other collision's reservoir:
           reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c1.globalIndex(), {pt2, eta2, phi2, c2.globalIndex()});
           reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c2.globalIndex(), {pt1, eta1, phi1, c1.globalIndex()});
-          histos.fill(HIST("EventMixingQA/hMixedEventLeadPDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
+          if (doMixingQA)
+            histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
         }
-        if (it.isNewWindow()) { // Count each bin-window once, not once per pair inside it
+        if (doMixingQA && it.isNewWindow()) { // Count each bin-window once, not once per pair inside it
           histos.fill(HIST("EventMixingQA/hMixedEventLeadPWindowNeighbours"), it.currentWindowNeighbours());
         }
       }
@@ -1584,7 +1615,6 @@ struct lambdajetpolarizationionsderived {
       SameKindPair<o2::aod::RingCollisions, o2::aod::RingJets, LeadJetBinningType> leadJetPair{
         leadJetBinning, fakePolSwitches.mixedEventWindowSize, -1, collisions, std::make_tuple(jets), &mixCache};
 
-      std::unordered_map<int64_t, int> leadJetCandidateCount;
       for (auto it = leadJetPair.begin(); it != leadJetPair.end(); ++it) {
         auto& [c1, jets1, c2, jets2] = *it; // jets1/jets2 intentionally unused: the leading/subleading jet is already resolved in jetProxyByCollision
         auto cachedLeadJet1 = jetProxyByCollision.find(c1.globalIndex());
@@ -1595,9 +1625,10 @@ struct lambdajetpolarizationionsderived {
                           {cachedLeadJet2->second.leadingJetPt, cachedLeadJet2->second.leadingJetEta, cachedLeadJet2->second.leadingJetPhi, c2.globalIndex()});
           reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, c2.globalIndex(),
                           {cachedLeadJet1->second.leadingJetPt, cachedLeadJet1->second.leadingJetEta, cachedLeadJet1->second.leadingJetPhi, c1.globalIndex()});
-          histos.fill(HIST("EventMixingQA/hMixedEventLeadJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
+          if (doMixingQA)
+            histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
         }
-        if (it.isNewWindow()) {
+        if (doMixingQA && it.isNewWindow()) {
           histos.fill(HIST("EventMixingQA/hMixedEventLeadJetWindowNeighbours"), it.currentWindowNeighbours());
         }
       }
@@ -1618,7 +1649,6 @@ struct lambdajetpolarizationionsderived {
       SameKindPair<o2::aod::RingCollisions, o2::aod::RingJets, SubJetBinningType> subJetPair{
         subJetBinning, fakePolSwitches.mixedEventWindowSize, -1, collisions, std::make_tuple(jets), &mixCache};
 
-      std::unordered_map<int64_t, int> subJetCandidateCount;
       for (auto it = subJetPair.begin(); it != subJetPair.end(); ++it) {
         auto& [c1, jets1, c2, jets2] = *it; // jets1/jets2 intentionally unused: the leading/subleading jet is already resolved in jetProxyByCollision
         auto cachedSubJet1 = jetProxyByCollision.find(c1.globalIndex());
@@ -1629,58 +1659,61 @@ struct lambdajetpolarizationionsderived {
                           {cachedSubJet2->second.subleadingJetPt, cachedSubJet2->second.subleadingJetEta, cachedSubJet2->second.subleadingJetPhi, c2.globalIndex()});
           reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, c2.globalIndex(),
                           {cachedSubJet1->second.subleadingJetPt, cachedSubJet1->second.subleadingJetEta, cachedSubJet1->second.subleadingJetPhi, c1.globalIndex()});
-          histos.fill(HIST("EventMixingQA/hMixedEventSubJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
+          if (doMixingQA)
+            histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
         }
-        if (it.isNewWindow()) {
+        if (doMixingQA && it.isNewWindow()) {
           histos.fill(HIST("EventMixingQA/hMixedEventSubJetWindowNeighbours"), it.currentWindowNeighbours());
         }
       }
 
-      // Selected-partner proximity: |target - source| for the partner the reservoir actually kept.
-      for (auto const& kv : mixedLeadPByCollision)
-        histos.fill(HIST("EventMixingQA/hMixedEventLeadPDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
-      for (auto const& kv : mixedLeadJetByCollision)
-        histos.fill(HIST("EventMixingQA/hMixedEventLeadJetDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
-      for (auto const& kv : mixedSubJetByCollision)
-        histos.fill(HIST("EventMixingQA/hMixedEventSubJetDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
+      if (doMixingQA) {
+        // Selected-partner proximity: |target - source| for the partner the reservoir actually kept.
+        for (auto const& kv : mixedLeadPByCollision)
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
+        for (auto const& kv : mixedLeadJetByCollision)
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
+        for (auto const& kv : mixedSubJetByCollision)
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
 
-      // Source-usage QA:
-      // (Per-proxy (HIST() needs literal names, so the fills stay unrolled here)
-      auto leadPUsage = tallySourceUsage(mixedLeadPByCollision);
-      for (auto const& kv : leadPUsage)
-        histos.fill(HIST("EventMixingQA/hMixedEventLeadPSourceUsageCount"), kv.second);
-      // Eta/phi of a mixed proxy is stored under the collision that receives the mixing -- reuse the first hit found:
-      for (auto const& kv : mixedLeadPByCollision) {
-        auto usageIt = leadPUsage.find(kv.second.sourceCollisionId);
-        if (usageIt == leadPUsage.end()) // already consumed below
-          continue;
-        histos.fill(HIST("EventMixingQA/pMixedEventLeadPSourceUsageVsEta"), kv.second.eta, usageIt->second);
-        histos.fill(HIST("EventMixingQA/pMixedEventLeadPSourceUsageVsPhi"), kv.second.phi, usageIt->second);
-        leadPUsage.erase(usageIt); // Fill this source exactly once, not once per target it supplied
-      }
+        // Source-usage QA:
+        // (Per-proxy (HIST() needs literal names, so the fills stay unrolled here)
+        auto leadPUsage = tallySourceUsage(mixedLeadPByCollision);
+        for (auto const& kv : leadPUsage)
+          histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadPSourceUsageCount"), kv.second);
+        // Eta/phi of a mixed proxy is stored under the collision that receives the mixing -- reuse the first hit found:
+        for (auto const& kv : mixedLeadPByCollision) {
+          auto usageIt = leadPUsage.find(kv.second.sourceCollisionId);
+          if (usageIt == leadPUsage.end()) // already consumed below
+            continue;
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsEta"), kv.second.eta, usageIt->second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsPhi"), kv.second.phi, usageIt->second);
+          leadPUsage.erase(usageIt); // Fill this source exactly once, not once per target it supplied
+        }
 
-      auto leadJetUsage = tallySourceUsage(mixedLeadJetByCollision);
-      for (auto const& kv : leadJetUsage)
-        histos.fill(HIST("EventMixingQA/hMixedEventLeadJetSourceUsageCount"), kv.second);
-      for (auto const& kv : mixedLeadJetByCollision) {
-        auto usageIt = leadJetUsage.find(kv.second.sourceCollisionId);
-        if (usageIt == leadJetUsage.end())
-          continue;
-        histos.fill(HIST("EventMixingQA/pMixedEventLeadJetSourceUsageVsEta"), kv.second.eta, usageIt->second);
-        histos.fill(HIST("EventMixingQA/pMixedEventLeadJetSourceUsageVsPhi"), kv.second.phi, usageIt->second);
-        leadJetUsage.erase(usageIt);
-      }
+        auto leadJetUsage = tallySourceUsage(mixedLeadJetByCollision);
+        for (auto const& kv : leadJetUsage)
+          histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadJetSourceUsageCount"), kv.second);
+        for (auto const& kv : mixedLeadJetByCollision) {
+          auto usageIt = leadJetUsage.find(kv.second.sourceCollisionId);
+          if (usageIt == leadJetUsage.end())
+            continue;
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsEta"), kv.second.eta, usageIt->second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsPhi"), kv.second.phi, usageIt->second);
+          leadJetUsage.erase(usageIt);
+        }
 
-      auto subJetUsage = tallySourceUsage(mixedSubJetByCollision);
-      for (auto const& kv : subJetUsage)
-        histos.fill(HIST("EventMixingQA/hMixedEventSubJetSourceUsageCount"), kv.second);
-      for (auto const& kv : mixedSubJetByCollision) {
-        auto usageIt = subJetUsage.find(kv.second.sourceCollisionId);
-        if (usageIt == subJetUsage.end())
-          continue;
-        histos.fill(HIST("EventMixingQA/pMixedEventSubJetSourceUsageVsEta"), kv.second.eta, usageIt->second);
-        histos.fill(HIST("EventMixingQA/pMixedEventSubJetSourceUsageVsPhi"), kv.second.phi, usageIt->second);
-        subJetUsage.erase(usageIt);
+        auto subJetUsage = tallySourceUsage(mixedSubJetByCollision);
+        for (auto const& kv : subJetUsage)
+          histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventSubJetSourceUsageCount"), kv.second);
+        for (auto const& kv : mixedSubJetByCollision) {
+          auto usageIt = subJetUsage.find(kv.second.sourceCollisionId);
+          if (usageIt == subJetUsage.end())
+            continue;
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsEta"), kv.second.eta, usageIt->second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsPhi"), kv.second.phi, usageIt->second);
+          subJetUsage.erase(usageIt);
+        }
       }
     }
 
@@ -1742,6 +1775,13 @@ struct lambdajetpolarizationionsderived {
         // Apply minimum pT selection for the leading particle (not necessarily the same as in derived data builder. Can be a stricter cut!):
         bool hasValidLeadingP = leadPPt > minLeadParticlePt;
 
+        // Snapshot this collision's own leading particle before any distortion can overwrite it,
+        // so forcePreviousJet can hand it to the next collision:
+        const bool beforeDistHasValidLeadP = hasValidLeadingP;
+        const float beforeDistLeadPPt = leadPPt;
+        const float beforeDistLeadPEta = leadPEta;
+        const float beforeDistLeadPPhi = leadPPhi;
+
         // Build leading particle unit vector, outside the V0 loop for performance.
         XYZVector leadPUnitVec(1., 0., 0.); // dummy (overwritten below when hasValidLeadingP)
         if (hasValidLeadingP) {
@@ -1757,14 +1797,36 @@ struct lambdajetpolarizationionsderived {
               proxyCache.leadPPt = itMix->second.pt;
               proxyCache.leadPEta = itMix->second.eta;
               proxyCache.leadPPhi = itMix->second.phi;
+            }
 
-              // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
-              histos.fill(HIST("EventMixingQA/hMixedEventLeadPOutcome"), 1);
-              histos.fill(HIST("EventMixingQA/h2dMixedLeadPEtaVsLeadPEta"), proxyCache.leadPEta, leadPEta);
-              histos.fill(HIST("EventMixingQA/h2dMixedLeadPPhiVsLeadPPhi"), proxyCache.leadPPhi, leadPPhi);
-            } else {
-              histos.fill(HIST("EventMixingQA/hMixedEventLeadPOutcome"), 0);
-              histos.fill(HIST("EventMixingQA/hMixedEventLeadPWindowNeighbours"), 0); // Fill with 0 neighbours
+            if (doMixingQA) {
+              // Filled hit or miss, so the zero bin is the miss rate seen from the pool's side:
+              auto itCount = leadPCandidateCount.find(collId);
+              const int nCandidates = (itCount != leadPCandidateCount.end()) ? itCount->second : 0;
+              histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPCandidates"), nCandidates);
+              histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadPCandidatesVsPt"), nCandidates, leadPPt);
+
+              if (proxyCache.hadLeadP) {
+                // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 1);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceZVtx"), 1, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceCentrality"), 1, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceProxyPt"), 1, leadPPt);
+
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta"), proxyCache.leadPEta, leadPEta);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPPhiVsLeadPPhi"), proxyCache.leadPPhi, leadPPhi);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPt"), proxyCache.leadPPt - leadPPt);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx"), proxyCache.collisionPVz - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent"), proxyCache.centrality - centrality);
+
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaEta"), proxyCache.leadPEta - leadPEta);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi"), wrapToPiFast(proxyCache.leadPPhi - leadPPhi));
+              } else {
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 0);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceZVtx"), 0, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceCentrality"), 0, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceProxyPt"), 0, leadPPt);
+              }
             }
           }
 
@@ -1772,7 +1834,7 @@ struct lambdajetpolarizationionsderived {
           // (modifies (leadPPt, leadPEta, leadPPhi, leadPUnitVec) as if the modified proxy was the actual proxy of this event)
           applyProxyDistortion({hasValidLeadingP, leadPPt, leadPEta, leadPPhi, leadPUnitVec},
                                minLeadParticlePt, {proxyCache.hadLeadP, proxyCache.leadPPt, proxyCache.leadPEta, proxyCache.leadPPhi},
-                               etaLeadPDist, phiLeadPDist, rng);
+                               etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms (i.e., the actually used proxy).
           // A borrowed-proxy miss and a failed pT gate will skip the fill.
@@ -1817,19 +1879,40 @@ struct lambdajetpolarizationionsderived {
               proxyCache.leadJetPt = itMix->second.pt;
               proxyCache.leadJetEta = itMix->second.eta;
               proxyCache.leadJetPhi = itMix->second.phi;
+            }
 
-              // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
-              histos.fill(HIST("EventMixingQA/hMixedEventLeadJetOutcome"), 1);
-              histos.fill(HIST("EventMixingQA/h2dMixedLeadJetEtaVsLeadJetEta"), proxyCache.leadJetEta, leadingJetEta);
-              histos.fill(HIST("EventMixingQA/h2dMixedLeadJetPhiVsLeadJetPhi"), proxyCache.leadJetPhi, leadingJetPhi);
-            } else {
-              histos.fill(HIST("EventMixingQA/hMixedEventLeadJetOutcome"), 0);
-              histos.fill(HIST("EventMixingQA/hMixedEventLeadJetWindowNeighbours"), 0); // Fill with 0 neighbours
+            if (doMixingQA) {
+              auto itCount = leadJetCandidateCount.find(collId);
+              const int nCandidates = (itCount != leadJetCandidateCount.end()) ? itCount->second : 0;
+              histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetCandidates"), nCandidates);
+              histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadJetCandidatesVsPt"), nCandidates, leadingJetPt);
+
+              if (proxyCache.hadLeadJet) {
+                // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome"), 1);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceZVtx"), 1, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceCentrality"), 1, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceProxyPt"), 1, leadingJetPt);
+
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta"), proxyCache.leadJetEta, leadingJetEta);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetPhiVsLeadJetPhi"), proxyCache.leadJetPhi, leadingJetPhi);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPt"), proxyCache.leadJetPt - leadingJetPt);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx"), proxyCache.collisionPVz - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent"), proxyCache.centrality - centrality);
+
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaEta"), proxyCache.leadJetEta - leadingJetEta);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi"), wrapToPiFast(proxyCache.leadJetPhi - leadingJetPhi));
+              } else {
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome"), 0);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceZVtx"), 0, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceCentrality"), 0, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceProxyPt"), 0, leadingJetPt);
+              }
             }
           }
           applyProxyDistortion({hasValidLeadingJet, leadingJetPt, leadingJetEta, leadingJetPhi, leadingJetUnitVec},
                                minLeadJetPt, {proxyCache.hadLeadJet, proxyCache.leadJetPt, proxyCache.leadJetEta, proxyCache.leadJetPhi},
-                               etaLeadPDist, phiLeadPDist, rng);
+                               etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
           // Do not gate on the post-distortion hasValidLeadingJet (a pT cut) value here!
@@ -1862,19 +1945,40 @@ struct lambdajetpolarizationionsderived {
               proxyCache.subJetPt = itMix->second.pt;
               proxyCache.subJetEta = itMix->second.eta;
               proxyCache.subJetPhi = itMix->second.phi;
+            }
 
-              // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
-              histos.fill(HIST("EventMixingQA/hMixedEventSubJetOutcome"), 1);
-              histos.fill(HIST("EventMixingQA/h2dMixedSubJetEtaVsSubJetEta"), proxyCache.subJetEta, subleadingJetEta);
-              histos.fill(HIST("EventMixingQA/h2dMixedSubJetPhiVsSubJetPhi"), proxyCache.subJetPhi, subleadingJetPhi);
-            } else {
-              histos.fill(HIST("EventMixingQA/hMixedEventSubJetOutcome"), 0);
-              histos.fill(HIST("EventMixingQA/hMixedEventSubJetWindowNeighbours"), 0); // Fill with 0 neighbours
+            if (doMixingQA) {
+              auto itCount = subJetCandidateCount.find(collId);
+              const int nCandidates = (itCount != subJetCandidateCount.end()) ? itCount->second : 0;
+              histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetCandidates"), nCandidates);
+              histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedSubJetCandidatesVsPt"), nCandidates, subleadingJetPt);
+
+              if (proxyCache.hadSubJet) {
+                // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome"), 1);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceZVtx"), 1, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceCentrality"), 1, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceProxyPt"), 1, subleadingJetPt);
+
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetEtaVsSubJetEta"), proxyCache.subJetEta, subleadingJetEta);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetPhiVsSubJetPhi"), proxyCache.subJetPhi, subleadingJetPhi);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPt"), proxyCache.subJetPt - subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx"), proxyCache.collisionPVz - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent"), proxyCache.centrality - centrality);
+
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaEta"), proxyCache.subJetEta - subleadingJetEta);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi"), wrapToPiFast(proxyCache.subJetPhi - subleadingJetPhi));
+              } else {
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome"), 0);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceZVtx"), 0, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceCentrality"), 0, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceProxyPt"), 0, subleadingJetPt);
+              }
             }
           }
           applyProxyDistortion({hasValidSubJet, subleadingJetPt, subleadingJetEta, subleadingJetPhi, subJetUnitVec},
                                minSubLeadJetPt, {proxyCache.hadSubJet, proxyCache.subJetPt, proxyCache.subJetEta, proxyCache.subJetPhi},
-                               etaLeadPDist, phiLeadPDist, rng);
+                               etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
           // Do not gate on the post-distortion hasValidSubJet (a pT cut) value here!
@@ -1887,6 +1991,13 @@ struct lambdajetpolarizationionsderived {
             if (doJetProxy5dQA)
               histos.fill(HIST("JetKinematicsQA/h5dSubLeadJetEtaPhiPtPVzCent"), subleadingJetEta, subleadingJetPhi, subleadingJetPt, collisionPVz, centrality);
           }
+        }
+
+        // forcePreviousJet: hand this collision's own proxies to the next collision.
+        if (fakePolSwitches.forcePreviousJet) {
+          prevJetCache = ProxyCacheSlots{jetProxies.hasValidLeadingJet, jetProxies.leadingJetPt, jetProxies.leadingJetEta, jetProxies.leadingJetPhi,
+                                         jetProxies.hasValidSubJet, jetProxies.subleadingJetPt, jetProxies.subleadingJetEta, jetProxies.subleadingJetPhi,
+                                         beforeDistHasValidLeadP, beforeDistLeadPPt, beforeDistLeadPEta, beforeDistLeadPPhi};
         }
 
         // (jet eta cuts only meaningful when the jet actually exists)
