@@ -112,6 +112,7 @@ enum CentEstimator {
   X(FOLDER "/pRingObservableDeltaTheta", deltaThetaJet, ringObservable)                                                    \
   X(FOLDER "/EtaDependence/pRingObservableEtaLambda", v0eta, ringObservable)                                               \
   X(FOLDER "/EtaDependence/pRingObservableEtaJet", leadingJetEta, ringObservable)                                          \
+  X(FOLDER "/EtaDependence/pRingObservableEtaJetHighEtaRes", leadingJetEta, ringObservable)                                \
   X(FOLDER "/pRingObservableIntegrated", 0., ringObservable)                                                               \
   X(FOLDER "/pRingObservableLambdaPt", v0pt, ringObservable)                                                               \
   X(FOLDER "/pRingObservableLeadJetPVz", collisionPVz, ringObservable)                                                     \
@@ -178,6 +179,7 @@ enum CentEstimator {
   X(FOLDER "/pRingObservableLeadPDeltaTheta", deltaThetaLeadP, ringObservableLeadP)                     \
   X(FOLDER "/EtaDependence/pRingObservableEtaLambdaLeadP", v0eta, ringObservableLeadP)                  \
   X(FOLDER "/EtaDependence/pRingObservableEtaLeadP", leadPEta, ringObservableLeadP)                     \
+  X(FOLDER "/EtaDependence/pRingObservableEtaLeadPHighEtaRes", leadPEta, ringObservableLeadP)           \
   X(FOLDER "/pRingObservableLeadPIntegrated", 0., ringObservableLeadP)                                  \
   X(FOLDER "/pRingObservableLeadPLambdaPt", v0pt, ringObservableLeadP)                                  \
   X(FOLDER "/pRingObservableLeadPPVz", collisionPVz, ringObservableLeadP)                               \
@@ -398,7 +400,7 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisLambdaPz{"axisLambdaPz", {40, -4.0f, 4.0f}, "#Lambda p_{z} (GeV/c)"};
 
     // Event properties:
-    ConfigurableAxis axisPVz{"axisPVz", {60, -15.0f, +15.0f}, "Primary Vertex Z [cm]"};
+    ConfigurableAxis axisPVz{"axisPVz", {60, -10.0f, +10.0f}, "Primary Vertex Z [cm]"};
 
     // Jet axes:
     // ConfigurableAxis axisLeadingParticlePt{"axisLeadingParticlePt", {100, 0.f, 200.f}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
@@ -415,6 +417,7 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisJetPtSigExtract{"axisJetPtSigExtract", {VARIABLE_WIDTH, 0, 5, 10, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Jet p_{t} (GeV)"};
     ConfigurableAxis axisEta{"axisEta", {50, -1.0f, 1.0f}, "#eta"};
     ConfigurableAxis axisEtaCoarse{"axisEtaCoarse", {20, -0.9f, 0.9f}, "#eta coarse axis"};
+    // ConfigurableAxis axisEtaFine{"axisEtaFine", {100, -0.9f, 0.9f}, "#eta fine axis"};
     ConfigurableAxis axisV0Eta{"axisV0Eta", {75, -1.5f, 1.5f}, "V0 #eta"}; // An axis for V0 eta, which can go up to 1.5 given standard producer selections
     ConfigurableAxis axisV0EtaCoarse{"axisV0EtaCoarse", {32, -1.5f, 1.5f}, "V0 #eta coarse"};
     ConfigurableAxis axisDeltaEtaCoarse{"axisDeltaEtaCoarse", {40, -1.8f, 1.8f}, "#Delta#eta coarse axis"};
@@ -423,15 +426,22 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisPhi{"axisPhi", {40, 0., constants::math::TwoPI}, "#varphi"};
     ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {40, -constants::math::PI, constants::math::PI}, "#Delta #phi_{jet}"};
     ConfigurableAxis axisRingCounts{"axisRingCounts", {90, -4.5, 4.5}, "<#it{R}>"};
-    ConfigurableAxis axisDeltaCollisionIndex{"axisDeltaCollisionIndex", {500, -0.5f, 499.5f}, "#Delta collision index"}; // Always positive: SameKindPair pairs strictly upper
+    ConfigurableAxis axisDeltaCollisionIndex{"axisDeltaCollisionIndex", {2000, -0.5f, 1999.5f}, "#Delta collision index"}; // Always positive: SameKindPair pairs strictly upper. 2000 should cover the whole dataframe extension.
+    ConfigurableAxis axisDeltaCollisionIndexNonAbs{"axisDeltaCollisionIndexNonAbs", {4000, -2000.5f, 1999.5f}, "#Delta collision index non abs"}; // Can be negative: the symmetric pairing calls of ReservoirInsert allow for preceding indices to be selected
 
     // Source-vs-target comparison for event mixing QA:
-    ConfigurableAxis axisMixDeltaPt{"axisMixDeltaPt", {4000, -40.f, 40.f}, "#Delta p_{T} (source - target) (GeV/c)"};
-    ConfigurableAxis axisMixDeltaZvtx{"axisMixDeltaZvtx", {2000, -30.f, 30.f}, "#Delta Z_{Vtx} (source - target) (cm)"};
+    ConfigurableAxis axisMixDeltaPt{"axisMixDeltaPt", {800, -40.f, 40.f}, "#Delta p_{T} (source - target) (GeV/c)"};
+    ConfigurableAxis axisMixDeltaZvtx{"axisMixDeltaZvtx", {400, -20.f, 20.f}, "#Delta Z_{Vtx} (source - target) (cm)"};
     ConfigurableAxis axisMixDeltaCentrality{"axisMixDeltaCentrality", {1000, -100.f, 100.f}, "#Delta Centrality (source - target) (%)"};
     ConfigurableAxis axisMixDeltaEta{"axisMixDeltaEta", {90, -1.8f, 1.8f}, "#Delta#eta (source - target)"};
     ConfigurableAxis axisMixDeltaPhi{"axisMixDeltaPhi", {90, -constants::math::PI, constants::math::PI}, "#Delta#varphi (source - target)"};
-    ConfigurableAxis axisMixCandidates{"axisMixCandidates", {50, -0.5f, 50.5f}, "Mixing candidates seen by this collision"};
+    ConfigurableAxis axisMixCandidates{"axisMixCandidates", {200, -0.5f, 199.5f}, "Mixing candidates seen by this collision"};
+
+    // Coarse axes for some index Vs "Delta mixed variable" TH2s:
+    ConfigurableAxis axisMixDeltaIndexCoarse{"axisMixDeltaIndexCoarse", {401, -200.5f, 200.5f}, "#Delta collision index (target - source)"}; // Unit-wide bins; wider separations land in over/underflow
+    ConfigurableAxis axisMixDeltaPtCoarse{"axisMixDeltaPtCoarse", {400, -40.f, 40.f}, "#Delta p_{T} (source - target) (GeV/c)"};
+    ConfigurableAxis axisMixDeltaZvtxCoarse{"axisMixDeltaZvtxCoarse", {200, -1.f, 1.f}, "#Delta Z_{Vtx} (source - target) (cm)"};       // Support is one axisPVz bin, so +-0.5 cm
+    ConfigurableAxis axisMixDeltaCentCoarse{"axisMixDeltaCentCoarse", {200, -100.f, 100.f}, "#Delta Centrality (source - target) (%)"};
 
     ConfigurableAxis axisDCAdau{"axisDCAdau", {10, 0., 2.0}, "DCA V0 daughters (cm)"};
     ConfigurableAxis axisDCAdauPV{"axisDCAdauPV", {10, 0., 1.2}, "DCA dauPV (cm)"}; // v0Selections.dcav0dau's default maximum is 1.2f in the TableProducer
@@ -670,12 +680,14 @@ struct lambdajetpolarizationionsderived {
       // Understanding eta dependence seen in pRingEtaCuts:
       histos.add((folder + "/EtaDependence/pRingObservableEtaLambda").c_str(), "<#it{R}> vs #eta_{#Lambda};#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
       histos.add((folder + "/EtaDependence/pRingObservableEtaJet").c_str(), "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaJetHighEtaRes").c_str(), "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
 
       histos.add((folder + "/EtaDependence/pRingObservableEtaLambda2ndJet").c_str(), "<#it{R}> vs #eta_{#Lambda} (SubJet);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
       histos.add((folder + "/EtaDependence/pRingObservableEta2ndJet").c_str(), "<#it{R}> vs #eta_{SubJet};#eta_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
 
       histos.add((folder + "/EtaDependence/pRingObservableEtaLambdaLeadP").c_str(), "<#it{R}> vs #eta_{#Lambda} (LeadP);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
       histos.add((folder + "/EtaDependence/pRingObservableEtaLeadP").c_str(), "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+      histos.add((folder + "/EtaDependence/pRingObservableEtaLeadPHighEtaRes").c_str(), "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
       // For the leading particle:
       histos.add((folder + "/hRingObservableLeadPCounts").c_str(), "Counts vs <#it{R}>_{LeadP};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
       histos.add((folder + "/pRingObservableLeadPDeltaPhi").c_str(), "<#it{R}> vs #Delta#varphi_{LeadP};#Delta#varphi_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
@@ -1119,22 +1131,22 @@ struct lambdajetpolarizationionsderived {
       histos.add("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome", "hMixedEventLeadJetOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
       histos.add("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome", "hMixedEventSubJetOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
         // 2D histograms on every mixing variable:
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceZVtx", "h2dMixedEventLeadPOutcomeVsSourceZVtx;Outcome (0=skipped, 1=found);Source primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceZVtx", "h2dMixedEventLeadJetOutcomeVsSourceZVtx;Outcome (0=skipped, 1=found);Source primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceZVtx", "h2dMixedEventSubJetOutcomeVsSourceZVtx;Outcome (0=skipped, 1=found);Source primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetZVtx", "h2dMixedEventLeadPOutcomeVsTargetZVtx;Outcome (0=skipped, 1=found);Target primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetZVtx", "h2dMixedEventLeadJetOutcomeVsTargetZVtx;Outcome (0=skipped, 1=found);Target primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetZVtx", "h2dMixedEventSubJetOutcomeVsTargetZVtx;Outcome (0=skipped, 1=found);Target primary Vertex Z [cm];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisPVz});
 
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceCentrality", "h2dMixedEventLeadPOutcomeVsSourceCentrality;Outcome (0=skipped, 1=found);Source centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceCentrality", "h2dMixedEventLeadJetOutcomeVsSourceCentrality;Outcome (0=skipped, 1=found);Source centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceCentrality", "h2dMixedEventSubJetOutcomeVsSourceCentrality;Outcome (0=skipped, 1=found);Source centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetCentrality", "h2dMixedEventLeadPOutcomeVsTargetCentrality;Outcome (0=skipped, 1=found);Target centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetCentrality", "h2dMixedEventLeadJetOutcomeVsTargetCentrality;Outcome (0=skipped, 1=found);Target centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetCentrality", "h2dMixedEventSubJetOutcomeVsTargetCentrality;Outcome (0=skipped, 1=found);Target centrality (%);Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisCentrality});
 
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceProxyPt", "h2dMixedEventLeadPOutcomeVsSourceProxyPt;Outcome (0=skipped, 1=found);Source proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceProxyPt", "h2dMixedEventLeadJetOutcomeVsSourceProxyPt;Outcome (0=skipped, 1=found);Source proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
-      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceProxyPt", "h2dMixedEventSubJetOutcomeVsSourceProxyPt;Outcome (0=skipped, 1=found);Source proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt", "h2dMixedEventLeadPOutcomeVsTargetProxyPt;Outcome (0=skipped, 1=found);Target proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt", "h2dMixedEventLeadJetOutcomeVsTargetProxyPt;Outcome (0=skipped, 1=found);Target proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt", "h2dMixedEventSubJetOutcomeVsTargetProxyPt;Outcome (0=skipped, 1=found);Target proxy p_{t} [GeV/c];Counts", kTH2D, {{2, -0.5f, 1.5f}, axisConfigurations.axisJetPt});
 
       // QA at LUT building time:
-      histos.add("EventMixingQA/hMixedEventLeadPWindowNeighbours", "hMixedEventLeadPWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {{22, -0.5f, 21.5f}});
-      histos.add("EventMixingQA/hMixedEventLeadJetWindowNeighbours", "hMixedEventLeadJetWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {{22, -0.5f, 21.5f}});
-      histos.add("EventMixingQA/hMixedEventSubJetWindowNeighbours", "hMixedEventSubJetWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {{22, -0.5f, 21.5f}});
+      histos.add("EventMixingQA/hMixedEventLeadPWindowNeighbours", "hMixedEventLeadPWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
+      histos.add("EventMixingQA/hMixedEventLeadJetWindowNeighbours", "hMixedEventLeadJetWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
+      histos.add("EventMixingQA/hMixedEventSubJetWindowNeighbours", "hMixedEventSubJetWindowNeighbours;Neighbours found in bin window;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
 
       histos.add("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta", "MixedLeadP #eta vs LeadP #eta;MixedLeadP #eta; LeadP #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
       histos.add("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta", "MixedLeadJet #eta vs LeadJet #eta;MixedLeadJet #eta; LeadJet #eta;Counts", kTH2D, {axisConfigurations.axisEtaCoarse, axisConfigurations.axisEtaCoarse});
@@ -1152,9 +1164,10 @@ struct lambdajetpolarizationionsderived {
 
       // What the reservoir actually picked:
       // (should be equally as narrow as the whole candidate pool, if no preferential mixing exists)
-      histos.add("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected", "hMixedEventLeadPDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
-      histos.add("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected", "hMixedEventLeadJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
-      histos.add("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected", "hMixedEventSubJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndex});
+      // This number may be higher than IndexEligible: Eligible has one entry per accepted pair, while Selected has one entry per distinct collision that has at least one mixing candidate.
+      histos.add("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected", "hMixedEventLeadPDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndexNonAbs});
+      histos.add("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected", "hMixedEventLeadJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndexNonAbs});
+      histos.add("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected", "hMixedEventSubJetDeltaIndexSelected;#Delta collision index (selected partner);Counts", kTH1D, {axisConfigurations.axisDeltaCollisionIndexNonAbs});
 
       // Event mixing source QA -- How repeated is each collision in the mix:
       // For each source collision for mixing, counts how many times it was used. Flat distribution is ideal.
@@ -1191,6 +1204,25 @@ struct lambdajetpolarizationionsderived {
       histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi", "hMixedEventLeadPDeltaPhi;#Delta#varphi;Counts", kTH1D, {axisConfigurations.axisMixDeltaPhi});
       histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi", "hMixedEventLeadJetDeltaPhi;#Delta#varphi;Counts", kTH1D, {axisConfigurations.axisMixDeltaPhi});
       histos.add("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi", "hMixedEventSubJetDeltaPhi;#Delta#varphi;Counts", kTH1D, {axisConfigurations.axisMixDeltaPhi});
+
+      // "Closure test" for the binning policy:
+      // Every entry's delta must be <= than the width of its own y bin (e.g., a 2-4 GeV/c target cannot borrow from more than 2 GeV/c away).
+      // (LeadP only as it would verify the same thing)
+      histos.add("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaPtVsTargetPt", "h2dMixedEventLeadPDeltaPtVsTargetPt;#Delta p_{T} (GeV/c);Target proxy p_{T} (GeV/c);Counts", kTH2D, {axisConfigurations.axisMixDeltaPt, axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaZvtxVsTargetZvtx", "h2dMixedEventLeadPDeltaZvtxVsTargetZvtx;#Delta Z_{Vtx} (cm);Target Z_{Vtx} (cm);Counts", kTH2D, {axisConfigurations.axisMixDeltaZvtx, axisConfigurations.axisPVz});
+      histos.add("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaCentVsTargetCent", "h2dMixedEventLeadPDeltaCentVsTargetCent;#Delta Centrality (%);Target centrality (%);Counts", kTH2D, {axisConfigurations.axisMixDeltaCentrality, axisConfigurations.axisCentrality});
+
+      // Index Vs "Delta mixed variable" TH2s to check if the width changes with indexing (possible evtSplittings or cannibalizations):
+      histos.add("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaPtVsDeltaIndex", "h2dMixedEventLeadPDeltaPtVsDeltaIndex;#Delta collision index;#Delta p_{T} (GeV/c);Counts", kTH2D, {axisConfigurations.axisMixDeltaIndexCoarse, axisConfigurations.axisMixDeltaPtCoarse});
+      histos.add("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaZvtxVsDeltaIndex", "h2dMixedEventLeadPDeltaZvtxVsDeltaIndex;#Delta collision index;#Delta Z_{Vtx} (cm);Counts", kTH2D, {axisConfigurations.axisMixDeltaIndexCoarse, axisConfigurations.axisMixDeltaZvtxCoarse});
+      histos.add("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaCentVsDeltaIndex", "h2dMixedEventLeadPDeltaCentVsDeltaIndex;#Delta collision index;#Delta Centrality (%);Counts", kTH2D, {axisConfigurations.axisMixDeltaIndexCoarse, axisConfigurations.axisMixDeltaCentCoarse});
+
+      // Counting bit-exact coincidences of values (QA for event mixing to make sure no auto-correlated mixing happens):
+      histos.add("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags", "hMixedEventLeadPIdentityFlags;0: pt, 1: eta, 2: phi, 3: Zvtx;Exact matches", kTH1D, {{4, -0.5f, 3.5f}});
+      // Angular coincidence check on a log scale (alternative):
+      histos.add("EventMixingQA/IdentityChecks/hMixedEventLeadPLogAngularSep", "hMixedEventLeadPLogAngularSep;log_{10}(#sqrt{#Delta#eta^{2} + #Delta#varphi^{2}});Counts", kTH1D, {{150, -7.f, 0.5f}});
+      // Bit-identical Zvtx value check at the LUT building time (characterization of "Birthday paradox" effect):
+      histos.add("EventMixingQA/IdentityChecks/hDuplicateZvtxCollisions", "hDuplicateZvtxCollisions;Collisions sharing one Zvtx value;Counts", kTH1D, {{101, 1.5f, 102.5f}});
 
       // How many mixing candidates a collision actually had:
       histos.add("EventMixingQA/CollLoopOutcome/hMixedEventLeadPCandidates", "hMixedEventLeadPCandidates;Candidates seen by this collision;Counts", kTH1D, {axisConfigurations.axisMixCandidates});
@@ -1441,10 +1473,13 @@ struct lambdajetpolarizationionsderived {
   };
 
   // A simple struct for doMixedEventProxies. Each proxy (leadP/leadJet/subJet) gets its own independent cache.
+  // (stores information from the borrowed event and the borrowed jets)
   struct MixedProxyInfo {
     float pt;
     float eta;
     float phi;
+    float zvtx; //! Knowingly repeated for the LeadP, LeadJet and SubJet, so memory is occupied 3x for this same value.
+    float centrality;
     int64_t sourceCollisionId;
   };
 
@@ -1454,12 +1489,15 @@ struct lambdajetpolarizationionsderived {
   void reservoirInsert(std::unordered_map<int64_t, int>& candidateCount, std::unordered_map<int64_t, MixedProxyInfo>& lut,
                        int64_t targetId, const MixedProxyInfo& candidate)
   {
+    // A collision must never borrow from itself:
+    // (StrictlyUpperSameIndexPolicy should make this impossible, but we check nonetheless)
+    if (targetId == candidate.sourceCollisionId)
+      LOG(fatal) << "EventMixing: collision " << targetId << " offered itself as a mixing source.";
     int& nSeen = candidateCount[targetId];
     ++nSeen;
     std::uniform_int_distribution<int> pick(1, nSeen);
-    if (pick(rng) == 1) {
+    if (pick(rng) == 1)
       lut[targetId] = candidate;
-    }
   }
 
   /// \brief How many different target collisions each source collision ended up supplying, from a finished LUT.
@@ -1540,6 +1578,17 @@ struct lambdajetpolarizationionsderived {
     std::unordered_map<int64_t, int> subJetCandidateCount;
     // A small guard:
     const bool doMixingQA = fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA;
+
+    // Bit-identical check on Zvtx values (QA for event mixing):
+    if (doMixingQA) {
+      std::unordered_map<float, int> zvtxOccupancy;
+      for (auto const& collision : collisions)
+        ++zvtxOccupancy[collision.zvtx()];
+      for (auto const& kv : zvtxOccupancy) {
+        if (kv.second > 1)
+          histos.fill(HIST("EventMixingQA/IdentityChecks/hDuplicateZvtxCollisions"), kv.second);
+      }
+    }
     // First we build lookup tables based on current dataframe's collisions (connects pairs of jet proxies from similar collisions):
     // (these proxies may come from collisions with no valid Lambdas, by construction, enabling more mixes)
     // (This is performed out of the resampling loop, so nProxyResamples will not resample event mixing candidates)
@@ -1585,8 +1634,9 @@ struct lambdajetpolarizationionsderived {
             break;
           }
           // Each side of the pair is one more candidate for the other collision's reservoir:
-          reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c1.globalIndex(), {pt2, eta2, phi2, c2.globalIndex()});
-          reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c2.globalIndex(), {pt1, eta1, phi1, c1.globalIndex()});
+          // (by doing this reservoirInsert on both sides of the mixed event, we also avoid the problems of SameKindPair being a window that only looks forward in the detaframe)
+          reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c1.globalIndex(), {pt2, eta2, phi2, c2.zvtx(), getCentrality(c2), c2.globalIndex()});
+          reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c2.globalIndex(), {pt1, eta1, phi1, c1.zvtx(), getCentrality(c1), c1.globalIndex()});
           if (doMixingQA)
             histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
         }
@@ -1622,9 +1672,9 @@ struct lambdajetpolarizationionsderived {
         if (cachedLeadJet1 != jetProxyByCollision.end() && cachedLeadJet2 != jetProxyByCollision.end() &&
             cachedLeadJet1->second.hasValidLeadingJet && cachedLeadJet2->second.hasValidLeadingJet) {
           reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, c1.globalIndex(),
-                          {cachedLeadJet2->second.leadingJetPt, cachedLeadJet2->second.leadingJetEta, cachedLeadJet2->second.leadingJetPhi, c2.globalIndex()});
+                          {cachedLeadJet2->second.leadingJetPt, cachedLeadJet2->second.leadingJetEta, cachedLeadJet2->second.leadingJetPhi, c2.zvtx(), getCentrality(c2), c2.globalIndex()});
           reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, c2.globalIndex(),
-                          {cachedLeadJet1->second.leadingJetPt, cachedLeadJet1->second.leadingJetEta, cachedLeadJet1->second.leadingJetPhi, c1.globalIndex()});
+                          {cachedLeadJet1->second.leadingJetPt, cachedLeadJet1->second.leadingJetEta, cachedLeadJet1->second.leadingJetPhi, c1.zvtx(), getCentrality(c1), c1.globalIndex()});
           if (doMixingQA)
             histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
         }
@@ -1656,9 +1706,9 @@ struct lambdajetpolarizationionsderived {
         if (cachedSubJet1 != jetProxyByCollision.end() && cachedSubJet2 != jetProxyByCollision.end() &&
             cachedSubJet1->second.hasValidSubJet && cachedSubJet2->second.hasValidSubJet) {
           reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, c1.globalIndex(),
-                          {cachedSubJet2->second.subleadingJetPt, cachedSubJet2->second.subleadingJetEta, cachedSubJet2->second.subleadingJetPhi, c2.globalIndex()});
+                          {cachedSubJet2->second.subleadingJetPt, cachedSubJet2->second.subleadingJetEta, cachedSubJet2->second.subleadingJetPhi, c2.zvtx(), getCentrality(c2), c2.globalIndex()});
           reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, c2.globalIndex(),
-                          {cachedSubJet1->second.subleadingJetPt, cachedSubJet1->second.subleadingJetEta, cachedSubJet1->second.subleadingJetPhi, c1.globalIndex()});
+                          {cachedSubJet1->second.subleadingJetPt, cachedSubJet1->second.subleadingJetEta, cachedSubJet1->second.subleadingJetPhi, c1.zvtx(), getCentrality(c1), c1.globalIndex()});
           if (doMixingQA)
             histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
         }
@@ -1668,13 +1718,14 @@ struct lambdajetpolarizationionsderived {
       }
 
       if (doMixingQA) {
-        // Selected-partner proximity: |target - source| for the partner the reservoir actually kept.
+        // Selected-partner proximity: target - source for the partner the reservoir actually kept.
+        // Non-"std::abs" values to know if we are properly tracking previous collisions as well.
         for (auto const& kv : mixedLeadPByCollision)
-          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected"), kv.first - kv.second.sourceCollisionId);
         for (auto const& kv : mixedLeadJetByCollision)
-          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected"), kv.first - kv.second.sourceCollisionId);
         for (auto const& kv : mixedSubJetByCollision)
-          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected"), std::abs(kv.first - kv.second.sourceCollisionId));
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected"), kv.first - kv.second.sourceCollisionId);
 
         // Source-usage QA:
         // (Per-proxy (HIST() needs literal names, so the fills stay unrolled here)
@@ -1719,6 +1770,9 @@ struct lambdajetpolarizationionsderived {
 
     for (int idxResampling = 0; idxResampling < fakePolSwitches.nProxyResamples; idxResampling++) { // resampling loop for forceRandJet and forceDatalikeJet
       for (auto const& collision : collisions) {
+        if (fakePolSwitches.doMixedEventProxies) { // Making sure cache is properly reset for each new collision
+          proxyCache = {};
+        }
         const float collisionPVz = collision.zvtx();
 
         const auto collId = collision.globalIndex(); // The self-index accessor
@@ -1799,6 +1853,17 @@ struct lambdajetpolarizationionsderived {
               proxyCache.leadPPhi = itMix->second.phi;
             }
 
+            // bit-by-bit checks of correspondence (asked for no-lint on these "paranoid" checks):
+            // (inexpensive enough that we can check this at production time)
+            const bool samePtProxy = (itMix->second.pt == leadPPt); // NOLINT(clang-diagnostic-float-equal)
+            const bool sameEtaProxy = (itMix->second.eta == leadPEta); // NOLINT(clang-diagnostic-float-equal)
+            const bool samePhiProxy = (itMix->second.phi == leadPPhi); // NOLINT(clang-diagnostic-float-equal)
+            const bool sameZvtxLeadP = (itMix->second.zvtx == collisionPVz); // NOLINT(clang-diagnostic-float-equal)
+            if (samePtProxy && sameEtaProxy && samePhiProxy) { // Astronomically small chance, even with the birthday paradox
+              LOG(fatal) << "EventMixing: borrowed leadP is bit-identical to the target's own in pt, eta and phi. Target collision "
+                         << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadPPt;
+            }
+
             if (doMixingQA) {
               // Filled hit or miss, so the zero bin is the miss rate seen from the pool's side:
               auto itCount = leadPCandidateCount.find(collId);
@@ -1809,23 +1874,52 @@ struct lambdajetpolarizationionsderived {
               if (proxyCache.hadLeadP) {
                 // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 1);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceZVtx"), 1, collisionPVz);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceCentrality"), 1, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceProxyPt"), 1, leadPPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetZVtx"), 1, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetCentrality"), 1, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt"), 1, leadPPt);
 
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta"), proxyCache.leadPEta, leadPEta);
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPPhiVsLeadPPhi"), proxyCache.leadPPhi, leadPPhi);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPt"), proxyCache.leadPPt - leadPPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx"), proxyCache.collisionPVz - collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent"), proxyCache.centrality - centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx"), itMix->second.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent"), itMix->second.centrality - centrality);
+
+                // QAing the binning policy itself to verify if any wrong proxies are being borrowed:
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaPtVsTargetPt"), proxyCache.leadPPt - leadPPt, leadPPt);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaZvtxVsTargetZvtx"), itMix->second.zvtx - collisionPVz, collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaCentVsTargetCent"), itMix->second.centrality - centrality, centrality);
 
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaEta"), proxyCache.leadPEta - leadPEta);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi"), wrapToPiFast(proxyCache.leadPPhi - leadPPhi));
+
+                // 2D Index Vs Delta Mixed-Variable QAs:
+                const float deltaIndexLeadP = static_cast<float>(collId - itMix->second.sourceCollisionId);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaPtVsDeltaIndex"), deltaIndexLeadP, itMix->second.pt - leadPPt);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaZvtxVsDeltaIndex"), deltaIndexLeadP, itMix->second.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaCentVsDeltaIndex"), deltaIndexLeadP, itMix->second.centrality - centrality);
+
+                if (sameZvtxLeadP && samePtLeadP) // Flagged as "alarm" level
+                LOG(alarm) << "EventMixing: source and target share Zvtx and leadP pt bit-for-bit -- duplicated collision row? Target "
+                          << collId << ", source " << itMix->second.sourceCollisionId << ", Zvtx " << collisionPVz;
+
+                // Single-variable coincidences are possible by chance, so they are counted instead:
+                if (samePtLeadP)
+                  histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 0);
+                if (sameEtaLeadP)
+                  histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 1);
+                if (samePhiLeadP)
+                  histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 2);
+                if (sameZvtxLeadP)
+                  histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 3);
+
+                // Possible shared-track case in event splitting, done in a log scale:
+                const float angularSepLeadP = std::hypot(itMix->second.eta - leadPEta, wrapToPiFast(itMix->second.phi - leadPPhi));
+                histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPLogAngularSep"), angularSepLeadP > 0.f ? std::log10(angularSepLeadP) : -7.f);
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 0);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceZVtx"), 0, collisionPVz);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceCentrality"), 0, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsSourceProxyPt"), 0, leadPPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetZVtx"), 0, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetCentrality"), 0, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt"), 0, leadPPt);
               }
             }
           }
@@ -1881,6 +1975,15 @@ struct lambdajetpolarizationionsderived {
               proxyCache.leadJetPhi = itMix->second.phi;
             }
 
+            // bit-by-bit checks of correspondence:
+            const bool samePtProxy = (itMix->second.pt == leadingJetPt); // NOLINT(clang-diagnostic-float-equal)
+            const bool sameEtaProxy = (itMix->second.eta == leadingJetEta); // NOLINT(clang-diagnostic-float-equal)
+            const bool samePhiProxy = (itMix->second.phi == leadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
+            if (samePtProxy && sameEtaProxy && samePhiProxy) { // Astronomically small chance, even with the birthday paradox
+              LOG(fatal) << "EventMixing: borrowed LeadJet is bit-identical to the target's own in pt, eta and phi. Target collision "
+                         << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadingJetPt;
+            }
+
             if (doMixingQA) {
               auto itCount = leadJetCandidateCount.find(collId);
               const int nCandidates = (itCount != leadJetCandidateCount.end()) ? itCount->second : 0;
@@ -1890,23 +1993,23 @@ struct lambdajetpolarizationionsderived {
               if (proxyCache.hadLeadJet) {
                 // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome"), 1);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceZVtx"), 1, collisionPVz);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceCentrality"), 1, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceProxyPt"), 1, leadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetZVtx"), 1, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetCentrality"), 1, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt"), 1, leadingJetPt);
 
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta"), proxyCache.leadJetEta, leadingJetEta);
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetPhiVsLeadJetPhi"), proxyCache.leadJetPhi, leadingJetPhi);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPt"), proxyCache.leadJetPt - leadingJetPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx"), proxyCache.collisionPVz - collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent"), proxyCache.centrality - centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx"), itMix->second.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent"), itMix->second.centrality - centrality);
 
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaEta"), proxyCache.leadJetEta - leadingJetEta);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi"), wrapToPiFast(proxyCache.leadJetPhi - leadingJetPhi));
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome"), 0);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceZVtx"), 0, collisionPVz);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceCentrality"), 0, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsSourceProxyPt"), 0, leadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetZVtx"), 0, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetCentrality"), 0, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt"), 0, leadingJetPt);
               }
             }
           }
@@ -1947,6 +2050,15 @@ struct lambdajetpolarizationionsderived {
               proxyCache.subJetPhi = itMix->second.phi;
             }
 
+            // bit-by-bit checks of correspondence:
+            const bool samePtProxy = (itMix->second.pt == subleadingJetPt); // NOLINT(clang-diagnostic-float-equal)
+            const bool sameEtaProxy = (itMix->second.eta == subleadingJetEta); // NOLINT(clang-diagnostic-float-equal)
+            const bool samePhiProxy = (itMix->second.phi == subleadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
+            if (samePtProxy && sameEtaProxy && samePhiProxy) { // Astronomically small chance, even with the birthday paradox
+              LOG(fatal) << "EventMixing: borrowed SubJet is bit-identical to the target's own in pt, eta and phi. Target collision "
+                         << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << subleadingJetPt;
+            }
+
             if (doMixingQA) {
               auto itCount = subJetCandidateCount.find(collId);
               const int nCandidates = (itCount != subJetCandidateCount.end()) ? itCount->second : 0;
@@ -1956,23 +2068,23 @@ struct lambdajetpolarizationionsderived {
               if (proxyCache.hadSubJet) {
                 // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome"), 1);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceZVtx"), 1, collisionPVz);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceCentrality"), 1, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceProxyPt"), 1, subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetZVtx"), 1, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetCentrality"), 1, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt"), 1, subleadingJetPt);
 
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetEtaVsSubJetEta"), proxyCache.subJetEta, subleadingJetEta);
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetPhiVsSubJetPhi"), proxyCache.subJetPhi, subleadingJetPhi);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPt"), proxyCache.subJetPt - subleadingJetPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx"), proxyCache.collisionPVz - collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent"), proxyCache.centrality - centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx"), itMix->second.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent"), itMix->second.centrality - centrality);
 
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaEta"), proxyCache.subJetEta - subleadingJetEta);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi"), wrapToPiFast(proxyCache.subJetPhi - subleadingJetPhi));
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome"), 0);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceZVtx"), 0, collisionPVz);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceCentrality"), 0, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsSourceProxyPt"), 0, subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetZVtx"), 0, collisionPVz);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetCentrality"), 0, centrality);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt"), 0, subleadingJetPt);
               }
             }
           }
