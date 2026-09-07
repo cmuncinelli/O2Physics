@@ -119,6 +119,7 @@ enum CentEstimator {
   X(FOLDER "/ProxyPtDependence/pRingVsPtJet", leadingJetPt, ringObservable)                                                \
   X(FOLDER "/ProxyPtDependence/pRingVsPtJetVsEtaJet", leadingJetPt, leadingJetEta, ringObservable)                         \
   X(FOLDER "/ProxyPtDependence/pRingVsPtJetVsEtaV0", leadingJetPt, v0eta, ringObservable)                                  \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtJetVsCentrality", leadingJetPt, centrality, ringObservable)                        \
   /* 2D Profiles */                                                                                                        \
   X(FOLDER "/p2dRingObservableDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, ringObservable)                                      \
   X(FOLDER "/p2dRingObservableDeltaThetaVsLambdaPt", deltaThetaJet, v0pt, ringObservable)                                  \
@@ -145,6 +146,9 @@ enum CentEstimator {
   /* 2D Profiles: Angle vs Mass */                                                                                         \
   X(FOLDER "/p2dRingObservableDeltaPhiVsMass", deltaPhiJet, v0LambdaLikeMass, ringObservable)                              \
   X(FOLDER "/p2dRingObservableDeltaThetaVsMass", deltaThetaJet, v0LambdaLikeMass, ringObservable)                          \
+  /* 2D Profiles: EtaProxy vs Mass */                                                                                      \
+  X(FOLDER "/p2dRingObservableEtaLeadJetVsMass", leadingJetEta, v0LambdaLikeMass, ringObservable)                          \
+  X(FOLDER "/h2dCounterEtaLeadJetVsMass", leadingJetEta, v0LambdaLikeMass)                                                 \
   /* 2D Profile: Ring vs Eta variables */                                                                                  \
   X(FOLDER "/EtaDependence/hCounterEtaLambdaMinusEtaJet", v0eta - leadingJetEta)                                           \
   X(FOLDER "/EtaDependence/pRingObservableEtaLambdaMinusEtaJet", v0eta - leadingJetEta, ringObservable)                    \
@@ -186,10 +190,14 @@ enum CentEstimator {
   X(FOLDER "/ProxyPtDependence/pRingVsPtLeadP", leadPPt, ringObservableLeadP)                           \
   X(FOLDER "/ProxyPtDependence/pRingVsPtLeadPVsEtaLeadP", leadPPt, leadPEta, ringObservableLeadP)       \
   X(FOLDER "/ProxyPtDependence/pRingVsPtLeadPVsEtaV0", leadPPt, v0eta, ringObservableLeadP)             \
+  X(FOLDER "/ProxyPtDependence/pRingVsPtLeadPVsCentrality", leadPPt, centrality, ringObservableLeadP)   \
   X(FOLDER "/EtaDependence/p2dRingObservableEtaLambdaVsEtaLeadP", v0eta, leadPEta, ringObservableLeadP) \
   X(FOLDER "/EtaDependence/h2dCounterEtaLambdaVsEtaLeadP", v0eta, leadPEta)                             \
   X(FOLDER "/p2dRingObservableLeadPVsPxPy", v0px, v0py, ringObservableLeadP)                            \
-  X(FOLDER "/p2dRingObservableLeadPVsPzPx", v0pz, v0px, ringObservableLeadP)
+  X(FOLDER "/p2dRingObservableLeadPVsPzPx", v0pz, v0px, ringObservableLeadP)                            \
+  /* 2D Profiles: EtaProxy vs Mass */                                                                   \
+  X(FOLDER "/p2dRingObservableLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass, ringObservableLeadP)    \
+  X(FOLDER "/h2dCounterLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass)
 
 // A macro that encapsulates all eta checks for leading particle and V0s, along with the fills
 // Parameters:
@@ -246,8 +254,12 @@ enum CentEstimator {
   X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJet", subleadingJetPt, ringObservable2ndJet)                              \
   X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJetVsEta2ndJet", subleadingJetPt, subleadingJetEta, ringObservable2ndJet) \
   X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJetVsEtaV0", subleadingJetPt, v0eta, ringObservable2ndJet)                \
+  X(FOLDER "/ProxyPtDependence/pRingVsPt2ndJetVsCentrality", subleadingJetPt, centrality, ringObservable2ndJet)      \
   X(FOLDER "/EtaDependence/p2dRingObservableEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta, ringObservable2ndJet)    \
-  X(FOLDER "/EtaDependence/h2dCounterEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta)
+  X(FOLDER "/EtaDependence/h2dCounterEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta)                                 \
+  /* 2D Profiles: EtaProxy vs Mass */                                                                                \
+  X(FOLDER "/p2dRingObservable2ndJetEta2ndJetVsMass", subleadingJetEta, v0LambdaLikeMass, ringObservable2ndJet)      \
+  X(FOLDER "/h2dCounter2ndJetEta2ndJetVsMass", subleadingJetEta, ringObservable2ndJet)
 
 #define POLARIZATION_PROFILE_FILL_LIST(X, FOLDER)                          \
   /* =============================== */                                    \
@@ -374,13 +386,13 @@ struct lambdajetpolarizationionsderived {
     Configurable<bool> forcePreviousJet{"forcePreviousJet", false, "uses previous event's jet direction instead of a random sample. A baseline for fake signal removal"};
     Configurable<bool> forceDatalikeJet{"forceDatalikeJet", false, "a compromise between forceRandJet and forcePreviousJet. Parameterized distribution from data"};
     Configurable<bool> doMixedEventProxies{"doMixedEventProxies", false, "mix leadP/leadJet/subJet directions between events using (proxy pt, Zvtx, centrality) bins -- three independent mixings, one per proxy"};
-    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 50, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
+    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 10, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
     Configurable<int> nProxyResamples{"nProxyResamples", 1, "The amount of resamplings of jet direction per event. Use ONLY for forceRandJet and forceDatalikeJet"};
+    Configurable<bool> gatePtOnArtificialProxies{"gatePtOnArtificialProxies", false, "Apply the minimum-pT selection to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet) after their pT is recomputed."}; //  Off by default, but the Pt cut's biasing can be measured on demand. Borrowed physical proxies always pass it by construction.
   } fakePolSwitches;
 
   // Configurable<float> jetRForSmudging{"jetRForSmudging", 0.4, "QA quantity: the chosen R scale for the jet direction smudge"}; // Superseeded by jetR: kept the same scale in analysis and QA
   Configurable<float> jetR{"jetR", 0.4f, "Radius of the jet"}; // Provide manually, please.
-  Configurable<bool> gatePtOnArtificialProxies{"gatePtOnArtificialProxies", false, "Apply the minimum-pT selection to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet) after their pT is recomputed."}; //  Off by default, but the Pt cut's biasing can be measured on demand. Borrowed physical proxies always pass it by construction.
   Configurable<float> minLeadParticlePt{"minLeadParticlePt", 4.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
   Configurable<float> minLeadJetPt{"minLeadJetPt", 10.0f, "Minimum Pt for leading jet to be considered valid (may be more restrictive than TableProducer)"};
   Configurable<float> minSubLeadJetPt{"minSubLeadJetPt", 8.0f, "Minimum Pt for subleading jet to be considered valid (may be more restrictive than TableProducer)"};
@@ -417,6 +429,7 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisJetPtSigExtract{"axisJetPtSigExtract", {VARIABLE_WIDTH, 0, 5, 10, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Jet p_{t} (GeV)"};
     ConfigurableAxis axisEta{"axisEta", {50, -1.0f, 1.0f}, "#eta"};
     ConfigurableAxis axisEtaCoarse{"axisEtaCoarse", {20, -0.9f, 0.9f}, "#eta coarse axis"};
+    ConfigurableAxis axisEtaSigExtract{"axisEtaSigExtract", {10, -0.9f, 0.9f}, "#eta coarser axis (sigExtract)"};
     // ConfigurableAxis axisEtaFine{"axisEtaFine", {100, -0.9f, 0.9f}, "#eta fine axis"};
     ConfigurableAxis axisV0Eta{"axisV0Eta", {75, -1.5f, 1.5f}, "V0 #eta"}; // An axis for V0 eta, which can go up to 1.5 given standard producer selections
     ConfigurableAxis axisV0EtaCoarse{"axisV0EtaCoarse", {32, -1.5f, 1.5f}, "V0 #eta coarse"};
@@ -425,6 +438,7 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisCosTheta{"axisCosTheta", {50, -1, 1}, "cos(#theta)"};
     ConfigurableAxis axisPhi{"axisPhi", {40, 0., constants::math::TwoPI}, "#varphi"};
     ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {40, -constants::math::PI, constants::math::PI}, "#Delta #phi_{jet}"};
+    ConfigurableAxis axisDeltaPhiCoarse{"axisDeltaPhiCoarse", {18, -constants::math::PI, constants::math::PI}, "#Delta #phi coarse"}; // (signal extraction)
     ConfigurableAxis axisRingCounts{"axisRingCounts", {90, -4.5, 4.5}, "<#it{R}>"};
     ConfigurableAxis axisDeltaCollisionIndex{"axisDeltaCollisionIndex", {2000, -0.5f, 1999.5f}, "#Delta collision index"}; // Always positive: SameKindPair pairs strictly upper. 2000 should cover the whole dataframe extension.
     ConfigurableAxis axisDeltaCollisionIndexNonAbs{"axisDeltaCollisionIndexNonAbs", {4000, -2000.5f, 1999.5f}, "#Delta collision index non abs"}; // Can be negative: the symmetric pairing calls of ReservoirInsert allow for preceding indices to be selected
@@ -449,19 +463,20 @@ struct lambdajetpolarizationionsderived {
     // Coarser axes for signal extraction:
     ConfigurableAxis axisPtSigExtract{"axisPtSigExtract", {VARIABLE_WIDTH, 0.0f, 0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f, 2.5f, 3.0f, 4.0f, 6.0f, 8.0f, 10.0f, 15.0f, 20.0f, 30.0f, 50.0f}, "pt axis for signal extraction"};
     // ConfigurableAxis axisLambdaMassSigExtract{"axisLambdaMassSigExtract", {175, 1.08f, 1.15f}, "Lambda mass in GeV/c"}; // With a sigma of 0.002 GeV/c, this has about 5 bins per sigma, so that the window is properly grasped.
-    // A coarser axis (sigma is still well estimated, with about 8 bins in the peak region)
+    // A coarser axis:
     ConfigurableAxis axisLambdaMassSigExtract{
       "axisLambdaMassSigExtract",
       {VARIABLE_WIDTH,
-       // Left sideband (7 bins, 0.004 width)
-       1.0800, 1.0840, 1.0880, 1.0920,
-       1.0960, 1.1000, 1.1040, 1.1080,
-       // Fine peak region (8 bins, 0.0016 width)
-       1.1096, 1.1112, 1.1128, 1.1144,
-       1.1160, 1.1176, 1.1192, 1.1208,
-       // Right sideband (7 bins, 0.004 width)
-       1.1248, 1.1288, 1.1328, 1.1368,
-       1.1408, 1.1448, 1.1488},
+      // Left sideband: 3 bins -- QA and sideband lever arm
+      1.07800, 1.08682, 1.09564,
+      // Fine region: 25 bins of 0.5 sigma, covering mu +/- 6.25 sigma (mu ~ 1.11537, sigma ~ 0.001745)
+      1.10447, 1.10534, 1.10621, 1.10708, 1.10796, 1.10883,
+      1.10970, 1.11057, 1.11145, 1.11232, 1.11319, 1.11406,
+      1.11494, 1.11581, 1.11668, 1.11755, 1.11843, 1.11930,
+      1.12017, 1.12104, 1.12192, 1.12279, 1.12366, 1.12453,
+      1.12541, 1.12628,
+      // Right sideband: 3 bins
+      1.13485, 1.14343, 1.15200},
       "Lambda mass in GeV/c"};
     // ConfigurableAxis axisLeadingParticlePtSigExtract{"axisLeadingParticlePtSigExtract", {VARIABLE_WIDTH, 0, 4, 8, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
 
@@ -677,6 +692,11 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_NegEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0, #eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
       histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_NegEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0, #eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
 
+      // Integrated <R> Vs ProxyPt Vs Centrality:
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtJetVsCentrality").c_str(), "<#it{R}> vs Jet #it{p}_{T} vs Centrality;#it{p}_{T}^{Jet} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPtLeadPVsCentrality").c_str(), "<#it{R}> vs LeadP #it{p}_{T} vs Centrality;#it{p}_{T}^{LeadP} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
+      histos.add((folder + "/ProxyPtDependence/pRingVsPt2ndJetVsCentrality").c_str(), "<#it{R}> vs SubJet #it{p}_{T} vs Centrality;#it{p}_{T}^{SubJet} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
+
       // Understanding eta dependence seen in pRingEtaCuts:
       histos.add((folder + "/EtaDependence/pRingObservableEtaLambda").c_str(), "<#it{R}> vs #eta_{#Lambda};#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
       histos.add((folder + "/EtaDependence/pRingObservableEtaJet").c_str(), "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
@@ -736,7 +756,7 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/QA/h3dDeltaThetaVsMassVsLeadJetPt").c_str(), "#Delta#theta_{jet} vs Mass vs Lead Jet #it{p}_{T};#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{LeadJet} (GeV/c)", kTH3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisJetPtSigExtract});
 
       // ===============================
-      // TProfiles vs Mass: quick glancing before signal extraction
+      // TProfiles vs Mass: quick glancing and signal extraction
       // ===============================
       // TProfile of ring vs mass (integrated in all phi, and properly normalized by N_Lambda):
       histos.add((folder + "/pRingObservableMass").c_str(), "<#it{R}> vs Mass;m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
@@ -746,6 +766,15 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/p2dRingObservableDeltaPhiVsMass").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Mass;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract});
       // TProfile2D: <R> vs Mass (DeltaTheta)
       histos.add((folder + "/p2dRingObservableDeltaThetaVsMass").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs Mass;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract});
+      // TProfile2D: <R> vs EtaProxy Vs Mass
+      histos.add((folder + "/p2dRingObservableEtaLeadJetVsMass").c_str(), "<#it{R}> vs #eta_{jet} vs Mass;#eta_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add((folder + "/p2dRingObservableLeadPEtaLeadPVsMass").c_str(), "<#it{R}> vs #eta_{LeadP} vs Mass;#eta_{LeadP};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add((folder + "/p2dRingObservable2ndJetEta2ndJetVsMass").c_str(), "<#it{R}> vs #eta_{SubJet} vs Mass;#eta_{SubJet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+      // Auxiliary counters for EtaProxy Vs Mass:
+      histos.add((folder + "/h2dCounterEtaLeadJetVsMass").c_str(), "V0 Counter vs #eta_{jet} vs Mass;#eta_{jet};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add((folder + "/h2dCounterLeadPEtaLeadPVsMass").c_str(), "V0 Counter vs #eta_{LeadP} vs Mass;#eta_{LeadP};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add((folder + "/h2dCounter2ndJetEta2ndJetVsMass").c_str(), "V0 Counter vs #eta_{SubJet} vs Mass;#eta_{SubJet};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+
       // TProfile2D: <R> vs Eta Lambda vs Eta Jet (Understanding eta dependence seen in pRingEtaCuts)
       histos.add((folder + "/EtaDependence/hCounterEtaLambdaMinusEtaJet").c_str(), "N_{V0s} vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet}; N_{V0s}", kTH1D, {axisConfigurations.axisDeltaEtaCoarse});
       histos.add((folder + "/EtaDependence/pRingObservableEtaLambdaMinusEtaJet").c_str(), "<#it{R}> vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaEtaCoarse});
@@ -977,7 +1006,7 @@ struct lambdajetpolarizationionsderived {
       histos.get<TProfile2D>(HIST("EtaStudy/pFakePolSignalvsPhiStar"))->GetYaxis()->SetBinLabel(9, "#eta_{Jet} < 0, #eta_{#Lambda} < 0");
 
       // For the phi_Lambda - phi_D^* dependency as well:
-      histos.add("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar", "FakePolSignal, AEE dependence; #phi_{#Lambda} - #phi_{p}^{*};", kTProfile2D, {axisConfigurations.axisDeltaPhi, {9, 0, 9}});
+      histos.add("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar", "FakePolSignal, AEE dependence; #phi_{#Lambda}-#phi_{p}^{*};", kTProfile2D, {axisConfigurations.axisDeltaPhi, {9, 0, 9}});
       histos.get<TProfile2D>(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"))->GetZaxis()->SetTitle("<#it{R}>");
       histos.get<TProfile2D>(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"))->GetYaxis()->SetBinLabel(1, "All #Lambda");
       histos.get<TProfile2D>(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"))->GetYaxis()->SetBinLabel(2, "#eta_{Jet} #geq 0");
@@ -1080,11 +1109,36 @@ struct lambdajetpolarizationionsderived {
       }
 
       // Also including an observable that probes spectrum broadening due to the "Azimuthal Efficiency Effect":
-      histos.add("HelicityEfficiencyQA/hLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#Lambda}, AEE probe; m_{Inv}; #phi_{#Lambda} - #phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/hAntiLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#bar{#Lambda}}, AEE probe; m_{Inv}; #phi_{#bar{#Lambda}} - #phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
-      // Watching the effect on the ring observable as well:
-      histos.add("HelicityEfficiencyQA/p2dRing_LambdaMassVsPhiLambdaMinusPhiProtonStar", "<#it{R}>, AEE probe; m_{Inv}; #phi_{#Lambda} - #phi_{p}^{*} ; <#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/p2dRing_AntiLambdaMassVsPhiLambdaMinusPhiProtonStar", "<#it{R}>, AEE probe; m_{Inv}; #phi_{#bar{#Lambda}} - #phi_{p}^{*} ; <#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#Lambda}, AEE probe; m_{Inv}; #phi_{#Lambda}-#phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hAntiLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#bar{#Lambda}}, AEE probe; m_{Inv}; #phi_{#bar{#Lambda}} - #phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
+
+      // <R> Vs PhiLambda-PhiProtonStar dependencies:
+      // (here there should be no clear dependency, unless Lambdas or antiLambdas dominate over one another. This inclusive set is QA for the competition)
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaLikePhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*};#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaLikePhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*};#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaLikePhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*};#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      // Lambda-specific:
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      // Anti-Lambda-specific:
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+
+      // 2D dependencies for signal extraction:
+      // (coarser angular axis here: the mass axis takes the statistics, and each cell still has to sustain a fit)
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs Mass;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs Mass;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs Mass;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      // Lambda-specific signal extraction:
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      // Anti-Lambda-specific signal extraction:
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
     } // end doFakePolDiagnosticsQA bookings
 
     // Integrated observable for events with NLambda+NAntiLambda V0s per event
@@ -1432,7 +1486,7 @@ struct lambdajetpolarizationionsderived {
 
         // These are not jets we measured, so the pT selection is optional here: it exists to let the bias
         // it introduces be measured.
-        if (gatePtOnArtificialProxies)
+        if (fakePolSwitches.gatePtOnArtificialProxies)
           proxy.hasValidProxy = proxy.pt > minPtThreshold;
       }
     }
@@ -1593,6 +1647,7 @@ struct lambdajetpolarizationionsderived {
     // (these proxies may come from collisions with no valid Lambdas, by construction, enabling more mixes)
     // (This is performed out of the resampling loop, so nProxyResamples will not resample event mixing candidates)
     if (fakePolSwitches.doMixedEventProxies) {
+      const auto tLutStart = std::chrono::steady_clock::now();
       auto getMixCentrality = [this](o2::aod::RingCollision const& col) { return this->getCentrality(col); }; // Already filtered even though referencing only RingCollision, not an iterator to Filtered table
 
       // For the leading particle:
@@ -1766,6 +1821,7 @@ struct lambdajetpolarizationionsderived {
           subJetUsage.erase(usageIt);
         }
       }
+      LOG(info) << "LUT build: " << std::chrono::duration<double>(std::chrono::steady_clock::now() - tLutStart).count() << " s for " << collisions.size() << " collisions";
     }
 
     for (int idxResampling = 0; idxResampling < fakePolSwitches.nProxyResamples; idxResampling++) { // resampling loop for forceRandJet and forceDatalikeJet
@@ -1847,21 +1903,26 @@ struct lambdajetpolarizationionsderived {
           if (fakePolSwitches.doMixedEventProxies) {
             auto itMix = mixedLeadPByCollision.find(collId);
             proxyCache.hadLeadP = (itMix != mixedLeadPByCollision.end()); // Check if this event had a valid mixing target
+
+            // Declaring bools before the hadLeadP checks as they will be used inside the doMixingQA block too:
+            bool samePtProxyLeadP = false;
+            bool sameEtaProxyLeadP = false;
+            bool samePhiProxyLeadP = false;
             if (proxyCache.hadLeadP) {
               proxyCache.leadPPt = itMix->second.pt;
               proxyCache.leadPEta = itMix->second.eta;
               proxyCache.leadPPhi = itMix->second.phi;
-            }
 
-            // bit-by-bit checks of correspondence (asked for no-lint on these "paranoid" checks):
-            // (inexpensive enough that we can check this at production time)
-            const bool samePtProxy = (itMix->second.pt == leadPPt); // NOLINT(clang-diagnostic-float-equal)
-            const bool sameEtaProxy = (itMix->second.eta == leadPEta); // NOLINT(clang-diagnostic-float-equal)
-            const bool samePhiProxy = (itMix->second.phi == leadPPhi); // NOLINT(clang-diagnostic-float-equal)
-            const bool sameZvtxLeadP = (itMix->second.zvtx == collisionPVz); // NOLINT(clang-diagnostic-float-equal)
-            if (samePtProxy && sameEtaProxy && samePhiProxy) { // Astronomically small chance, even with the birthday paradox
-              LOG(fatal) << "EventMixing: borrowed leadP is bit-identical to the target's own in pt, eta and phi. Target collision "
-                         << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadPPt;
+              // bit-by-bit checks of correspondence (asked for no-lint on these "paranoid" checks):
+              // (inexpensive enough that we can check this at production time)
+              // These need to be gated by proxyCache.hadLeadP, otherwise itMix dereferencing goes awry and the compiled code will complain at the first second.pt dereference
+              samePtProxyLeadP = (itMix->second.pt == leadPPt); // NOLINT(clang-diagnostic-float-equal)
+              sameEtaProxyLeadP = (itMix->second.eta == leadPEta); // NOLINT(clang-diagnostic-float-equal)
+              samePhiProxyLeadP = (itMix->second.phi == leadPPhi); // NOLINT(clang-diagnostic-float-equal)
+              if (samePtProxyLeadP && sameEtaProxyLeadP && samePhiProxyLeadP) { // Astronomically small chance, even with the birthday paradox
+                LOG(fatal) << "EventMixing: borrowed leadP is bit-identical to the target's own in pt, eta and phi. Target collision "
+                          << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadPPt;
+              }
             }
 
             if (doMixingQA) {
@@ -1898,16 +1959,19 @@ struct lambdajetpolarizationionsderived {
                 histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaZvtxVsDeltaIndex"), deltaIndexLeadP, itMix->second.zvtx - collisionPVz);
                 histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaCentVsDeltaIndex"), deltaIndexLeadP, itMix->second.centrality - centrality);
 
-                if (sameZvtxLeadP && samePtLeadP) // Flagged as "alarm" level
+                // Computing final needed bool, which can be declared as a const:
+                const bool sameZvtxLeadP = (itMix->second.zvtx == collisionPVz); // NOLINT(clang-diagnostic-float-equal)
+
+                if (sameZvtxLeadP && samePtProxyLeadP) // Flagged as "alarm" level
                 LOG(alarm) << "EventMixing: source and target share Zvtx and leadP pt bit-for-bit -- duplicated collision row? Target "
                           << collId << ", source " << itMix->second.sourceCollisionId << ", Zvtx " << collisionPVz;
 
                 // Single-variable coincidences are possible by chance, so they are counted instead:
-                if (samePtLeadP)
+                if (samePtProxyLeadP)
                   histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 0);
-                if (sameEtaLeadP)
+                if (sameEtaProxyLeadP)
                   histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 1);
-                if (samePhiLeadP)
+                if (samePhiProxyLeadP)
                   histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 2);
                 if (sameZvtxLeadP)
                   histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 3);
@@ -1973,15 +2037,16 @@ struct lambdajetpolarizationionsderived {
               proxyCache.leadJetPt = itMix->second.pt;
               proxyCache.leadJetEta = itMix->second.eta;
               proxyCache.leadJetPhi = itMix->second.phi;
-            }
 
-            // bit-by-bit checks of correspondence:
-            const bool samePtProxy = (itMix->second.pt == leadingJetPt); // NOLINT(clang-diagnostic-float-equal)
-            const bool sameEtaProxy = (itMix->second.eta == leadingJetEta); // NOLINT(clang-diagnostic-float-equal)
-            const bool samePhiProxy = (itMix->second.phi == leadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
-            if (samePtProxy && sameEtaProxy && samePhiProxy) { // Astronomically small chance, even with the birthday paradox
-              LOG(fatal) << "EventMixing: borrowed LeadJet is bit-identical to the target's own in pt, eta and phi. Target collision "
-                         << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadingJetPt;
+              // bit-by-bit checks of correspondence:
+              // These need to be gated by proxyCache.hadLeadP, otherwise itMix dereferencing goes awry and the compiled code will complain at the first second.pt dereference
+              const bool samePtProxyLeadJet = (itMix->second.pt == leadingJetPt); // NOLINT(clang-diagnostic-float-equal)
+              const bool sameEtaProxyLeadJet = (itMix->second.eta == leadingJetEta); // NOLINT(clang-diagnostic-float-equal)
+              const bool samePhiProxyLeadJet = (itMix->second.phi == leadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
+              if (samePtProxyLeadJet && sameEtaProxyLeadJet && samePhiProxyLeadJet) { // Astronomically small chance, even with the birthday paradox
+                LOG(fatal) << "EventMixing: borrowed LeadJet is bit-identical to the target's own in pt, eta and phi. Target collision "
+                          << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadingJetPt;
+              }
             }
 
             if (doMixingQA) {
@@ -2048,15 +2113,16 @@ struct lambdajetpolarizationionsderived {
               proxyCache.subJetPt = itMix->second.pt;
               proxyCache.subJetEta = itMix->second.eta;
               proxyCache.subJetPhi = itMix->second.phi;
-            }
 
-            // bit-by-bit checks of correspondence:
-            const bool samePtProxy = (itMix->second.pt == subleadingJetPt); // NOLINT(clang-diagnostic-float-equal)
-            const bool sameEtaProxy = (itMix->second.eta == subleadingJetEta); // NOLINT(clang-diagnostic-float-equal)
-            const bool samePhiProxy = (itMix->second.phi == subleadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
-            if (samePtProxy && sameEtaProxy && samePhiProxy) { // Astronomically small chance, even with the birthday paradox
-              LOG(fatal) << "EventMixing: borrowed SubJet is bit-identical to the target's own in pt, eta and phi. Target collision "
-                         << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << subleadingJetPt;
+              // bit-by-bit checks of correspondence:
+              // These need to be gated by proxyCache.hadLeadP, otherwise itMix dereferencing goes awry and the compiled code will complain at the first second.pt dereference
+              const bool samePtProxyLeadJet = (itMix->second.pt == subleadingJetPt); // NOLINT(clang-diagnostic-float-equal)
+              const bool sameEtaProxyLeadJet = (itMix->second.eta == subleadingJetEta); // NOLINT(clang-diagnostic-float-equal)
+              const bool samePhiProxyLeadJet = (itMix->second.phi == subleadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
+              if (samePtProxyLeadJet && sameEtaProxyLeadJet && samePhiProxyLeadJet) { // Astronomically small chance, even with the birthday paradox
+                LOG(fatal) << "EventMixing: borrowed SubJet is bit-identical to the target's own in pt, eta and phi. Target collision "
+                          << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << subleadingJetPt;
+              }
             }
 
             if (doMixingQA) {
@@ -2184,8 +2250,8 @@ struct lambdajetpolarizationionsderived {
 
           PtEtaPhiMVector lambdaLike4Vec(v0pt, v0eta, v0phi, v0LambdaLikeMass);
           PtEtaPhiMVector protonLike4Vec(protonLikePt, protonLikeEta, protonLikePhi, ProtonMass);
-          const float lambdaRapidity = lambdaLike4Vec.Rapidity();                                    // For further kinematic selections
-          const int v0InMassPeak = (v0LambdaLikeMass >= 1.1020593 && v0LambdaLikeMass <= 1.1288811); // Very naive estimator. Based on signal extractions from outside this code
+          const float lambdaRapidity = lambdaLike4Vec.Rapidity();                                // For further kinematic selections
+          const int v0InMassPeak = (v0LambdaLikeMass >= 1.11014 && v0LambdaLikeMass <= 1.12061); // Very naive estimator, \pm 3\sigma. Based on signal extractions from outside this code
 
           // Inexpensive estimates of signal extraction effects on the observable:
           if (excludeOutOfPeakQA && !v0InMassPeak)
@@ -2249,9 +2315,9 @@ struct lambdajetpolarizationionsderived {
 
             // Measuring the AEE effect differentially (azimuthal efficiency effect, which causes different V0 topologies to be enhanced/suppressed):
             if (isLambda)
-              histos.fill(HIST("HelicityEfficiencyQA/hLambdaMassVsPhiLambdaMinusPhiProtonStar"), v0LambdaLikeMass, deltaPhiLambdaProtonStar);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hLambdaMassVsPhiLambdaMinusPhiProtonStar"), v0LambdaLikeMass, deltaPhiLambdaProtonStar);
             else
-              histos.fill(HIST("HelicityEfficiencyQA/hAntiLambdaMassVsPhiLambdaMinusPhiProtonStar"), v0LambdaLikeMass, deltaPhiLambdaProtonStar);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hAntiLambdaMassVsPhiLambdaMinusPhiProtonStar"), v0LambdaLikeMass, deltaPhiLambdaProtonStar);
             // AEE and HEE correlation:
             histos.fill(HIST("HelicityEfficiencyQA/hFakePolCounts_CosThetaVsPhiStar"), cosFakePol, phiStar);
           } // end doFakePolDiagnosticsQA (per-V0 AEE/HEE)
@@ -2408,11 +2474,7 @@ struct lambdajetpolarizationionsderived {
             }
 
             if (qaSwitches.doFakePolDiagnosticsQA) {
-              // Measuring the AEE differentially (azimuthal efficiency effect, which causes different V0 topologies to be enhanced/suppressed):
-              if (isLambda)
-                histos.fill(HIST("HelicityEfficiencyQA/p2dRing_LambdaMassVsPhiLambdaMinusPhiProtonStar"), v0LambdaLikeMass, deltaPhiLambdaProtonStar, ringObservable);
-              else
-                histos.fill(HIST("HelicityEfficiencyQA/p2dRing_AntiLambdaMassVsPhiLambdaMinusPhiProtonStar"), v0LambdaLikeMass, deltaPhiLambdaProtonStar, ringObservable);
+              // Measuring the AEE differentially (azimuthal efficiency effect, which causes different V0 topologies to be enhanced/suppressed)
               // AEE and HEE correlation:
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsJet_CosThetaVsPhiStar"), cosFakePol, phiStar);
               histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignal_CosThetaVsPhiStar"), cosFakePol, phiStar, ringObservable);
@@ -2495,6 +2557,17 @@ struct lambdajetpolarizationionsderived {
               histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaProxyBin, ringObservable);
               histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaProxyLambdaBin, ringObservable);
 
+              // Inclusive and split-by-species dependencies for signal extraction:
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+              if (isLambda) {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+              } else {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+              }
+
               // Extra correlations test:
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJet"), cosFakePol, deltaThetaJet);
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsCosThetaVsPtForJets"), cosFakePol, v0pt);
@@ -2536,6 +2609,17 @@ struct lambdajetpolarizationionsderived {
                 histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyStrictBin, ringObservable2ndJet);
                 histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyStrictLambdaBin, ringObservable2ndJet);
               }
+
+              // Inclusive and split-by-species dependencies for signal extraction (AEE):
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              if (isLambda) {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              } else {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              }
             }
             if (hasValidLeadingP) {
               // Same bin scheme, without the strict variant (this axis stops at 9 bins):
@@ -2562,6 +2646,17 @@ struct lambdajetpolarizationionsderived {
                 histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadPPosEta"), cosFakePol, deltaThetaLeadP);
               else
                 histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadPNegEta"), cosFakePol, deltaThetaLeadP);
+
+              // Inclusive and split-by-species dependencies for signal extraction (AEE):
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              if (isLambda) {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              } else {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              }
             }
           } // end doFakePolDiagnosticsQA (eta-dependence block)
 
