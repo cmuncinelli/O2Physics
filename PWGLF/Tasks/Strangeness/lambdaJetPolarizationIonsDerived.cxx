@@ -62,6 +62,7 @@
 #include <algorithm> // std::fill, for resetting the Delta Method accumulators
 #include <array>
 #include <cmath>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -347,7 +348,7 @@ struct lambdajetpolarizationionsderived {
   Configurable<bool> analyseAntiLambda{"analyseAntiLambda", false, "process AntiLambda-like candidates"};
   Configurable<bool> analyseMagField{"analyseMagField", true, "analyse efficiency effects wrt magnetic field"}; // Older DerivedData lacks magField. "if constexpr (requires { collision.magField(); })" would only see the current header definition, so need a flag for retro-comp.
   // Configurable<bool> doPPAnalysis{"doPPAnalysis", false, "if in pp, set to true. Default is HI"};
-  Configurable<bool> doJetProxy5dQA{"doJetProxy5dQA", false, "generates expensive THnSparse histograms for joint distribution QA of the jet proxies and collisions"};
+  // Configurable<bool> doJetProxy5dQA{"doJetProxy5dQA", false, "generates expensive THnSparse histograms for joint distribution QA of the jet proxies and collisions"};
 
   // A very inexpensive "signal extraction" imitation based on v0InMassPeak bool:
   // (Uses a mass interval to remove or include V0s from the final AnalysisResults to take advantage of existing post-processing codes)
@@ -380,15 +381,19 @@ struct lambdajetpolarizationionsderived {
   struct : ConfigurableGroup {
     std::string prefix = "fakePolSwitches"; // JSON group name
     Configurable<bool> forcePolSignQA{"forcePolSignQA", false, "force antiLambda decay constant to be positive: should kill all the signal, if any. For QA"};
-    Configurable<bool> forcePerpToJet{"forcePerpToJet", false, "force jet direction to be perpendicular to jet estimator. For QA"};
+    Configurable<bool> forcePerpToJet{"forcePerpToJet", false, "force jet direction to be perpendicular to jet estimator"};
     Configurable<bool> forceJetDirectionSmudge{"forceJetDirectionSmudge", false, "fluctuate jet direction by 10% of R around original axis. For QA (tests sensibility)"};
     Configurable<bool> forceRandJet{"forceRandJet", false, "makes jet direction random. A QA for AEE fake signal and its removal"};
     Configurable<bool> forcePreviousJet{"forcePreviousJet", false, "uses previous event's jet direction instead of a random sample. A baseline for fake signal removal"};
     Configurable<bool> forceDatalikeJet{"forceDatalikeJet", false, "a compromise between forceRandJet and forcePreviousJet. Parameterized distribution from data"};
     Configurable<bool> doMixedEventProxies{"doMixedEventProxies", false, "mix leadP/leadJet/subJet directions between events using (proxy pt, Zvtx, centrality) bins -- three independent mixings, one per proxy"};
-    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 10, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
-    Configurable<int> nProxyResamples{"nProxyResamples", 1, "The amount of resamplings of jet direction per event. Use ONLY for forceRandJet and forceDatalikeJet"};
+    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 20, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
+    Configurable<int32_t> mixingIdxGapSize{"mixingIdxGapSize", 0, "Reject a mixing partner with collision index within +/- mixingIdxGapSize rows of the current collision. 0 disables the cut."}; // Continuous-readout cannibalization test.
     Configurable<bool> gatePtOnArtificialProxies{"gatePtOnArtificialProxies", false, "Apply the minimum-pT selection to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet) after their pT is recomputed."}; //  Off by default, but the Pt cut's biasing can be measured on demand. Borrowed physical proxies always pass it by construction.
+    Configurable<bool> gateEtaOnArtificialProxies{"gateEtaOnArtificialProxies", true, "Apply an |eta| acceptance cut to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet)"}; // forceRandJet samples the full 4pi, so without this it produces proxies far outside acceptance.
+    Configurable<float> maxLeadPProxyEta{"maxLeadPProxyEta", 0.9f, "|eta| ceiling for artificial leading-particle proxies."};
+    Configurable<float> maxJetProxyEta{"maxJetProxyEta", 0.5f, "|eta| ceiling for artificial lead jet sublead jet proxies."};
+    Configurable<int> nProxyResamples{"nProxyResamples", 1, "The amount of resamplings of jet direction per event. Use ONLY for forceRandJet and forceDatalikeJet"};
   } fakePolSwitches;
 
   // Configurable<float> jetRForSmudging{"jetRForSmudging", 0.4, "QA quantity: the chosen R scale for the jet direction smudge"}; // Superseeded by jetR: kept the same scale in analysis and QA
@@ -413,6 +418,7 @@ struct lambdajetpolarizationionsderived {
 
     // Event properties:
     ConfigurableAxis axisPVz{"axisPVz", {60, -10.0f, +10.0f}, "Primary Vertex Z [cm]"};
+    ConfigurableAxis axisPVzCoarse{"axisPVzCoarse", {10, -10.0f, +10.0f}, "Primary Vertex Z [cm]"}; // For RingObservable calculation, not for event mixing
 
     // Jet axes:
     // ConfigurableAxis axisLeadingParticlePt{"axisLeadingParticlePt", {100, 0.f, 200.f}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
@@ -436,6 +442,7 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisDeltaEtaCoarse{"axisDeltaEtaCoarse", {40, -1.8f, 1.8f}, "#Delta#eta coarse axis"};
     ConfigurableAxis axisDeltaTheta{"axisDeltaTheta", {40, 0, constants::math::PI}, "#Delta #theta_{jet}"};
     ConfigurableAxis axisCosTheta{"axisCosTheta", {50, -1, 1}, "cos(#theta)"};
+    ConfigurableAxis axisCosThetaCoarse{"axisCosThetaCoarse", {10, -1, 1}, "cos(#theta)"};
     ConfigurableAxis axisPhi{"axisPhi", {40, 0., constants::math::TwoPI}, "#varphi"};
     ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {40, -constants::math::PI, constants::math::PI}, "#Delta #phi_{jet}"};
     ConfigurableAxis axisDeltaPhiCoarse{"axisDeltaPhiCoarse", {18, -constants::math::PI, constants::math::PI}, "#Delta #phi coarse"}; // (signal extraction)
@@ -478,6 +485,9 @@ struct lambdajetpolarizationionsderived {
       // Right sideband: 3 bins
       1.13485, 1.14343, 1.15200},
       "Lambda mass in GeV/c"};
+    // An axis with just the peak and the sidebands for signal-extraction-like QA with lots of statistics:
+    // (edges are the same as the v0InMassPeak flag)
+    ConfigurableAxis axisLambdaMassThreeBin{"axisLambdaMassThreeBin", {VARIABLE_WIDTH, 1.08f, 1.11014f, 1.12061f, 1.15f}, "m_{p#pi} (GeV/c^{2}), peak and sidebands"};
     // ConfigurableAxis axisLeadingParticlePtSigExtract{"axisLeadingParticlePtSigExtract", {VARIABLE_WIDTH, 0, 4, 8, 12, 16, 20, 25, 30, 35, 40, 60, 100, 200}, "Leading particle p_{T} (GeV/c)"}; // Simpler version!
 
     // (TODO: add a lambdaPt axis that is pre-selected only on the 0.5 to 1.5 Pt region for the Ring observable with lambda cuts to not store a huge histogram with empty bins by construction)
@@ -569,7 +579,9 @@ struct lambdajetpolarizationionsderived {
                  << "Previous-jet/Mixed-Event proxies do not change between resamplings, so every extra pass would double-count the same proxy.";
     if (excludeOutOfPeakQA && excludeInPeakQA) // Complementary selections
       LOG(fatal) << "excludeOutOfPeakQA and excludeInPeakQA are complementary: enabling both rejects every V0.";
-    if (!familySwitches.doFamilyRing) // Todo: think of a smarter way of handling the axis getters for the DeltaMethod
+    if (!analyseLambda && !analyseAntiLambda)
+      LOG(fatal) << "analyseLambda and analyseAntiLambda are both false: no V0 would ever be analysed.";
+    if (!familySwitches.doFamilyRing) // TODO: think of a smarter way of handling the axis getters for the DeltaMethod
       LOG(fatal) << "doFamilyRing must be on: the Delta Method accumulators take their binning from the Ring/ histograms.";
 
     // Ring observable histograms:
@@ -722,9 +734,9 @@ struct lambdajetpolarizationionsderived {
       histos.add((folder + "/pRingObservable2ndJetLambdaPt").c_str(), "<#it{R}> vs #it{p}_{T}^{#Lambda} (SubJet);#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
 
       // For the Zvtx dependence:
-      histos.add((folder + "/pRingObservableLeadJetPVz").c_str(), "<#it{R}>_{LeadJet} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVz});
-      histos.add((folder + "/pRingObservableSubLeadPVz").c_str(), "<#it{R}>_{SubLead} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVz});
-      histos.add((folder + "/pRingObservableLeadPPVz").c_str(), "<#it{R}>_{LeadP} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVz});
+      histos.add((folder + "/pRingObservableLeadJetPVz").c_str(), "<#it{R}>_{LeadJet} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+      histos.add((folder + "/pRingObservableSubLeadPVz").c_str(), "<#it{R}>_{SubLead} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+      histos.add((folder + "/pRingObservableLeadPPVz").c_str(), "<#it{R}>_{LeadP} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
       // ===============================
       // 2D TProfiles (Lambda correlations)
       // ===============================
@@ -858,6 +870,26 @@ struct lambdajetpolarizationionsderived {
     histos.get<TProfile>(HIST("IntegratedCuts/pRingCutsLeadingP"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
     histos.get<TProfile>(HIST("IntegratedCuts/pRingCutsLeadingP"))->GetXaxis()->SetBinLabel(3, "|LeadP_{#eta}|<0.5");
     histos.get<TProfile>(HIST("IntegratedCuts/pRingCutsLeadingP"))->GetXaxis()->SetBinLabel(4, "#Lambda + LeadP cuts");
+
+    // Mass-selected (not properly signal-extracted yet) TProfiles:
+    histos.add("IntegratedCuts/p2dRingCutsV0MassPeak", "p2dRingCuts V0MassPeak; ; OutOfPeak (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5"); // (v0pt > 0.5 && v0pt < 1.5) && std::abs(lambdaRapidity) < 0.5;
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|Jet_{#eta}|<0.5");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + Jet cuts");
+
+    // Same for subleading jet and leading particle:
+    histos.add("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak", "p2dRingCutsSubLeadingJet V0MassPeak; ; OutOfPeak (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T,#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|SubJet_{#eta}|<0.5");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + SubJet cuts");
+
+    histos.add("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak", "p2dRingCutsLeadingP V0MassPeak; ; OutOfPeak (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|LeadP_{#eta}|<0.5");
+    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + LeadP cuts");
 
     // Counters for each case to understand statistics loss:
     histos.add("IntegratedCuts/hCountCuts", "hCountCuts; ;N V0s", kTH1D, {{4, 0, 4}});
@@ -1102,15 +1134,37 @@ struct lambdajetpolarizationionsderived {
       // Studying the magnetic field dependence of particle reconstruction efficiency (not magnitude, just sign of field):
       // (also for the "negative helicity" problem)
       if (analyseMagField) {
-        histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomRight", "hLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
-        histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft", "hLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
-        histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight", "hAntiLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
-        histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft", "hAntiLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+        if (analyseLambda) { // Fills themselves are guarded at the start of the "v0sInColl" loop, for each of these gated histogram bookings
+          histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomRight", "hLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+          histos.add("HelicityEfficiencyQA/hLambdaMassDecayGeomLeft", "hLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+        }
+        if (analyseAntiLambda) {
+          histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomRight", "hAntiLambdaMassDecayGeomRight; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+          histos.add("HelicityEfficiencyQA/hAntiLambdaMassDecayGeomLeft", "hAntiLambdaMassDecayGeomLeft; m_{Inv}; Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+        }
       }
 
       // Also including an observable that probes spectrum broadening due to the "Azimuthal Efficiency Effect":
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#Lambda}, AEE probe; m_{Inv}; #phi_{#Lambda}-#phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hAntiLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#bar{#Lambda}}, AEE probe; m_{Inv}; #phi_{#bar{#Lambda}} - #phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
+       if (analyseLambda)
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#Lambda}, AEE probe; m_{Inv}; #phi_{#Lambda}-#phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
+      if (analyseAntiLambda)
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/hAntiLambdaMassVsPhiLambdaMinusPhiProtonStar", "m_{#bar{#Lambda}}, AEE probe; m_{Inv}; #phi_{#bar{#Lambda}} - #phi_{p}^{*} ; Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisDeltaPhi});
+
+      // The Helicity Efficiency Effect resolved in three mass slices (left sideband, peak, right sideband).
+      if (analyseLambda) {
+        histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMass", "<#it{R}>_{LeadJet} vs cos(#theta)_{HEE} vs mass slice, #Lambda;cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        // Explicit checks to decouple phi-phi* and cosTheta* effects (is the pattern controlled by phi-phi* or by cosTheta*?)
+        histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassPosDeltaPhiAEE", "<#it{R}>_{LeadJet} (#phi_{#Lambda}-#phi_{p}^{*}>0) vs cos(#theta)_{HEE} vs mass slice, #Lambda;cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassNegDeltaPhiAEE", "<#it{R}>_{LeadJet} (#phi_{#Lambda}-#phi_{p}^{*}<0) vs cos(#theta)_{HEE} vs mass slice, #Lambda;cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      }
+      if (analyseAntiLambda) {
+        histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMass", "<#it{R}>_{LeadJet} vs cos(#theta)_{HEE} vs mass slice, #bar{#Lambda};cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#bar{#Lambda}};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassPosDeltaPhiAEE", "<#it{R}>_{LeadJet} (#phi_{#Lambda}-#phi_{p}^{*}>0) vs cos(#theta)_{HEE} vs mass slice, #bar{#Lambda};cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#bar{#Lambda}};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassNegDeltaPhiAEE", "<#it{R}>_{LeadJet} (#phi_{#Lambda}-#phi_{p}^{*}<0) vs cos(#theta)_{HEE} vs mass slice, #bar{#Lambda};cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#bar{#Lambda}};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      }
+      histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMass", "<#it{R}>_{LeadJet} vs cos(#theta)_{HEE} vs mass slice, all V0s;cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#Lambda-like};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassPosDeltaPhiAEE", "<#it{R}>_{LeadJet} (#phi_{#Lambda}-#phi_{p}^{*}>0) vs cos(#theta)_{HEE} vs mass slice, all V0s;cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#Lambda-like};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      histos.add("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassNegDeltaPhiAEE", "<#it{R}>_{LeadJet} (#phi_{#Lambda}-#phi_{p}^{*}<0) vs cos(#theta)_{HEE} vs mass slice, all V0s;cos(#theta)=#hat{p}^{*}_{D} . #vec{p}_{#Lambda-like};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLambdaMassThreeBin});
 
       // <R> Vs PhiLambda-PhiProtonStar dependencies:
       // (here there should be no clear dependency, unless Lambdas or antiLambdas dominate over one another. This inclusive set is QA for the competition)
@@ -1118,13 +1172,17 @@ struct lambdajetpolarizationionsderived {
       histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaLikePhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*};#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
       histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaLikePhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*};#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
       // Lambda-specific:
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      if (analyseLambda) {
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*};#phi_{#Lambda}-#phi_{p}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      }
       // Anti-Lambda-specific:
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      if (analyseAntiLambda) {
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      }
 
       // 2D dependencies for signal extraction:
       // (coarser angular axis here: the mass axis takes the statistics, and each cell still has to sustain a fit)
@@ -1132,13 +1190,33 @@ struct lambdajetpolarizationionsderived {
       histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs Mass;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
       histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs Mass;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
       // Lambda-specific signal extraction:
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      if (analyseLambda) {
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs Mass;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      }
       // Anti-Lambda-specific signal extraction:
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
-      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      if (analyseAntiLambda) {
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs Mass;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      }
+
+      // The same nine profiles collapsed onto three mass slices:
+      // (high statistics for a simpler lookup)
+      if (analyseLambda) {
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVs3BinMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs mass slice;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVs3BinMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda}-#phi_{p}^{*} Vs mass slice;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVs3BinMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda}-#phi_{p}^{*} Vs mass slice;#phi_{#Lambda}-#phi_{p}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      }
+      if (analyseAntiLambda) {
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVs3BinMass", "<#it{R}>_{LeadJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs mass slice;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVs3BinMass", "<#it{R}>_{LeadP} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs mass slice;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+        histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVs3BinMass", "<#it{R}>_{SubJet} vs #phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*} Vs mass slice;#phi_{#bar{#Lambda}}-#phi_{#bar{p}}^{*};m_{#bar{p}#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      }
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVs3BinMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs mass slice;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVs3BinMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs mass slice;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
+      histos.add("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVs3BinMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs mass slice;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassThreeBin});
     } // end doFakePolDiagnosticsQA bookings
 
     // Integrated observable for events with NLambda+NAntiLambda V0s per event
@@ -1168,14 +1246,14 @@ struct lambdajetpolarizationionsderived {
     histos.add("JetKinematicsQA/h2dLeadPEtaVsPVz", "Lead Ptc #eta Vs PVz;#eta;Primary Vertex Z [cm];Counts", kTH2D, {axisConfigurations.axisEta, axisConfigurations.axisPVz});
 
     // For building and event-mixing-like procedure similar to forceDatalikeJet:
-    if (doJetProxy5dQA) {
-      histos.add("JetKinematicsQA/h5dLeadJetEtaPhiPtPVzCent", "h5dLeadJetEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
-                 {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
-      histos.add("JetKinematicsQA/h5dSubLeadJetEtaPhiPtPVzCent", "h5dSubLeadJetEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
-                 {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
-      histos.add("JetKinematicsQA/h5dLeadPEtaPhiPtPVzCent", "h5dLeadPEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
-                 {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
-    }
+    // if (doJetProxy5dQA) {
+    //   histos.add("JetKinematicsQA/h5dLeadJetEtaPhiPtPVzCent", "h5dLeadJetEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
+    //              {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
+    //   histos.add("JetKinematicsQA/h5dSubLeadJetEtaPhiPtPVzCent", "h5dSubLeadJetEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
+    //              {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
+    //   histos.add("JetKinematicsQA/h5dLeadPEtaPhiPtPVzCent", "h5dLeadPEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
+    //              {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
+    // }
 
     // doMixedEventProxies QA: gauge the size of the "too few collisions per bin" problem (see resonanceMergeDF.cxx)
     // Booked per proxy, since the three mixings are independent and can succeed/fail at different rates.
@@ -1317,6 +1395,7 @@ struct lambdajetpolarizationionsderived {
   // Pre-computed values for helper below:
   const double smearSigma = 0.05 * jetR;
   // Normalized eta weights spanning -0.9 to 0.9 (46 bins) and phi weights for the 50 bins spanning [0, 2pi]:
+  // (TODO: these are for leading particles, not for jets! Will use them for all proxies for now, as this is mostly QA)
   static constexpr std::array<double, 46> etaLeadPWeights = {{0.01782505198123039, 0.01826119427561306, 0.01890047073124532, 0.01942224199989093, 0.01993380780273602, 0.02047274597515178, 0.02094135547756474, 0.02140259654932778, 0.02178490245182078, 0.02218346916434517, 0.02252861343224298, 0.02278214932340838, 0.02297395476452691, 0.02311861709583109, 0.02322295246943318, 0.02329274166449468, 0.02335344516182264, 0.02335971904087711, 0.02340163522424806, 0.02352868368676468, 0.02345839093195849, 0.02295391718536531, 0.02306543716698383, 0.02293131780181040, 0.02265098126991631, 0.02318893563623931, 0.02322457978177088, 0.02316188601954564, 0.02308812992419636, 0.02305831097751334, 0.02300695504254397, 0.02296398287895598, 0.02286956017362988, 0.02274321888486162, 0.02254049413132752, 0.02233024817234042, 0.02204811997596179, 0.02170252191737713, 0.02130517220864903, 0.02086349641950970, 0.02036590755841183, 0.01987946074337928, 0.01934550418314029, 0.01879487530409137, 0.01812577211265362, 0.01766945805710696}};
   static constexpr std::array<double, 50> phiLeadPWeights = {{0.01907529231698144, 0.02044679008716434, 0.01948618554713157, 0.02046288887443206, 0.02142057576726765, 0.01961361841611185, 0.02174981627752354, 0.02160945937846856, 0.02027231236207667, 0.02153799273983672, 0.02107609996106984, 0.02001899849606885, 0.02196516947939817, 0.02047654705787587, 0.02059561382369167, 0.02148625027035289, 0.02001510925188416, 0.02183059661361331, 0.02111406548114694, 0.01881826666371129, 0.02112797285609031, 0.02034071592473790, 0.01968993216337670, 0.02126946766383166, 0.02025580366897253, 0.02061136834815962, 0.02083881238552183, 0.01994368379135331, 0.02046280212696892, 0.02131631148368759, 0.01967275608960357, 0.02064965975476278, 0.02155758091535052, 0.02012557837329328, 0.02084718400924722, 0.02065094443305587, 0.01969546187428681, 0.02136531489392276, 0.02084491659074202, 0.01970883494847568, 0.02080349992636310, 0.02098440611808174, 0.02159984658204099, 0.02045819959592145, 0.01952755742791563, 0.02166002908586709, 0.02017512590511229, 0.01932658087972190, 0.02108933627170306, 0.02019288778648293}};
   // Build discrete eta distribution for sampling:
@@ -1350,7 +1429,7 @@ struct lambdajetpolarizationionsderived {
   /// \param etaDist,phiDist sampling distributions for forceDatalikeJet (drawn from the task's own rng member).
   /// \note  Shared across leadP/leadJet/subJet: the caller resolves which proxy-specific procedure (e.g., LUT for evtMixing) applies.
   // Helper to modify the jet direction for QA and for spurious signal baseline removal tests:
-  inline void applyProxyDistortion(ProxyState proxy, float minPtThreshold, ProxyCacheRef cache,
+  inline void applyProxyDistortion(ProxyState proxy, float minPtThreshold, float maxAbsEta, ProxyCacheRef cache,
                                    std::discrete_distribution<int>& etaDist, std::discrete_distribution<int>& phiDist)
   {
     if (!fakePolSwitches.forcePerpToJet && !fakePolSwitches.forceJetDirectionSmudge && !fakePolSwitches.forceRandJet && !fakePolSwitches.forcePreviousJet && !fakePolSwitches.forceDatalikeJet && !fakePolSwitches.doMixedEventProxies) [[likely]] {
@@ -1488,6 +1567,9 @@ struct lambdajetpolarizationionsderived {
         // it introduces be measured.
         if (fakePolSwitches.gatePtOnArtificialProxies)
           proxy.hasValidProxy = proxy.pt > minPtThreshold;
+        // forceRandJet draws isotropic jets in solid angle, so this puts all "artificial" modes under data-like acceptance:
+        if (fakePolSwitches.gateEtaOnArtificialProxies)
+          proxy.hasValidProxy = std::abs(proxy.eta) < maxAbsEta;
       }
     }
   }
@@ -1513,8 +1595,8 @@ struct lambdajetpolarizationionsderived {
     float leadPPhi;
   };
 
-  // Per-collision leading/subleading jet, computed once per dataframe and shared by both the main loop below
-  // (instead of re-scanning RingJets once per resampling pass) and the leadJet/subJet event mixing functions:
+  /// \brief Per-collision leading/subleading jet, computed once per dataframe and shared by both the main loop below
+  /// (instead of re-scanning RingJets once per resampling pass) and the leadJet/subJet event mixing functions:
   struct JetProxyCache {
     bool hasValidLeadingJet = false;
     float leadingJetPt = -1.f;
@@ -1526,6 +1608,21 @@ struct lambdajetpolarizationionsderived {
     float subleadingJetPhi = 0.f;
   };
 
+  /// \brief The collision-level mixing axes' cache. Cached once per collision so the pooling never needs a table iterator.
+  struct MixingAxes {
+    float zvtx = -999.f;
+    float centrality = -1.f;
+  };
+
+  /// \brief Leading particle of a collision, resolved once in the pre-pass so the mixing never has to slice RingLeadPs.
+  ///        Similar to JetProxyCache in its philosophy. Kept separate for a separate loop's accessing pattern.
+  struct LeadPCache {
+    bool isValid = false;
+    float pt = -999.f;
+    float eta = -999.f;
+    float phi = -999.f;
+  };
+
   // A simple struct for doMixedEventProxies. Each proxy (leadP/leadJet/subJet) gets its own independent cache.
   // (stores information from the borrowed event and the borrowed jets)
   struct MixedProxyInfo {
@@ -1534,32 +1631,34 @@ struct lambdajetpolarizationionsderived {
     float phi;
     float zvtx; //! Knowingly repeated for the LeadP, LeadJet and SubJet, so memory is occupied 3x for this same value.
     float centrality;
-    int64_t sourceCollisionId;
+    int64_t sourceCollisionId = -1;
   };
 
   /// \brief Uniform random pick among each target's candidate window, via reservoir sampling
   ///        (cannibalization of proxies by neighbouring collisions in Continuous Readout is not a worry as ITS hits are being demanded)
   /// \note  Reuses the task's own rng member rather than a separate generator per proxy.
-  void reservoirInsert(std::unordered_map<int64_t, int>& candidateCount, std::unordered_map<int64_t, MixedProxyInfo>& lut,
-                       int64_t targetId, const MixedProxyInfo& candidate)
+  void reservoirInsert(std::vector<int32_t>& candidateCount, std::vector<MixedProxyInfo>& lut,
+                       size_t targetSlot, int64_t targetId, const MixedProxyInfo& candidate)
   {
     // A collision must never borrow from itself:
     // (StrictlyUpperSameIndexPolicy should make this impossible, but we check nonetheless)
     if (targetId == candidate.sourceCollisionId)
       LOG(fatal) << "EventMixing: collision " << targetId << " offered itself as a mixing source.";
-    int& nSeen = candidateCount[targetId];
-    ++nSeen;
+    const int32_t nSeen = ++candidateCount[targetSlot];
     std::uniform_int_distribution<int> pick(1, nSeen);
     if (pick(rng) == 1)
-      lut[targetId] = candidate;
+      lut[targetSlot] = candidate;
   }
 
   /// \brief How many different target collisions each source collision ended up supplying, from a finished LUT.
-  static std::unordered_map<int64_t, int> tallySourceUsage(std::unordered_map<int64_t, MixedProxyInfo> const& lut)
+  /// \note  Keyed by source global index: sources are sparse, so a map is the right shape here even though the LUT is optimized as a vector.
+  static std::unordered_map<int64_t, int> tallySourceUsage(std::vector<MixedProxyInfo> const& lut)
   {
     std::unordered_map<int64_t, int> usage;
-    for (auto const& kv : lut)
-      usage[kv.second.sourceCollisionId]++;
+    for (auto const& entry : lut) {
+      if (entry.sourceCollisionId >= 0)
+        usage[entry.sourceCollisionId]++;
+    }
     return usage;
   }
 
@@ -1571,8 +1670,8 @@ struct lambdajetpolarizationionsderived {
   Preslice<aod::RingJets> perColJets = o2::aod::lambdajetpol::ringCollisionId;
   Preslice<aod::RingLaV0s> perColV0s = o2::aod::lambdajetpol::ringCollisionId;
   Preslice<aod::RingLeadPs> perColLeadPs = o2::aod::lambdajetpol::ringCollisionId;
-  // For doMixedEventProxies:
-  SliceCache mixCache;
+  // // For doMixedEventProxies:
+  // SliceCache mixCache;
   /// \brief Main analysis loop: for each collision, rebuilds the leading jet/particle proxies (with optional fakePolSwitches distortions), then loops over V0s computing the ring observable and polarization-vector profiles for every enabled kinematic-cut family.
   void processPolarizationData(soa::Filtered<o2::aod::RingCollisions> const& collisions, o2::aod::RingJets const& jets, o2::aod::RingLaV0s const& v0s,
                                o2::aod::RingLeadPs const& leadPs)
@@ -1584,12 +1683,54 @@ struct lambdajetpolarizationionsderived {
     ProxyCacheSlots& proxyCache = fakePolSwitches.doMixedEventProxies ? mixedProxyCache : prevJetCache;
     // Neither should not be used along nProxyResamples > 1, as it does not apply to that case.
 
+    // Building vectors for event mixing and leading/subleading jet finding:
+    int64_t collisionIndexBase = 0;
+    size_t collisionIndexExtent = 0;
+    {
+      bool isFirst = true;
+      for (auto const& collision : collisions) {
+        const int64_t idx = collision.globalIndex();
+        if (isFirst) {
+          collisionIndexBase = idx;
+          isFirst = false;
+        }
+        collisionIndexExtent = static_cast<size_t>(idx - collisionIndexBase) + 1;
+      }
+    }
+    // globalIndex() on a Filtered iterator is the row in the *unfiltered* table, so it can exceed collisions.size():
+    // (Take the real extent and offset by the first index, so the vectors stay as small as the data allows!)
+    auto slotOf = [collisionIndexBase, collisionIndexExtent](int64_t globalIdx) {
+      const int64_t slot = globalIdx - collisionIndexBase;
+      if (slot < 0 || static_cast<size_t>(slot) >= collisionIndexExtent)
+        LOG(fatal) << "EventMixing: collision index " << globalIdx << " outside the dataframe extent [" << collisionIndexBase << ", " << collisionIndexBase + static_cast<int64_t>(collisionIndexExtent) << ").";
+      return static_cast<size_t>(slot);
+    };
+
+    // Direct-indexed instead of hashed (vectors instead of unordered_maps):
+    // (at 1E6 collisions per dataframe, unordered_map did many scattered allocations and lookup ended up with a costly DRAM access)
+    std::vector<JetProxyCache> jetProxyByCollision(collisionIndexExtent);
+    std::vector<LeadPCache> leadPByCollision(collisionIndexExtent);
+    std::vector<MixingAxes> mixingAxesByCollision(collisionIndexExtent);
+    // doMixedEventProxies caches: three independent mixings, one per proxy (a collision may have a valid LeadP, but no SubLeadJet).
+    // Mixing is binned on (Zvtx, proxy pt, centrality), varying only eta/phi.
+    std::vector<MixedProxyInfo> mixedLeadPByCollision(collisionIndexExtent);
+    std::vector<MixedProxyInfo> mixedLeadJetByCollision(collisionIndexExtent);
+    std::vector<MixedProxyInfo> mixedSubJetByCollision(collisionIndexExtent);
+    // Candidate counters for the the mixing: main loop below reads them back for QA.
+    std::vector<int32_t> leadPCandidateCount(collisionIndexExtent, 0);
+    std::vector<int32_t> leadJetCandidateCount(collisionIndexExtent, 0);
+    std::vector<int32_t> subJetCandidateCount(collisionIndexExtent, 0);
+
     // Leading/subleading jet per collision, resolved once here instead of inside the (possibly nProxyResamples times resampled) main loop.
     // Both the main loop and the leadJet/subJet mixing functions read from this, so RingJets is scanned exactly once
-    std::unordered_map<int64_t, JetProxyCache> jetProxyByCollision;
     for (auto const& collision : collisions) {
       const auto collId = collision.globalIndex();
+      const size_t slot = slotOf(collId);
       JetProxyCache cache;
+
+      // Cached here so the pooling below never needs a collision iterator:
+      mixingAxesByCollision[slot] = {collision.zvtx(), getCentrality(collision)};
+
       // std::optional avoids undefined behaviour from a default-constructed iterator:
       std::optional<o2::aod::RingJets::iterator> leadingJet;
       std::optional<o2::aod::RingJets::iterator> subleadingJet;
@@ -1618,18 +1759,16 @@ struct lambdajetpolarizationionsderived {
         cache.subleadingJetEta = subleadingJet->jetEta();
         cache.subleadingJetPhi = subleadingJet->jetPhi();
       }
-      jetProxyByCollision[collId] = cache;
+      jetProxyByCollision[slot] = cache;
+
+      // The leading particle is resolved here too, so the pooling reads a vector instead of slicing RingLeadPs.
+      // A collision with no leadP simply keeps isValid = false, and its mixing axes are stored regardless
+      for (auto const& lp : leadPs.sliceBy(perColLeadPs, collId)) {
+        leadPByCollision[slot] = {lp.leadParticlePt() > minLeadParticlePt, lp.leadParticlePt(), lp.leadParticleEta(), lp.leadParticlePhi()};
+        break; // Table has at most one LeadP per collision, but we break nonetheless
+      }
     }
 
-    // doMixedEventProxies caches: three independent mixings, one per proxy (a collision may have a valid LeadP, but no SubLeadJet).
-    // Mixing is binned on (Zvtx, proxy pt, centrality), varying only eta/phi.
-    std::unordered_map<int64_t, MixedProxyInfo> mixedLeadPByCollision;
-    std::unordered_map<int64_t, MixedProxyInfo> mixedLeadJetByCollision;
-    std::unordered_map<int64_t, MixedProxyInfo> mixedSubJetByCollision;
-    // Candidate counters for the the mixing: main loop below reads them back for QA.
-    std::unordered_map<int64_t, int> leadPCandidateCount;
-    std::unordered_map<int64_t, int> leadJetCandidateCount;
-    std::unordered_map<int64_t, int> subJetCandidateCount;
     // A small guard:
     const bool doMixingQA = fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA;
 
@@ -1648,176 +1787,178 @@ struct lambdajetpolarizationionsderived {
     // (This is performed out of the resampling loop, so nProxyResamples will not resample event mixing candidates)
     if (fakePolSwitches.doMixedEventProxies) {
       const auto tLutStart = std::chrono::steady_clock::now();
-      auto getMixCentrality = [this](o2::aod::RingCollision const& col) { return this->getCentrality(col); }; // Already filtered even though referencing only RingCollision, not an iterator to Filtered table
 
-      // For the leading particle:
-      // Pattern follows MixedEventsLambdaBinning tutorial (captures leadPs table and cache define in task's struct):
-      auto getMixLeadPPt = [&leadPs, this](o2::aod::RingCollision const& col) {
-        auto rows = leadPs.sliceByCached(o2::aod::lambdajetpol::ringCollisionId, col.globalIndex(), this->mixCache); // As it is cached, grouping happens only once
-        if (rows.size() == 0) {
-          return -999.f;
-        }
-        // Only proxies which pass the minimum pT for physical proxy enter the pool: a borrowed proxy has to be one this analysis would have accepted on its own.
-        const float leadPPt = rows.begin().leadParticlePt();
-        return leadPPt > this->minLeadParticlePt ? leadPPt : -999.f;
-      };
-      using LeadPBinningType = FlexibleBinningPolicy<std::tuple<decltype(getMixLeadPPt), decltype(getMixCentrality)>,
-                                                     o2::aod::lambdajetpol::Zvtx, decltype(getMixLeadPPt), decltype(getMixCentrality)>;
-      LeadPBinningType leadPBinning{{getMixLeadPPt, getMixCentrality},
-                                    {axisConfigurations.axisPVz, axisConfigurations.axisJetPt, axisConfigurations.axisCentrality},
-                                    true}; // Ignore overflows true
+      // All three proxies bin on the same (Zvtx, proxy pT, centrality) axes, so a single policy object serves them, even though proxy pT varies:
+      // We implement using methods straight from BinningPolicy.h, such as getBin() and getAllBinsCount()
+      BinningPolicyBase<3> mixBinning{{axisConfigurations.axisPVz, axisConfigurations.axisJetPt, axisConfigurations.axisCentrality}, true}; // Ignore overflows (pT guards overflow to -999.f by construction)
 
-      // SameKindPair defaults to CombinationsBlockStrictlyUpperSameIndexPolicy, so no same-event mixing should happen:
-      //(Already filtered by Zvtx even though we call by aod::RingCollisions, so no need to access the filtered table)
-      SameKindPair<o2::aod::RingCollisions, o2::aod::RingLeadPs, LeadPBinningType> leadPPair{
-        leadPBinning, fakePolSwitches.mixedEventWindowSize, -1, collisions, std::make_tuple(leadPs), &mixCache};
-
-      for (auto it = leadPPair.begin(); it != leadPPair.end(); ++it) {
-        auto& [c1, leadP1, c2, leadP2] = *it;         // Iterates over collision pairs and leading particle pairs (structured binding)
-        if (leadP1.size() > 0 && leadP2.size() > 0) { // There should always be at least one leadP, given the overflow exclusion above
-          float pt1 = 0.f, eta1 = 0.f, phi1 = 0.f, pt2 = 0.f, eta2 = 0.f, phi2 = 0.f;
-          for (auto const& lp : leadP1) {
-            pt1 = lp.leadParticlePt();
-            eta1 = lp.leadParticleEta();
-            phi1 = lp.leadParticlePhi();
-            break;
-          } // Retrieves the first entry
-          for (auto const& lp : leadP2) {
-            pt2 = lp.leadParticlePt();
-            eta2 = lp.leadParticleEta();
-            phi2 = lp.leadParticlePhi();
-            break;
-          }
-          // Each side of the pair is one more candidate for the other collision's reservoir:
-          // (by doing this reservoirInsert on both sides of the mixed event, we also avoid the problems of SameKindPair being a window that only looks forward in the detaframe)
-          reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c1.globalIndex(), {pt2, eta2, phi2, c2.zvtx(), getCentrality(c2), c2.globalIndex()});
-          reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, c2.globalIndex(), {pt1, eta1, phi1, c1.zvtx(), getCentrality(c1), c1.globalIndex()});
-          if (doMixingQA)
-            histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
-        }
-        if (doMixingQA && it.isNewWindow()) { // Count each bin-window once, not once per pair inside it
-          histos.fill(HIST("EventMixingQA/hMixedEventLeadPWindowNeighbours"), it.currentWindowNeighbours());
-        }
+      // Counting what actually enters the mixing (not what enters the dataframe), before any pooling starts:
+      int64_t nValidLeadP = 0, nValidLeadJet = 0, nValidSubJet = 0;
+      for (size_t slot = 0; slot < collisionIndexExtent; ++slot) {
+        nValidLeadP += leadPByCollision[slot].isValid ? 1 : 0;
+        nValidLeadJet += jetProxyByCollision[slot].hasValidLeadingJet ? 1 : 0;
+        nValidSubJet += jetProxyByCollision[slot].hasValidSubJet ? 1 : 0;
       }
+      LOG(info) << "LUT input: " << collisions.size() << " collisions, extent " << collisionIndexExtent << ", validLeadP " << nValidLeadP << ", validLeadJet " << nValidLeadJet << ", validSubJet " << nValidSubJet;
+
+      /// \brief Aggregates every collision with a usable proxy by its mixing bin.
+      ///        proxyPtOf returns the proxy pT for a slot, or a negative sentinel when that collision has no proxy this analysis would accept.
+      /// \note  Collisions are visited in ascending index order, so each pool/window already comes out sorted by collision index.
+      auto poolByBin = [&](auto const& proxyPtOf) {
+        std::vector<std::vector<int32_t>> pools(mixBinning.getAllBinsCount()); // Method from BinningPolicy.h
+        for (size_t slot = 0; slot < collisionIndexExtent; ++slot) {
+          const float proxyPt = proxyPtOf(slot);
+          if (proxyPt < 0.f)
+            continue;
+          auto const& axes = mixingAxesByCollision[slot];
+          const int bin = mixBinning.getBin(std::make_tuple(axes.zvtx, proxyPt, axes.centrality));
+          if (bin >= 0)
+            pools[bin].push_back(static_cast<int32_t>(slot));
+        }
+        return pools;
+      };
+
+      /// \brief Pairs each collision with the next mixedEventWindowSize partners inside its own bin, never itself.
+      /// \note  Reproduces CombinationsBlockStrictlyUpperSameIndexPolicy exactly, in the same bins, same forward window,
+      ///        strictly upper. The advantage is that it runs in O(M*W) rather than the O(M^2) though, M being the collisions carrying a valid proxy.
+      /// \note  onPair owns the reservoir inserts and the QA fills, because HIST() needs literal names and so the fills cannot be parameterized here.
+      auto pairWithinWindows = [&](std::vector<std::vector<int32_t>> const& pools, auto&& onPair) {
+        int64_t nPairs = 0;
+        for (auto const& pool : pools) {
+          for (size_t a = 0; a < pool.size(); ++a) {
+            const size_t slot1 = pool[a];
+            const int64_t id1 = collisionIndexBase + static_cast<int64_t>(slot1);
+            const size_t lastPartner = std::min(a + static_cast<size_t>(fakePolSwitches.mixedEventWindowSize) + 1, pool.size());
+            for (size_t b = a + 1; b < lastPartner; ++b) {
+              const size_t slot2 = pool[b];
+              const int64_t id2 = collisionIndexBase + static_cast<int64_t>(slot2);
+              // Continuous-readout cannibalisation test:
+              // (should not be impactful with gap ~ 10, as close-index collisions are most likely not close in time on the derived data, but kept as QA)
+              if (fakePolSwitches.mixingIdxGapSize > 0 && std::abs(id2 - id1) <= fakePolSwitches.mixingIdxGapSize)
+                continue;
+              onPair(slot1, id1, slot2, id2);
+              ++nPairs;
+            }
+          }
+        }
+        return nPairs;
+      };
+
+      /// \brief Forward window occupancy for one collision, i.e. how many partners it is about to be paired with.
+      /// \note  Should reproduce currentWindowNeighbours(), saturating at mixedEventWindowSize.
+      auto windowNeighboursOf = [&](std::vector<std::vector<int32_t>> const& pools, auto&& onCollision) {
+        for (auto const& pool : pools) {
+          for (size_t a = 0; a < pool.size(); ++a)
+            onCollision(std::min(static_cast<size_t>(fakePolSwitches.mixedEventWindowSize), pool.size() - a - 1));
+        }
+      };
+
+      // Starting the window loops for each jet proxy:
+      // Leading particle:
+      const auto leadPPools = poolByBin([&](size_t slot) { return leadPByCollision[slot].isValid ? leadPByCollision[slot].pt : -999.f; });
+      if (doMixingQA) {
+        windowNeighboursOf(leadPPools, [&](size_t nNeighbours) { histos.fill(HIST("EventMixingQA/hMixedEventLeadPWindowNeighbours"), nNeighbours); });
+      }
+      const int64_t nPairsLeadP = pairWithinWindows(leadPPools, [&](size_t slot1, int64_t id1, size_t slot2, int64_t id2) {
+        auto const& lp1 = leadPByCollision[slot1];
+        auto const& lp2 = leadPByCollision[slot2];
+        auto const& ax1 = mixingAxesByCollision[slot1];
+        auto const& ax2 = mixingAxesByCollision[slot2];
+        // Both sides of the pair feed each other's reservoir, properly using what is already in memory. This also lets a collision borrow from
+        // earlier collisions as well, eliminating the forward-only bias of the sliding window in the event mixing procedure.
+        reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, slot1, id1, {lp2.pt, lp2.eta, lp2.phi, ax2.zvtx, ax2.centrality, id2});
+        reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, slot2, id2, {lp1.pt, lp1.eta, lp1.phi, ax1.zvtx, ax1.centrality, id1});
+        if (doMixingQA)
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexEligible"), id2 - id1);
+      });
+      const auto tLeadPDone = std::chrono::steady_clock::now();
+      LOG(info) << "  leadP loop: " << std::chrono::duration<double>(tLeadPDone - tLutStart).count() << " s, " << nPairsLeadP << " pairs";
 
       // Leading jet:
-      // pt comes from the jetProxyByCollision pre-pass above.
-      // (Collisions whose leading jet failed minLeadJetPt get the -999 sentinel, so they never enter this mixing)
-      auto getMixLeadJetPt = [&jetProxyByCollision](o2::aod::RingCollision const& col) {
-        auto cacheIt = jetProxyByCollision.find(col.globalIndex());
-        if (cacheIt == jetProxyByCollision.end() || !cacheIt->second.hasValidLeadingJet)
-          return -999.f;
-        return cacheIt->second.leadingJetPt;
-      };
-      using LeadJetBinningType = FlexibleBinningPolicy<std::tuple<decltype(getMixLeadJetPt), decltype(getMixCentrality)>,
-                                                       o2::aod::lambdajetpol::Zvtx, decltype(getMixLeadJetPt), decltype(getMixCentrality)>;
-      LeadJetBinningType leadJetBinning{{getMixLeadJetPt, getMixCentrality},
-                                        {axisConfigurations.axisPVz, axisConfigurations.axisJetPt, axisConfigurations.axisCentrality},
-                                        true};
-
-      // RingJets is still the associated table (SameKindPair requires one), but its sliced content goes unused here:
-      // the borrowed direction comes from jetProxyByCollision, which already knows which jet is the leading one.
-      SameKindPair<o2::aod::RingCollisions, o2::aod::RingJets, LeadJetBinningType> leadJetPair{
-        leadJetBinning, fakePolSwitches.mixedEventWindowSize, -1, collisions, std::make_tuple(jets), &mixCache};
-
-      for (auto it = leadJetPair.begin(); it != leadJetPair.end(); ++it) {
-        auto& [c1, jets1, c2, jets2] = *it; // jets1/jets2 intentionally unused: the leading/subleading jet is already resolved in jetProxyByCollision
-        auto cachedLeadJet1 = jetProxyByCollision.find(c1.globalIndex());
-        auto cachedLeadJet2 = jetProxyByCollision.find(c2.globalIndex());
-        if (cachedLeadJet1 != jetProxyByCollision.end() && cachedLeadJet2 != jetProxyByCollision.end() &&
-            cachedLeadJet1->second.hasValidLeadingJet && cachedLeadJet2->second.hasValidLeadingJet) {
-          reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, c1.globalIndex(),
-                          {cachedLeadJet2->second.leadingJetPt, cachedLeadJet2->second.leadingJetEta, cachedLeadJet2->second.leadingJetPhi, c2.zvtx(), getCentrality(c2), c2.globalIndex()});
-          reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, c2.globalIndex(),
-                          {cachedLeadJet1->second.leadingJetPt, cachedLeadJet1->second.leadingJetEta, cachedLeadJet1->second.leadingJetPhi, c1.zvtx(), getCentrality(c1), c1.globalIndex()});
-          if (doMixingQA)
-            histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
-        }
-        if (doMixingQA && it.isNewWindow()) {
-          histos.fill(HIST("EventMixingQA/hMixedEventLeadJetWindowNeighbours"), it.currentWindowNeighbours());
-        }
+      const auto leadJetPools = poolByBin([&](size_t slot) { return jetProxyByCollision[slot].hasValidLeadingJet ? jetProxyByCollision[slot].leadingJetPt : -999.f; });
+      if (doMixingQA) {
+        windowNeighboursOf(leadJetPools, [&](size_t nNeighbours) { histos.fill(HIST("EventMixingQA/hMixedEventLeadJetWindowNeighbours"), nNeighbours); });
       }
+      const int64_t nPairsLeadJet = pairWithinWindows(leadJetPools, [&](size_t slot1, int64_t id1, size_t slot2, int64_t id2) {
+        auto const& lj1 = jetProxyByCollision[slot1];
+        auto const& lj2 = jetProxyByCollision[slot2];
+        auto const& ax1 = mixingAxesByCollision[slot1];
+        auto const& ax2 = mixingAxesByCollision[slot2];
+        reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, slot1, id1, {lj2.leadingJetPt, lj2.leadingJetEta, lj2.leadingJetPhi, ax2.zvtx, ax2.centrality, id2});
+        reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, slot2, id2, {lj1.leadingJetPt, lj1.leadingJetEta, lj1.leadingJetPhi, ax1.zvtx, ax1.centrality, id1});
+        if (doMixingQA)
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexEligible"), id2 - id1);
+      });
+      const auto tLeadJetDone = std::chrono::steady_clock::now();
+      LOG(info) << "  leadJet loop: " << std::chrono::duration<double>(tLeadJetDone - tLeadPDone).count() << " s, " << nPairsLeadJet << " pairs";
 
       // Subleading jet:
-      auto getMixSubJetPt = [&jetProxyByCollision](o2::aod::RingCollision const& col) {
-        auto cacheIt = jetProxyByCollision.find(col.globalIndex());
-        if (cacheIt == jetProxyByCollision.end() || !cacheIt->second.hasValidSubJet)
-          return -999.f;
-        return cacheIt->second.subleadingJetPt;
-      };
-      using SubJetBinningType = FlexibleBinningPolicy<std::tuple<decltype(getMixSubJetPt), decltype(getMixCentrality)>,
-                                                      o2::aod::lambdajetpol::Zvtx, decltype(getMixSubJetPt), decltype(getMixCentrality)>;
-      SubJetBinningType subJetBinning{{getMixSubJetPt, getMixCentrality},
-                                      {axisConfigurations.axisPVz, axisConfigurations.axisJetPt, axisConfigurations.axisCentrality},
-                                      true};
-
-      SameKindPair<o2::aod::RingCollisions, o2::aod::RingJets, SubJetBinningType> subJetPair{
-        subJetBinning, fakePolSwitches.mixedEventWindowSize, -1, collisions, std::make_tuple(jets), &mixCache};
-
-      for (auto it = subJetPair.begin(); it != subJetPair.end(); ++it) {
-        auto& [c1, jets1, c2, jets2] = *it; // jets1/jets2 intentionally unused: the leading/subleading jet is already resolved in jetProxyByCollision
-        auto cachedSubJet1 = jetProxyByCollision.find(c1.globalIndex());
-        auto cachedSubJet2 = jetProxyByCollision.find(c2.globalIndex());
-        if (cachedSubJet1 != jetProxyByCollision.end() && cachedSubJet2 != jetProxyByCollision.end() &&
-            cachedSubJet1->second.hasValidSubJet && cachedSubJet2->second.hasValidSubJet) {
-          reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, c1.globalIndex(),
-                          {cachedSubJet2->second.subleadingJetPt, cachedSubJet2->second.subleadingJetEta, cachedSubJet2->second.subleadingJetPhi, c2.zvtx(), getCentrality(c2), c2.globalIndex()});
-          reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, c2.globalIndex(),
-                          {cachedSubJet1->second.subleadingJetPt, cachedSubJet1->second.subleadingJetEta, cachedSubJet1->second.subleadingJetPhi, c1.zvtx(), getCentrality(c1), c1.globalIndex()});
-          if (doMixingQA)
-            histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexEligible"), c2.globalIndex() - c1.globalIndex());
-        }
-        if (doMixingQA && it.isNewWindow()) {
-          histos.fill(HIST("EventMixingQA/hMixedEventSubJetWindowNeighbours"), it.currentWindowNeighbours());
-        }
-      }
-
+      const auto subJetPools = poolByBin([&](size_t slot) { return jetProxyByCollision[slot].hasValidSubJet ? jetProxyByCollision[slot].subleadingJetPt : -999.f; });
       if (doMixingQA) {
-        // Selected-partner proximity: target - source for the partner the reservoir actually kept.
-        // Non-"std::abs" values to know if we are properly tracking previous collisions as well.
-        for (auto const& kv : mixedLeadPByCollision)
-          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected"), kv.first - kv.second.sourceCollisionId);
-        for (auto const& kv : mixedLeadJetByCollision)
-          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected"), kv.first - kv.second.sourceCollisionId);
-        for (auto const& kv : mixedSubJetByCollision)
-          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected"), kv.first - kv.second.sourceCollisionId);
+        windowNeighboursOf(subJetPools, [&](size_t nNeighbours) { histos.fill(HIST("EventMixingQA/hMixedEventSubJetWindowNeighbours"), nNeighbours); });
+      }
+      const int64_t nPairsSubJet = pairWithinWindows(subJetPools, [&](size_t slot1, int64_t id1, size_t slot2, int64_t id2) {
+        auto const& sj1 = jetProxyByCollision[slot1];
+        auto const& sj2 = jetProxyByCollision[slot2];
+        auto const& ax1 = mixingAxesByCollision[slot1];
+        auto const& ax2 = mixingAxesByCollision[slot2];
+        reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, slot1, id1, {sj2.subleadingJetPt, sj2.subleadingJetEta, sj2.subleadingJetPhi, ax2.zvtx, ax2.centrality, id2});
+        reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, slot2, id2, {sj1.subleadingJetPt, sj1.subleadingJetEta, sj1.subleadingJetPhi, ax1.zvtx, ax1.centrality, id1});
+        if (doMixingQA)
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexEligible"), id2 - id1);
+      });
+      const auto tSubJetDone = std::chrono::steady_clock::now();
+      LOG(info) << "  subJet loop: " << std::chrono::duration<double>(tSubJetDone - tLeadJetDone).count() << " s, " << nPairsSubJet << " pairs";
 
-        // Source-usage QA:
-        // (Per-proxy (HIST() needs literal names, so the fills stay unrolled here)
+
+      // Source-usage QA:
+      if (doMixingQA) {
+        for (size_t slot = 0; slot < mixedLeadPByCollision.size(); ++slot) {
+          auto const& entry = mixedLeadPByCollision[slot];
+          if (entry.sourceCollisionId < 0) continue;
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected"), (static_cast<int64_t>(slot) + collisionIndexBase) - entry.sourceCollisionId);
+        }
+        for (size_t slot = 0; slot < mixedLeadJetByCollision.size(); ++slot) {
+          auto const& entry = mixedLeadJetByCollision[slot];
+          if (entry.sourceCollisionId < 0) continue;
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected"), (static_cast<int64_t>(slot) + collisionIndexBase) - entry.sourceCollisionId);
+        }
+        for (size_t slot = 0; slot < mixedSubJetByCollision.size(); ++slot) {
+          auto const& entry = mixedSubJetByCollision[slot];
+          if (entry.sourceCollisionId < 0) continue;
+          histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected"), (static_cast<int64_t>(slot) + collisionIndexBase) - entry.sourceCollisionId);
+        }
+
         auto leadPUsage = tallySourceUsage(mixedLeadPByCollision);
-        for (auto const& kv : leadPUsage)
-          histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadPSourceUsageCount"), kv.second);
-        // Eta/phi of a mixed proxy is stored under the collision that receives the mixing -- reuse the first hit found:
-        for (auto const& kv : mixedLeadPByCollision) {
-          auto usageIt = leadPUsage.find(kv.second.sourceCollisionId);
-          if (usageIt == leadPUsage.end()) // already consumed below
-            continue;
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsEta"), kv.second.eta, usageIt->second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsPhi"), kv.second.phi, usageIt->second);
-          leadPUsage.erase(usageIt); // Fill this source exactly once, not once per target it supplied
+        for (auto const& kv : leadPUsage) histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadPSourceUsageCount"), kv.second);
+        for (auto const& entry : mixedLeadPByCollision) {
+          if (entry.sourceCollisionId < 0) continue;
+          auto usageIt = leadPUsage.find(entry.sourceCollisionId);
+          if (usageIt == leadPUsage.end()) continue;
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsEta"), entry.eta, usageIt->second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsPhi"), entry.phi, usageIt->second);
+          leadPUsage.erase(usageIt); 
         }
 
         auto leadJetUsage = tallySourceUsage(mixedLeadJetByCollision);
-        for (auto const& kv : leadJetUsage)
-          histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadJetSourceUsageCount"), kv.second);
-        for (auto const& kv : mixedLeadJetByCollision) {
-          auto usageIt = leadJetUsage.find(kv.second.sourceCollisionId);
-          if (usageIt == leadJetUsage.end())
-            continue;
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsEta"), kv.second.eta, usageIt->second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsPhi"), kv.second.phi, usageIt->second);
+        for (auto const& kv : leadJetUsage) histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadJetSourceUsageCount"), kv.second);
+        for (auto const& entry : mixedLeadJetByCollision) {
+          if (entry.sourceCollisionId < 0) continue;
+          auto usageIt = leadJetUsage.find(entry.sourceCollisionId);
+          if (usageIt == leadJetUsage.end()) continue;
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsEta"), entry.eta, usageIt->second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsPhi"), entry.phi, usageIt->second);
           leadJetUsage.erase(usageIt);
         }
 
         auto subJetUsage = tallySourceUsage(mixedSubJetByCollision);
-        for (auto const& kv : subJetUsage)
-          histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventSubJetSourceUsageCount"), kv.second);
-        for (auto const& kv : mixedSubJetByCollision) {
-          auto usageIt = subJetUsage.find(kv.second.sourceCollisionId);
-          if (usageIt == subJetUsage.end())
-            continue;
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsEta"), kv.second.eta, usageIt->second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsPhi"), kv.second.phi, usageIt->second);
+        for (auto const& kv : subJetUsage) histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventSubJetSourceUsageCount"), kv.second);
+        for (auto const& entry : mixedSubJetByCollision) {
+          if (entry.sourceCollisionId < 0) continue;
+          auto usageIt = subJetUsage.find(entry.sourceCollisionId);
+          if (usageIt == subJetUsage.end()) continue;
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsEta"), entry.eta, usageIt->second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsPhi"), entry.phi, usageIt->second);
           subJetUsage.erase(usageIt);
         }
       }
@@ -1901,34 +2042,32 @@ struct lambdajetpolarizationionsderived {
           // (this check is performed only if hasValidLeadingP is true for performance, as the LeadPPt matching for the event mixing would also demand a minimum jet pT)
           // (it is also a physics selection: we want to mix the correlations in events that could actually have a ring formed)
           if (fakePolSwitches.doMixedEventProxies) {
-            auto itMix = mixedLeadPByCollision.find(collId);
-            proxyCache.hadLeadP = (itMix != mixedLeadPByCollision.end()); // Check if this event had a valid mixing target
+            auto const& mixLeadP = mixedLeadPByCollision[slotOf(collId)];
+            proxyCache.hadLeadP = (mixLeadP.sourceCollisionId >= 0); // Empty slot means this event had no valid mixing target
 
             // Declaring bools before the hadLeadP checks as they will be used inside the doMixingQA block too:
             bool samePtProxyLeadP = false;
             bool sameEtaProxyLeadP = false;
             bool samePhiProxyLeadP = false;
             if (proxyCache.hadLeadP) {
-              proxyCache.leadPPt = itMix->second.pt;
-              proxyCache.leadPEta = itMix->second.eta;
-              proxyCache.leadPPhi = itMix->second.phi;
+              proxyCache.leadPPt = mixLeadP.pt;
+              proxyCache.leadPEta = mixLeadP.eta;
+              proxyCache.leadPPhi = mixLeadP.phi;
 
               // bit-by-bit checks of correspondence (asked for no-lint on these "paranoid" checks):
               // (inexpensive enough that we can check this at production time)
-              // These need to be gated by proxyCache.hadLeadP, otherwise itMix dereferencing goes awry and the compiled code will complain at the first second.pt dereference
-              samePtProxyLeadP = (itMix->second.pt == leadPPt); // NOLINT(clang-diagnostic-float-equal)
-              sameEtaProxyLeadP = (itMix->second.eta == leadPEta); // NOLINT(clang-diagnostic-float-equal)
-              samePhiProxyLeadP = (itMix->second.phi == leadPPhi); // NOLINT(clang-diagnostic-float-equal)
+              samePtProxyLeadP = (mixLeadP.pt == leadPPt);    // NOLINT(clang-diagnostic-float-equal)
+              sameEtaProxyLeadP = (mixLeadP.eta == leadPEta); // NOLINT(clang-diagnostic-float-equal)
+              samePhiProxyLeadP = (mixLeadP.phi == leadPPhi); // NOLINT(clang-diagnostic-float-equal)
               if (samePtProxyLeadP && sameEtaProxyLeadP && samePhiProxyLeadP) { // Astronomically small chance, even with the birthday paradox
                 LOG(fatal) << "EventMixing: borrowed leadP is bit-identical to the target's own in pt, eta and phi. Target collision "
-                          << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadPPt;
+                           << collId << ", source " << mixLeadP.sourceCollisionId << ", pt " << leadPPt;
               }
             }
 
             if (doMixingQA) {
               // Filled hit or miss, so the zero bin is the miss rate seen from the pool's side:
-              auto itCount = leadPCandidateCount.find(collId);
-              const int nCandidates = (itCount != leadPCandidateCount.end()) ? itCount->second : 0;
+              const int nCandidates = leadPCandidateCount[slotOf(collId)]; // Zero-initialised, so no existence check needed
               histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPCandidates"), nCandidates);
               histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadPCandidatesVsPt"), nCandidates, leadPPt);
 
@@ -1942,29 +2081,29 @@ struct lambdajetpolarizationionsderived {
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta"), proxyCache.leadPEta, leadPEta);
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPPhiVsLeadPPhi"), proxyCache.leadPPhi, leadPPhi);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPt"), proxyCache.leadPPt - leadPPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx"), itMix->second.zvtx - collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent"), itMix->second.centrality - centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx"), mixLeadP.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent"), mixLeadP.centrality - centrality);
 
                 // QAing the binning policy itself to verify if any wrong proxies are being borrowed:
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaPtVsTargetPt"), proxyCache.leadPPt - leadPPt, leadPPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaZvtxVsTargetZvtx"), itMix->second.zvtx - collisionPVz, collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaCentVsTargetCent"), itMix->second.centrality - centrality, centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaZvtxVsTargetZvtx"), mixLeadP.zvtx - collisionPVz, collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaCentVsTargetCent"), mixLeadP.centrality - centrality, centrality);
 
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaEta"), proxyCache.leadPEta - leadPEta);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi"), wrapToPiFast(proxyCache.leadPPhi - leadPPhi));
 
                 // 2D Index Vs Delta Mixed-Variable QAs:
-                const float deltaIndexLeadP = static_cast<float>(collId - itMix->second.sourceCollisionId);
-                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaPtVsDeltaIndex"), deltaIndexLeadP, itMix->second.pt - leadPPt);
-                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaZvtxVsDeltaIndex"), deltaIndexLeadP, itMix->second.zvtx - collisionPVz);
-                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaCentVsDeltaIndex"), deltaIndexLeadP, itMix->second.centrality - centrality);
+                const float deltaIndexLeadP = static_cast<float>(collId - mixLeadP.sourceCollisionId);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaPtVsDeltaIndex"), deltaIndexLeadP, mixLeadP.pt - leadPPt);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaZvtxVsDeltaIndex"), deltaIndexLeadP, mixLeadP.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaCentVsDeltaIndex"), deltaIndexLeadP, mixLeadP.centrality - centrality);
 
                 // Computing final needed bool, which can be declared as a const:
-                const bool sameZvtxLeadP = (itMix->second.zvtx == collisionPVz); // NOLINT(clang-diagnostic-float-equal)
+                const bool sameZvtxLeadP = (mixLeadP.zvtx == collisionPVz); // NOLINT(clang-diagnostic-float-equal)
 
                 if (sameZvtxLeadP && samePtProxyLeadP) // Flagged as "alarm" level
-                LOG(alarm) << "EventMixing: source and target share Zvtx and leadP pt bit-for-bit -- duplicated collision row? Target "
-                          << collId << ", source " << itMix->second.sourceCollisionId << ", Zvtx " << collisionPVz;
+                  LOG(alarm) << "EventMixing: source and target share Zvtx and leadP pt bit-for-bit -- duplicated collision row? Target "
+                             << collId << ", source " << mixLeadP.sourceCollisionId << ", Zvtx " << collisionPVz;
 
                 // Single-variable coincidences are possible by chance, so they are counted instead:
                 if (samePtProxyLeadP)
@@ -1977,7 +2116,7 @@ struct lambdajetpolarizationionsderived {
                   histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 3);
 
                 // Possible shared-track case in event splitting, done in a log scale:
-                const float angularSepLeadP = std::hypot(itMix->second.eta - leadPEta, wrapToPiFast(itMix->second.phi - leadPPhi));
+                const float angularSepLeadP = std::hypot(mixLeadP.eta - leadPEta, wrapToPiFast(mixLeadP.phi - leadPPhi));
                 histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPLogAngularSep"), angularSepLeadP > 0.f ? std::log10(angularSepLeadP) : -7.f);
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 0);
@@ -1991,7 +2130,7 @@ struct lambdajetpolarizationionsderived {
           // Apply distortion logic:
           // (modifies (leadPPt, leadPEta, leadPPhi, leadPUnitVec) as if the modified proxy was the actual proxy of this event)
           applyProxyDistortion({hasValidLeadingP, leadPPt, leadPEta, leadPPhi, leadPUnitVec},
-                               minLeadParticlePt, {proxyCache.hadLeadP, proxyCache.leadPPt, proxyCache.leadPEta, proxyCache.leadPPhi},
+                               minLeadParticlePt, fakePolSwitches.maxLeadPProxyEta, {proxyCache.hadLeadP, proxyCache.leadPPt, proxyCache.leadPEta, proxyCache.leadPPhi},
                                etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms (i.e., the actually used proxy).
@@ -2002,13 +2141,13 @@ struct lambdajetpolarizationionsderived {
             histos.fill(HIST("JetKinematicsQA/hJetCounterPtLeadP"), leadPPt);
 
             histos.fill(HIST("JetKinematicsQA/h2dLeadPEtaVsPVz"), leadPEta, collisionPVz);
-            if (doJetProxy5dQA)
-              histos.fill(HIST("JetKinematicsQA/h5dLeadPEtaPhiPtPVzCent"), leadPEta, leadPPhi, leadPPt, collisionPVz, centrality);
+            // if (doJetProxy5dQA)
+            //   histos.fill(HIST("JetKinematicsQA/h5dLeadPEtaPhiPtPVzCent"), leadPEta, leadPPhi, leadPPt, collisionPVz, centrality);
           }
         }
 
         // 3) Fetching leading jet and subleading jet -- Resolved once per collision in the jetProxyByCollision pre-pass:
-        const JetProxyCache& jetProxies = jetProxyByCollision.at(collId); // .at() makes it sure we don't create a new key in the map
+        const JetProxyCache& jetProxies = jetProxyByCollision[slotOf(collId)];
         float leadingJetPt = jetProxies.leadingJetPt;
         float subleadingJetPt = jetProxies.subleadingJetPt;
 
@@ -2031,27 +2170,25 @@ struct lambdajetpolarizationionsderived {
           // Apply distortion logic:
           if (fakePolSwitches.doMixedEventProxies) {
             // Get this collision's leading-jet mixing partner (if any) from the LUT built above:
-            auto itMix = mixedLeadJetByCollision.find(collId);
-            proxyCache.hadLeadJet = (itMix != mixedLeadJetByCollision.end());
+            auto const& mixLeadJet = mixedLeadJetByCollision[slotOf(collId)];
+            proxyCache.hadLeadJet = (mixLeadJet.sourceCollisionId >= 0);
             if (proxyCache.hadLeadJet) {
-              proxyCache.leadJetPt = itMix->second.pt;
-              proxyCache.leadJetEta = itMix->second.eta;
-              proxyCache.leadJetPhi = itMix->second.phi;
+              proxyCache.leadJetPt = mixLeadJet.pt;
+              proxyCache.leadJetEta = mixLeadJet.eta;
+              proxyCache.leadJetPhi = mixLeadJet.phi;
 
               // bit-by-bit checks of correspondence:
-              // These need to be gated by proxyCache.hadLeadP, otherwise itMix dereferencing goes awry and the compiled code will complain at the first second.pt dereference
-              const bool samePtProxyLeadJet = (itMix->second.pt == leadingJetPt); // NOLINT(clang-diagnostic-float-equal)
-              const bool sameEtaProxyLeadJet = (itMix->second.eta == leadingJetEta); // NOLINT(clang-diagnostic-float-equal)
-              const bool samePhiProxyLeadJet = (itMix->second.phi == leadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
+              const bool samePtProxyLeadJet = (mixLeadJet.pt == leadingJetPt);      // NOLINT(clang-diagnostic-float-equal)
+              const bool sameEtaProxyLeadJet = (mixLeadJet.eta == leadingJetEta);   // NOLINT(clang-diagnostic-float-equal)
+              const bool samePhiProxyLeadJet = (mixLeadJet.phi == leadingJetPhi);   // NOLINT(clang-diagnostic-float-equal)
               if (samePtProxyLeadJet && sameEtaProxyLeadJet && samePhiProxyLeadJet) { // Astronomically small chance, even with the birthday paradox
                 LOG(fatal) << "EventMixing: borrowed LeadJet is bit-identical to the target's own in pt, eta and phi. Target collision "
-                          << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << leadingJetPt;
+                           << collId << ", source " << mixLeadJet.sourceCollisionId << ", pt " << leadingJetPt;
               }
             }
 
             if (doMixingQA) {
-              auto itCount = leadJetCandidateCount.find(collId);
-              const int nCandidates = (itCount != leadJetCandidateCount.end()) ? itCount->second : 0;
+              const int nCandidates = leadJetCandidateCount[slotOf(collId)];
               histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetCandidates"), nCandidates);
               histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadJetCandidatesVsPt"), nCandidates, leadingJetPt);
 
@@ -2065,8 +2202,8 @@ struct lambdajetpolarizationionsderived {
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta"), proxyCache.leadJetEta, leadingJetEta);
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetPhiVsLeadJetPhi"), proxyCache.leadJetPhi, leadingJetPhi);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPt"), proxyCache.leadJetPt - leadingJetPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx"), itMix->second.zvtx - collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent"), itMix->second.centrality - centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx"), mixLeadJet.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent"), mixLeadJet.centrality - centrality);
 
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaEta"), proxyCache.leadJetEta - leadingJetEta);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi"), wrapToPiFast(proxyCache.leadJetPhi - leadingJetPhi));
@@ -2079,7 +2216,7 @@ struct lambdajetpolarizationionsderived {
             }
           }
           applyProxyDistortion({hasValidLeadingJet, leadingJetPt, leadingJetEta, leadingJetPhi, leadingJetUnitVec},
-                               minLeadJetPt, {proxyCache.hadLeadJet, proxyCache.leadJetPt, proxyCache.leadJetEta, proxyCache.leadJetPhi},
+                               minLeadJetPt, fakePolSwitches.maxJetProxyEta, {proxyCache.hadLeadJet, proxyCache.leadJetPt, proxyCache.leadJetEta, proxyCache.leadJetPhi},
                                etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
@@ -2090,8 +2227,8 @@ struct lambdajetpolarizationionsderived {
             histos.fill(HIST("JetKinematicsQA/hJetCounterPtJet"), leadingJetPt);
 
             histos.fill(HIST("JetKinematicsQA/h2dLeadJetEtaVsPVz"), leadingJetEta, collisionPVz);
-            if (doJetProxy5dQA)
-              histos.fill(HIST("JetKinematicsQA/h5dLeadJetEtaPhiPtPVzCent"), leadingJetEta, leadingJetPhi, leadingJetPt, collisionPVz, centrality);
+            // if (doJetProxy5dQA)
+            //   histos.fill(HIST("JetKinematicsQA/h5dLeadJetEtaPhiPtPVzCent"), leadingJetEta, leadingJetPhi, leadingJetPt, collisionPVz, centrality);
           }
         }
 
@@ -2107,27 +2244,25 @@ struct lambdajetpolarizationionsderived {
           // Apply distortion logic:
           if (fakePolSwitches.doMixedEventProxies) {
             // Get this collision's subleading-jet mixing partner (if any) from the LUT built above:
-            auto itMix = mixedSubJetByCollision.find(collId);
-            proxyCache.hadSubJet = (itMix != mixedSubJetByCollision.end());
+            auto const& mixSubJet = mixedSubJetByCollision[slotOf(collId)];
+            proxyCache.hadSubJet = (mixSubJet.sourceCollisionId >= 0);
             if (proxyCache.hadSubJet) {
-              proxyCache.subJetPt = itMix->second.pt;
-              proxyCache.subJetEta = itMix->second.eta;
-              proxyCache.subJetPhi = itMix->second.phi;
+              proxyCache.subJetPt = mixSubJet.pt;
+              proxyCache.subJetEta = mixSubJet.eta;
+              proxyCache.subJetPhi = mixSubJet.phi;
 
               // bit-by-bit checks of correspondence:
-              // These need to be gated by proxyCache.hadLeadP, otherwise itMix dereferencing goes awry and the compiled code will complain at the first second.pt dereference
-              const bool samePtProxyLeadJet = (itMix->second.pt == subleadingJetPt); // NOLINT(clang-diagnostic-float-equal)
-              const bool sameEtaProxyLeadJet = (itMix->second.eta == subleadingJetEta); // NOLINT(clang-diagnostic-float-equal)
-              const bool samePhiProxyLeadJet = (itMix->second.phi == subleadingJetPhi); // NOLINT(clang-diagnostic-float-equal)
-              if (samePtProxyLeadJet && sameEtaProxyLeadJet && samePhiProxyLeadJet) { // Astronomically small chance, even with the birthday paradox
+              const bool samePtProxySubJet = (mixSubJet.pt == subleadingJetPt);      // NOLINT(clang-diagnostic-float-equal)
+              const bool sameEtaProxySubJet = (mixSubJet.eta == subleadingJetEta);   // NOLINT(clang-diagnostic-float-equal)
+              const bool samePhiProxySubJet = (mixSubJet.phi == subleadingJetPhi);   // NOLINT(clang-diagnostic-float-equal)
+              if (samePtProxySubJet && sameEtaProxySubJet && samePhiProxySubJet) { // Astronomically small chance, even with the birthday paradox
                 LOG(fatal) << "EventMixing: borrowed SubJet is bit-identical to the target's own in pt, eta and phi. Target collision "
-                          << collId << ", source " << itMix->second.sourceCollisionId << ", pt " << subleadingJetPt;
+                           << collId << ", source " << mixSubJet.sourceCollisionId << ", pt " << subleadingJetPt;
               }
             }
 
             if (doMixingQA) {
-              auto itCount = subJetCandidateCount.find(collId);
-              const int nCandidates = (itCount != subJetCandidateCount.end()) ? itCount->second : 0;
+              const int nCandidates = subJetCandidateCount[slotOf(collId)];
               histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetCandidates"), nCandidates);
               histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedSubJetCandidatesVsPt"), nCandidates, subleadingJetPt);
 
@@ -2141,8 +2276,8 @@ struct lambdajetpolarizationionsderived {
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetEtaVsSubJetEta"), proxyCache.subJetEta, subleadingJetEta);
                 histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetPhiVsSubJetPhi"), proxyCache.subJetPhi, subleadingJetPhi);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPt"), proxyCache.subJetPt - subleadingJetPt);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx"), itMix->second.zvtx - collisionPVz);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent"), itMix->second.centrality - centrality);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx"), mixSubJet.zvtx - collisionPVz);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent"), mixSubJet.centrality - centrality);
 
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaEta"), proxyCache.subJetEta - subleadingJetEta);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi"), wrapToPiFast(proxyCache.subJetPhi - subleadingJetPhi));
@@ -2155,7 +2290,7 @@ struct lambdajetpolarizationionsderived {
             }
           }
           applyProxyDistortion({hasValidSubJet, subleadingJetPt, subleadingJetEta, subleadingJetPhi, subJetUnitVec},
-                               minSubLeadJetPt, {proxyCache.hadSubJet, proxyCache.subJetPt, proxyCache.subJetEta, proxyCache.subJetPhi},
+                               minSubLeadJetPt, fakePolSwitches.maxJetProxyEta, {proxyCache.hadSubJet, proxyCache.subJetPt, proxyCache.subJetEta, proxyCache.subJetPhi},
                                etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
@@ -2166,8 +2301,8 @@ struct lambdajetpolarizationionsderived {
             histos.fill(HIST("JetKinematicsQA/hJetCounterPt2ndJet"), subleadingJetPt);
 
             histos.fill(HIST("JetKinematicsQA/h2dSubLeadJetEtaVsPVz"), subleadingJetEta, collisionPVz);
-            if (doJetProxy5dQA)
-              histos.fill(HIST("JetKinematicsQA/h5dSubLeadJetEtaPhiPtPVzCent"), subleadingJetEta, subleadingJetPhi, subleadingJetPt, collisionPVz, centrality);
+            // if (doJetProxy5dQA)
+            //   histos.fill(HIST("JetKinematicsQA/h5dSubLeadJetEtaPhiPtPVzCent"), subleadingJetEta, subleadingJetPhi, subleadingJetPt, collisionPVz, centrality);
           }
         }
 
@@ -2439,14 +2574,14 @@ struct lambdajetpolarizationionsderived {
             if (familySwitches.doFamilyRing) {
               RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "Ring") // Notice the usage of macros! If you change the variable names, this WILL break the code!
                                                                         // No, there should NOT be any ";" here! Read the macro definition for an explanation
-            }
-            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 0, ringObservableLeadP); // First bin of comparison
-            histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 0);
 
-            // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
-            if (familySwitches.doFamilyRing) {
+              // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("Ring", leadPEtaPos, lambdaEtaPos);
             }
+            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 0, ringObservableLeadP); // First bin of comparison
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, ringObservableLeadP, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 0);
+
           }
           if (familySwitches.doFamilyRing) {
             POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "Ring")
@@ -2461,6 +2596,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "Ring")
             }
             histos.fill(HIST("IntegratedCuts/pRingCuts"), 0, ringObservable);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, ringObservable, v0InMassPeak);
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 0);
             histos.fill(HIST("IntegratedCuts/pRingVsNV0s"), nLambdaLikeV0s, ringObservable);
             histos.fill(HIST("hNV0sVsCentrality"), nLambdaLikeV0s, centrality);
@@ -2503,6 +2639,27 @@ struct lambdajetpolarizationionsderived {
               histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsPhiStar"), phiStar, ringObservableOverJetZ);
               histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEtaVsCosThetaHEE"), leadingJetEta, cosFakePol, ringObservableOverJetZ);
               histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEtaVsPhiStar"), leadingJetEta, phiStar, ringObservableOverJetZ);
+
+              // HEE resolved in three mass slices, so a peak-only structure can be told apart from a flat artifact:
+              const bool isAEEPhiPos = deltaPhiLambdaProtonStar >= 0;
+              histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
+              if (isAEEPhiPos)
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+              else
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+              if (isLambda) {
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                if (isAEEPhiPos)
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                else
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+              } else {
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                if (isAEEPhiPos)
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                else
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+              }
             } // end doFakePolDiagnosticsQA (leading-jet AEE/HEE)
           }
           if (hasValidSubJet) {
@@ -2510,6 +2667,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "Ring")
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 0, ringObservable2ndJet);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, ringObservable2ndJet, v0InMassPeak);
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 0);
           }
 
@@ -2560,12 +2718,15 @@ struct lambdajetpolarizationionsderived {
               // Inclusive and split-by-species dependencies for signal extraction:
               histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
               histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
               if (isLambda) {
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
               } else {
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
               }
 
               // Extra correlations test:
@@ -2613,12 +2774,15 @@ struct lambdajetpolarizationionsderived {
               // Inclusive and split-by-species dependencies for signal extraction (AEE):
               histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
               histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
               if (isLambda) {
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
               } else {
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
               }
             }
             if (hasValidLeadingP) {
@@ -2650,12 +2814,15 @@ struct lambdajetpolarizationionsderived {
               // Inclusive and split-by-species dependencies for signal extraction (AEE):
               histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
               histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
               if (isLambda) {
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
               } else {
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
                 histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
               }
             }
           } // end doFakePolDiagnosticsQA (eta-dependence block)
@@ -2665,14 +2832,13 @@ struct lambdajetpolarizationionsderived {
             if (hasValidLeadingP) {
               if (familySwitches.doFamilyRingKinematicCuts) {
                 RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
-              }
-              histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 1, ringObservableLeadP);
-              histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 1);
 
-              // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
-              if (familySwitches.doFamilyRingKinematicCuts) {
+                // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
                 RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("RingKinematicCuts", leadPEtaPos, lambdaEtaPos);
               }
+              histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 1, ringObservableLeadP);
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, ringObservableLeadP, v0InMassPeak);
+              histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 1);
             }
             if (familySwitches.doFamilyRingKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
@@ -2682,6 +2848,7 @@ struct lambdajetpolarizationionsderived {
                 RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
               }
               histos.fill(HIST("IntegratedCuts/pRingCuts"), 1, ringObservable);
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, ringObservable, v0InMassPeak);
               histos.fill(HIST("IntegratedCuts/hCountCuts"), 1);
               if (familySwitches.doFamilyRingKinematicCuts) {
                 trackRingKinCuts.addV0(ringObservable, binPt, binMass, binDTheta);
@@ -2692,6 +2859,7 @@ struct lambdajetpolarizationionsderived {
                 RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
               }
               histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 1, ringObservable2ndJet);
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, ringObservable2ndJet, v0InMassPeak);
               histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 1);
             }
           }
@@ -2703,6 +2871,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCuts"), 2, ringObservable);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, ringObservable, v0InMassPeak);
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 2);
             if (familySwitches.doFamilyJetKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
@@ -2716,6 +2885,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCuts"), 3, ringObservable);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, ringObservable, v0InMassPeak);
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 3);
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
@@ -2728,39 +2898,39 @@ struct lambdajetpolarizationionsderived {
           if (kinematicLeadPCheck) {
             if (familySwitches.doFamilyJetKinematicCuts) {
               RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
-            }
-            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 2, ringObservableLeadP);
-            histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 2);
 
-            // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
-            if (familySwitches.doFamilyJetKinematicCuts) {
+              // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetKinematicCuts", leadPEtaPos, lambdaEtaPos);
             }
+            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 2, ringObservableLeadP);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, ringObservableLeadP, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 2);
           }
           if (kinematic2ndJetCheck) {
             if (familySwitches.doFamilyJetKinematicCuts) {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 2, ringObservable2ndJet);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, ringObservable2ndJet, v0InMassPeak);
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 2);
           }
           if (kinematicLambdaCheck && kinematicLeadPCheck) {
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
-            }
-            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 3, ringObservableLeadP);
-            histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 3);
 
-            // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
-            if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
+              // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetAndLambdaKinematicCuts", leadPEtaPos, lambdaEtaPos);
             }
+            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 3, ringObservableLeadP);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, ringObservableLeadP, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 3);
           }
           if (kinematicLambdaCheck && kinematic2ndJetCheck) {
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 3, ringObservable2ndJet);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, ringObservable2ndJet, v0InMassPeak);
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 3);
           }
         } // end v0s loop
