@@ -873,23 +873,23 @@ struct lambdajetpolarizationionsderived {
 
     // Mass-selected (not properly signal-extracted yet) TProfiles:
     histos.add("IntegratedCuts/p2dRingCutsV0MassPeak", "p2dRingCuts V0MassPeak; ; OutOfPeak (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5"); // (v0pt > 0.5 && v0pt < 1.5) && std::abs(lambdaRapidity) < 0.5;
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|Jet_{#eta}|<0.5");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + Jet cuts");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5"); // (v0pt > 0.5 && v0pt < 1.5) && std::abs(lambdaRapidity) < 0.5;
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|Jet_{#eta}|<0.5");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + Jet cuts");
 
     // Same for subleading jet and leading particle:
     histos.add("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak", "p2dRingCutsSubLeadingJet V0MassPeak; ; OutOfPeak (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T,#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|SubJet_{#eta}|<0.5");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + SubJet cuts");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T,#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|SubJet_{#eta}|<0.5");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + SubJet cuts");
 
     histos.add("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak", "p2dRingCutsLeadingP V0MassPeak; ; OutOfPeak (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|LeadP_{#eta}|<0.5");
-    histos.get<TProfile>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + LeadP cuts");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|LeadP_{#eta}|<0.5");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + LeadP cuts");
 
     // Counters for each case to understand statistics loss:
     histos.add("IntegratedCuts/hCountCuts", "hCountCuts; ;N V0s", kTH1D, {{4, 0, 4}});
@@ -2579,7 +2579,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("Ring", leadPEtaPos, lambdaEtaPos);
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 0, ringObservableLeadP); // First bin of comparison
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, ringObservableLeadP, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, v0InMassPeak, ringObservableLeadP);
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 0);
 
           }
@@ -2596,7 +2596,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "Ring")
             }
             histos.fill(HIST("IntegratedCuts/pRingCuts"), 0, ringObservable);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, ringObservable, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, v0InMassPeak, ringObservable);
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 0);
             histos.fill(HIST("IntegratedCuts/pRingVsNV0s"), nLambdaLikeV0s, ringObservable);
             histos.fill(HIST("hNV0sVsCentrality"), nLambdaLikeV0s, centrality);
@@ -2667,7 +2667,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "Ring")
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 0, ringObservable2ndJet);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, ringObservable2ndJet, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, v0InMassPeak, ringObservable2ndJet);
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 0);
           }
 
@@ -2837,7 +2837,7 @@ struct lambdajetpolarizationionsderived {
                 RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("RingKinematicCuts", leadPEtaPos, lambdaEtaPos);
               }
               histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 1, ringObservableLeadP);
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, ringObservableLeadP, v0InMassPeak);
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, v0InMassPeak, ringObservableLeadP);
               histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 1);
             }
             if (familySwitches.doFamilyRingKinematicCuts) {
@@ -2848,7 +2848,7 @@ struct lambdajetpolarizationionsderived {
                 RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
               }
               histos.fill(HIST("IntegratedCuts/pRingCuts"), 1, ringObservable);
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, ringObservable, v0InMassPeak);
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, v0InMassPeak, ringObservable);
               histos.fill(HIST("IntegratedCuts/hCountCuts"), 1);
               if (familySwitches.doFamilyRingKinematicCuts) {
                 trackRingKinCuts.addV0(ringObservable, binPt, binMass, binDTheta);
@@ -2859,7 +2859,7 @@ struct lambdajetpolarizationionsderived {
                 RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
               }
               histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 1, ringObservable2ndJet);
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, ringObservable2ndJet, v0InMassPeak);
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, v0InMassPeak, ringObservable2ndJet);
               histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 1);
             }
           }
@@ -2871,7 +2871,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCuts"), 2, ringObservable);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, ringObservable, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, v0InMassPeak, ringObservable);
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 2);
             if (familySwitches.doFamilyJetKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
@@ -2885,7 +2885,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCuts"), 3, ringObservable);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, ringObservable, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, v0InMassPeak, ringObservable);
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 3);
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
@@ -2903,7 +2903,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetKinematicCuts", leadPEtaPos, lambdaEtaPos);
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 2, ringObservableLeadP);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, ringObservableLeadP, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, v0InMassPeak, ringObservableLeadP);
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 2);
           }
           if (kinematic2ndJetCheck) {
@@ -2911,7 +2911,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 2, ringObservable2ndJet);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, ringObservable2ndJet, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, v0InMassPeak, ringObservable2ndJet);
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 2);
           }
           if (kinematicLambdaCheck && kinematicLeadPCheck) {
@@ -2922,7 +2922,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetAndLambdaKinematicCuts", leadPEtaPos, lambdaEtaPos);
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 3, ringObservableLeadP);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, ringObservableLeadP, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, v0InMassPeak, ringObservableLeadP);
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 3);
           }
           if (kinematicLambdaCheck && kinematic2ndJetCheck) {
@@ -2930,7 +2930,7 @@ struct lambdajetpolarizationionsderived {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
             }
             histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 3, ringObservable2ndJet);
-            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, ringObservable2ndJet, v0InMassPeak);
+            histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, v0InMassPeak, ringObservable2ndJet);
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 3);
           }
         } // end v0s loop
