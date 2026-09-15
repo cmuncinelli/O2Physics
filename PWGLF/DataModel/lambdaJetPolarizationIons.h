@@ -20,9 +20,12 @@
 #ifndef PWGLF_DATAMODEL_LAMBDAJETPOLARIZATIONIONS_H_
 #define PWGLF_DATAMODEL_LAMBDAJETPOLARIZATIONIONS_H_
 
+#include "Common/Core/RecoDecay.h"
+
 #include <Framework/ASoA.h>
 #include <Framework/AnalysisDataModel.h>
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 
@@ -82,6 +85,52 @@ DECLARE_SOA_COLUMN(V0Radius, v0Radius, float);
 DECLARE_SOA_COLUMN(DcaV0Daughters, dcaV0Daughters, float);
 DECLARE_SOA_COLUMN(DcaPosToPV, dcaPosToPV, float);
 DECLARE_SOA_COLUMN(DcaNegToPV, dcaNegToPV, float);
+
+// Dynamic columns for V0s:
+DECLARE_SOA_DYNAMIC_COLUMN(V0Rapidity, v0Rapidity,
+                           [](float v0Pt, float v0Eta, float massV0) -> float {
+                             const float pz = v0Pt * std::sinh(v0Eta);
+                             const float e = std::sqrt(massV0 * massV0 + v0Pt * v0Pt + pz * pz);
+                             // Kinematic sanity check (E > |pz|) for collinearity:
+                             return e > std::abs(pz) ? 0.5f * std::log((e + pz) / (e - pz)) : -999.f;
+                           });
+
+// Armenteros-Podolanski dynamic columns (based on LFStrangenessTables.h's implementation, but using cylindrical coordinates):
+DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha,
+                           [](float posPt, float posEta, float posPhi, float negPt, float negEta, float negPhi) -> float {
+                             const float sinh1 = std::sinh(posEta);
+                             const float sinh2 = std::sinh(negEta);
+                             const float cosdPhi = std::cos(posPhi - negPhi);
+
+                             const float p1_2 = posPt * posPt * (1.f + sinh1 * sinh1); // |pPos|^2
+                             const float p2_2 = negPt * negPt * (1.f + sinh2 * sinh2); // |pNeg|^2
+                             const float dp = posPt * negPt * (cosdPhi + sinh1 * sinh2); // pPos dot pNeg
+
+                             const float lSum = p1_2 + p2_2 + 2.f * dp; // Equals |p_V0|^2, so the 1/|p_V0| normalization cancels in the ratio
+                             if (!(lSum > 0.f))
+                               return -999.f; // Null guard. Also catches a NaN input
+                             return (p1_2 - p2_2) / lSum;
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtArm,
+                           [](float posPt, float posEta, float posPhi, float negPt, float negEta, float negPhi) -> float {
+                             const float sinh1 = std::sinh(posEta);
+                             const float sinh2 = std::sinh(negEta);
+                             const float cosdPhi = std::cos(posPhi - negPhi);
+
+                             const float p1_2 = posPt * posPt * (1.f + sinh1 * sinh1);
+                             const float p2_2 = negPt * negPt * (1.f + sinh2 * sinh2);
+                             const float dp = posPt * negPt * (cosdPhi + sinh1 * sinh2);
+
+                             const float lSum = p1_2 + p2_2 + 2.f * dp;
+                             if (!(lSum > 0.f))
+                               return -999.f; // Null guard
+
+                             const float lNeg = p2_2 + dp; 
+                             const float qt2 = p2_2 - (lNeg * lNeg) / lSum; 
+
+                             return qt2 > 0.f ? std::sqrt(qt2) : 0.f; // Guard for the collinear limit
+                           });
 
 // Dynamic columns for jets (Px,Py,Pz):
 DECLARE_SOA_DYNAMIC_COLUMN(JetPx, jetPx,
@@ -161,9 +210,15 @@ DECLARE_SOA_TABLE(RingLaV0s, "AOD", "RINGLAV0",
                   lambdajetpol::DcaNegToPV,
                   // Dynamic columns:
                   lambdajetpol::PrLikeTPCNSigma<lambdajetpol::RoundPrLikeTPCNSigma>,
-                  lambdajetpol::PiLikeTPCNSigma<lambdajetpol::RoundPiLikeTPCNSigma>);
+                  lambdajetpol::PiLikeTPCNSigma<lambdajetpol::RoundPiLikeTPCNSigma>,
+                  lambdajetpol::V0Rapidity<lambdajetpol::V0Pt, lambdajetpol::V0Eta, lambdajetpol::MassV0>,
+                  // Armenteros-Podolanski variables:
+                  lambdajetpol::Alpha<lambdajetpol::PosPt, lambdajetpol::PosEta, lambdajetpol::PosPhi, lambdajetpol::NegPt, lambdajetpol::NegEta, lambdajetpol::NegPhi>,
+                  lambdajetpol::QtArm<lambdajetpol::PosPt, lambdajetpol::PosEta, lambdajetpol::PosPhi, lambdajetpol::NegPt, lambdajetpol::NegEta, lambdajetpol::NegPhi>
+                );
 
 using RingCollision = RingCollisions::iterator; // Useful shorthand
+using RingLaV0 = RingLaV0s::iterator; // Same for V0s table
 } // namespace o2::aod
 
 #endif // PWGLF_DATAMODEL_LAMBDAJETPOLARIZATIONIONS_H_
