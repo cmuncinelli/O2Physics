@@ -144,9 +144,6 @@ enum CentEstimator {
   X(FOLDER "/QA/h3dDeltaThetaVsMassVsCent", deltaThetaJet, v0LambdaLikeMass, centrality)                                   \
   /* TProfile of Ring vs Mass */                                                                                           \
   X(FOLDER "/pRingObservableMass", v0LambdaLikeMass, ringObservable)                                                       \
-  /* TProfile of Ring vs Mass -- Leading Particle and 2nd-to-leading jet - QA */                                           \
-  X(FOLDER "/pRingObservableLeadPMass", v0LambdaLikeMass, ringObservableLeadP)                                             \
-  X(FOLDER "/pRingObservable2ndJetMass", v0LambdaLikeMass, ringObservable2ndJet)                                           \
   /* 2D Profiles: Angle vs Mass */                                                                                         \
   X(FOLDER "/p2dRingObservableDeltaPhiVsMass", deltaPhiJet, v0LambdaLikeMass, ringObservable)                              \
   X(FOLDER "/p2dRingObservableDeltaThetaVsMass", deltaThetaJet, v0LambdaLikeMass, ringObservable)                          \
@@ -208,7 +205,12 @@ enum CentEstimator {
   X(FOLDER "/QA/pPzStarDeltaPhi", deltaPhiJet, polStarZ)                                                                  \
   X(FOLDER "/QA/p2dPxStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarX)                                                \
   X(FOLDER "/QA/p2dPyStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarY)                                                \
-  X(FOLDER "/QA/p2dPzStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarZ)
+  X(FOLDER "/QA/p2dPzStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarZ)                                                \
+  /* KappaEff moments: kappa = 3 <num>/<den>, and products for the covariances */                                         \
+  X(FOLDER "/KappaEff/pKappaNumLeadJetVsMass", v0LambdaLikeMass, kappaNumJet)                                             \
+  X(FOLDER "/KappaEff/pKappaDenLeadJetVsMass", v0LambdaLikeMass, kappaDenJet)                                             \
+  X(FOLDER "/KappaEff/pKappaNumTimesDenLeadJetVsMass", v0LambdaLikeMass, kappaNumJet * kappaDenJet)                       \
+  X(FOLDER "/KappaEff/pRingTimesDenLeadJetVsMass", v0LambdaLikeMass, ringObservable * kappaDenJet)
 // (TODO: add counters for regular TH2Ds about centrality)
 
 // For leading particle
@@ -217,6 +219,8 @@ enum CentEstimator {
   X(FOLDER "/QA/hDeltaThetaLeadP", deltaThetaLeadP)                                                     \
   X(FOLDER "/QA/hPtLeadP", leadPPt)                                                                     \
   X(FOLDER "/QA/hCosDeltaThetaLeadP", cosDeltaThetaLeadP)                                               \
+  /* TProfile of Ring vs Mass */                                                                        \
+  X(FOLDER "/pRingObservableLeadPMass", v0LambdaLikeMass, ringObservableLeadP)                          \
   X(FOLDER "/hRingObservableLeadPCounts", ringObservableLeadP)                                          \
   X(FOLDER "/pRingObservableLeadPDeltaPhi", deltaPhiLeadP, ringObservableLeadP)                         \
   X(FOLDER "/pRingObservableLeadPDeltaTheta", deltaThetaLeadP, ringObservableLeadP)                     \
@@ -241,7 +245,12 @@ enum CentEstimator {
   X(FOLDER "/RingKernel/p3dRingObservableLeadPCosDeltaThetaVsLeadPZVsLambdaZ", cosDeltaThetaLeadP, leadPZ, lambdaZ, ringObservableLeadP) \
   /* 2D Profiles: EtaProxy vs Mass */                                                                   \
   X(FOLDER "/p2dRingObservableLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass, ringObservableLeadP)    \
-  X(FOLDER "/h2dCounterLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass)
+  X(FOLDER "/h2dCounterLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass)                                \
+  /* KappaEff moments */                                                                                \
+  X(FOLDER "/KappaEff/pKappaNumLeadPVsMass", v0LambdaLikeMass, kappaNumLeadP)                           \
+  X(FOLDER "/KappaEff/pKappaDenLeadPVsMass", v0LambdaLikeMass, kappaDenLeadP)                           \
+  X(FOLDER "/KappaEff/pKappaNumTimesDenLeadPVsMass", v0LambdaLikeMass, kappaNumLeadP * kappaDenLeadP)   \
+  X(FOLDER "/KappaEff/pRingTimesDenLeadPVsMass", v0LambdaLikeMass, ringObservableLeadP * kappaDenLeadP)
 
 // A macro that encapsulates all eta checks for leading particle and V0s, along with the fills
 // Parameters:
@@ -287,6 +296,8 @@ enum CentEstimator {
   X(FOLDER "/QA/hDeltaTheta2ndJet", deltaTheta2ndJet)                                                                \
   X(FOLDER "/QA/hCosDeltaTheta2ndJet", cosDeltaTheta2ndJet)                                                          \
   X(FOLDER "/QA/hPt2ndJet", subleadingJetPt)                                                                         \
+  /* TProfile of Ring vs Mass */                                                                                     \
+  X(FOLDER "/pRingObservable2ndJetMass", v0LambdaLikeMass, ringObservable2ndJet)                                     \
   X(FOLDER "/hRingObservable2ndJetCounter", ringObservable2ndJet)                                                    \
   X(FOLDER "/pRingObservable2ndJetDeltaPhi", deltaPhi2ndJet, ringObservable2ndJet)                                   \
   X(FOLDER "/pRingObservable2ndJetDeltaTheta", deltaTheta2ndJet, ringObservable2ndJet)                               \
@@ -303,7 +314,12 @@ enum CentEstimator {
   X(FOLDER "/EtaDependence/h2dCounterEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta)                                 \
   /* 2D Profiles: EtaProxy vs Mass */                                                                                \
   X(FOLDER "/p2dRingObservable2ndJetEta2ndJetVsMass", subleadingJetEta, v0LambdaLikeMass, ringObservable2ndJet)      \
-  X(FOLDER "/h2dCounter2ndJetEta2ndJetVsMass", subleadingJetEta, v0LambdaLikeMass)
+  X(FOLDER "/h2dCounter2ndJetEta2ndJetVsMass", subleadingJetEta, v0LambdaLikeMass)                                   \
+  /* KappaEff moments */                                                                                             \
+  X(FOLDER "/KappaEff/pKappaNumSubJetVsMass", v0LambdaLikeMass, kappaNum2ndJet)                                      \
+  X(FOLDER "/KappaEff/pKappaDenSubJetVsMass", v0LambdaLikeMass, kappaDen2ndJet)                                      \
+  X(FOLDER "/KappaEff/pKappaNumTimesDenSubJetVsMass", v0LambdaLikeMass, kappaNum2ndJet * kappaDen2ndJet)             \
+  X(FOLDER "/KappaEff/pRingTimesDenSubJetVsMass", v0LambdaLikeMass, ringObservable2ndJet * kappaDen2ndJet)
 
 #define POLARIZATION_PROFILE_FILL_LIST(X, FOLDER)                          \
   /* 1D TProfiles vs v0phi */                                              \
@@ -402,6 +418,7 @@ struct lambdajetpolarizationionsderived {
   Configurable<bool> analyseLambda{"analyseLambda", true, "process Lambda-like candidates"};
   Configurable<bool> analyseAntiLambda{"analyseAntiLambda", false, "process AntiLambda-like candidates"};
   Configurable<bool> analyseMagField{"analyseMagField", true, "analyse efficiency effects wrt magnetic field"}; // DerivedData lacks actual magField, so this is only useful for runs with only one field polarity
+  Configurable<bool> useRingZ{"useRingZ", false, "redefine the ring as the projection R_z = P_z cdot n_z for every proxy"};
   // Configurable<bool> doPPAnalysis{"doPPAnalysis", false, "if in pp, set to true. Default is HI"};
   // Configurable<bool> doJetProxy5dQA{"doJetProxy5dQA", false, "generates expensive THnSparse histograms for joint distribution QA of the jet proxies and collisions"};
 
@@ -969,6 +986,14 @@ struct lambdajetpolarizationionsderived {
       histosRingFamily.add((folder + "/pRingObservableMass").c_str(), "<#it{R}> vs Mass;m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
       histosRingFamily.add((folder + "/pRingObservableLeadPMass").c_str(), "<#it{R}> vs Mass (LeadP);m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
       histosRingFamily.add((folder + "/pRingObservable2ndJetMass").c_str(), "<#it{R}> vs Mass (SubJet);m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+
+      // KappaEff moments, per proxy and vs mass for signal extraction:
+      for (const std::string& proxy : {std::string("LeadJet"), std::string("LeadP"), std::string("SubJet")}) {
+        histosRingFamily.add((folder + "/KappaEff/pKappaNum" + proxy + "VsMass").c_str(), ("<u^{2}> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<u^{2}>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+        histosRingFamily.add((folder + "/KappaEff/pKappaDen" + proxy + "VsMass").c_str(), ("<w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+        histosRingFamily.add((folder + "/KappaEff/pKappaNumTimesDen" + proxy + "VsMass").c_str(), ("<u^{2} w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<u^{2} w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+        histosRingFamily.add((folder + "/KappaEff/pRingTimesDen" + proxy + "VsMass").c_str(), ("<#it{R} w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<#it{R} w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      }
       // TProfile2D: <R> vs Mass (DeltaPhi)
       histosRingFamily.add((folder + "/p2dRingObservableDeltaPhiVsMass").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Mass;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract});
       // TProfile2D: <R> vs Mass (DeltaTheta)
@@ -1048,6 +1073,33 @@ struct lambdajetpolarizationionsderived {
       addRingObservableFamily("JetKinematicCuts");
     if (familySwitches.doFamilyJetAndLambdaKinematicCuts)
       addRingObservableFamily("JetAndLambdaKinematicCuts");
+
+    // R_z-only diagnostics -- Compares the 3D ring, the projected ring and other useful diagnostics:
+    if (useRingZ) {
+      histos.add("RzDiagnostics/pRingVsChiLeadJet", "<#it{R}_{z}> vs #chi (LeadJet) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{LeadJet};<#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi}); // chi is the angle such that n_hat = cos(chi) phi_hat + sin(chi) theta_hat.
+      histos.add("RzDiagnostics/pRingVsChiLeadP", "<#it{R}_{z}> vs #chi (LeadP) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{LeadP};<#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/pRingVsChiSubJet", "<#it{R}_{z}> vs #chi (SubJet) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{SubJet};<#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/p2dRingVsChiVsMassLeadJet", "<#it{R}_{z}> vs #chi vs Mass (LeadJet) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{LeadJet};m_{p#pi} (GeV/c^{2});<#it{R}_{z}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("RzDiagnostics/p2dRingVsChiVsMassLeadP", "<#it{R}_{z}> vs #chi vs Mass (LeadP) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{LeadP};m_{p#pi} (GeV/c^{2});<#it{R}_{z}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("RzDiagnostics/p2dRingVsChiVsMassSubJet", "<#it{R}_{z}> vs #chi vs Mass (SubJet) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{SubJet};m_{p#pi} (GeV/c^{2});<#it{R}_{z}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("RzDiagnostics/p2dRingVsDeltaPhiVsDeltaEtaLeadJet", "<#it{R}_{z}> vs (#Delta#varphi_{jet}, #Delta#eta_{jet});#Delta#varphi_{jet}=#phi_{#Lambda} - #phi_{Jet};#eta_{#Lambda}-#eta_{Jet};<#it{R}_{z}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisDeltaEtaCoarse});
+      // R_perp = R - R_z, filled directly to store the proper error propagation (R and R_z share every candidate, thus are correlated):
+      histos.add("RzDiagnostics/pRingPerpIntegrated", "<#it{R}_{#perp}> per proxy; ;<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {{3, 0, 3}});
+      histos.get<TProfile>(HIST("RzDiagnostics/pRingPerpIntegrated"))->GetXaxis()->SetBinLabel(1, "LeadJet");
+      histos.get<TProfile>(HIST("RzDiagnostics/pRingPerpIntegrated"))->GetXaxis()->SetBinLabel(2, "LeadP");
+      histos.get<TProfile>(HIST("RzDiagnostics/pRingPerpIntegrated"))->GetXaxis()->SetBinLabel(3, "SubJet");
+      histos.add("RzDiagnostics/pRingPerpLeadJetVsMass", "<#it{R}_{#perp}> vs Mass (LeadJet);m_{p#pi} (GeV/c^{2});<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("RzDiagnostics/pRingPerpLeadPVsMass", "<#it{R}_{#perp}> vs Mass (LeadP);m_{p#pi} (GeV/c^{2});<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("RzDiagnostics/pRingPerpSubJetVsMass", "<#it{R}_{#perp}> vs Mass (SubJet);m_{p#pi} (GeV/c^{2});<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      histos.add("RzDiagnostics/pRingPerpLeadJetVsPhiAEE", "<#it{R}_{#perp}> vs AEE angle (LeadJet);#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/pRingPerpLeadPVsPhiAEE", "<#it{R}_{#perp}> vs AEE angle (LeadP);#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/pRingPerpSubJetVsPhiAEE", "<#it{R}_{#perp}> vs AEE angle (SubJet);#phi_{#Lambda-like}-#phi_{p-like}^{*};<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/pRingPerpLeadJetVsDeltaPhi", "<#it{R}_{#perp}> vs #Delta#varphi (LeadJet);#Delta#varphi_{jet};<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/pRingPerpLeadPVsDeltaPhi", "<#it{R}_{#perp}> vs #Delta#varphi (LeadP);#Delta#varphi_{LeadP};<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      histos.add("RzDiagnostics/pRingPerpSubJetVsDeltaPhi", "<#it{R}_{#perp}> vs #Delta#varphi (SubJet);#Delta#varphi_{SubJet};<#it{R}_{#perp}> = <#it{R}> - <#it{R}_{z}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+      // Standard (unweighted) longitudinal acceptance factor, on the LeadJet sample, to compare against the n_z^2-weighted kappa_z:
+      histos.add("RzDiagnostics/pCosSqThetaStarZLeadJetVsMass", "<cos^{2}#theta^{*}_{z}> vs Mass (LeadJet);m_{p#pi} (GeV/c^{2});<cos^{2}#theta^{*}_{z}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+    }
 
     // Kinematic QA histograms for diagnosing detector defficiencies (V0s and daughters only. Jets are under JetKinematicsQA):
     histos.add("KinematicsQA/V0/hV0Phi", "hV0Phi; #phi_{V0}; Counts", kTH1D, {axisConfigurations.axisPhi});
@@ -2131,6 +2183,8 @@ struct lambdajetpolarizationionsderived {
     // As forcePreviousJet and doMixedEventProxies are mutually exclusive we can bind them to a single variable:
     ProxyCacheSlots& proxyCache = fakePolSwitches.doMixedEventProxies ? mixedProxyCache : prevJetCache;
     // Neither should not be used along nProxyResamples > 1, as it does not apply to that case.
+    // Ring definition for the whole run: full ring (default) or its longitudinal projection R_z = P_z n_z:
+    const bool ringZMode = useRingZ;
 
     // Building vectors for event mixing and leading/subleading jet finding:
     int64_t collisionIndexBase = 0;
@@ -2946,8 +3000,10 @@ struct lambdajetpolarizationionsderived {
           float pY = protonLikeStarUnit3Vec.Z() - lambdaLikeUnit3Vec.Z() * cosFakePol; // (Reusing cosFakePol calculated earlier!)
           float phiStar = std::atan2(pY, pX);                                          // This will give an output from -PI to PI
 
-          // Calculating rotated coordinate systems:
+          // Ring prefactor: same as polPrefactor, but forcePolSignQA inverts it for antiLambdas only
           const float polPrefactor = isLambda ? PolPrefactorLambda : PolPrefactorAntiLambda;
+          const float ringPrefactor = (fakePolSwitches.forcePolSignQA && !isLambda) ? -polPrefactor : polPrefactor;
+          const float v0p = ringZMode ? lambdaLike3Vec.R() : 0.f; // |p_Lambda|, only used for the R_z bearing chi
 
           // Calculating polarization observables (in the Lambda frame, because that is easier -- does not require boosts):
           // To be precise, not the polarization itself, but a part of the summand in P^*_Lambda = (3/\alpha_Lambda) * <p^*_{proton}>
@@ -2955,6 +3011,7 @@ struct lambdajetpolarizationionsderived {
           const float polStarY = polPrefactor * protonLikeStarUnit3Vec.Y();
           const float polStarZ = polPrefactor * protonLikeStarUnit3Vec.Z();
 
+          // Calculating rotated coordinate systems:
           // AEE-frame's relevant polarization:
           const float protonStarPt = protonLikeStarUnit3Vec.Rho(); // TODO: check if this makes sense. Should it be the un-normalized version instead?
 
@@ -3025,14 +3082,27 @@ struct lambdajetpolarizationionsderived {
           float deltaPhiLeadP = 0.;
           float deltaThetaLeadP = 0.;
           float cosDeltaThetaLeadP = 0.;
+          // KappaEff moments (unitless ring squared and its projection weight) and the R_z-only diagnostics:
+          float kappaNumLeadP = 0.;
+          float kappaDenLeadP = 1.;
+          float ringPerpLeadP = 0.;
+          float chiLeadP = 0.;
           if (hasValidLeadingP) {
             XYZVector crossLeadP = leadPUnitVec.Cross(lambdaLike3Vec);
-            ringObservableLeadP = protonLikeStarUnit3Vec.Dot(crossLeadP) / crossLeadP.R();
+            const float invCrossNormLeadP = 1.f / crossLeadP.R(); // Caching the .R() result
+            if (!ringZMode) {
+              ringObservableLeadP = protonLikeStarUnit3Vec.Dot(crossLeadP) * invCrossNormLeadP;
+            } else {
+              const float nzLeadP = crossLeadP.Z() * invCrossNormLeadP;
+              ringObservableLeadP = protonLikeStarUnit3Vec.Z() * nzLeadP;
+              kappaDenLeadP = nzLeadP * nzLeadP;
+              // Diagnostics only: the full ring (for R_perp) and the bearing chi:
+              ringPerpLeadP = ringPrefactor * (protonLikeStarUnit3Vec.Dot(crossLeadP) * invCrossNormLeadP - ringObservableLeadP);
+              chiLeadP = std::atan2(-crossLeadP.Z() * v0p, crossLeadP.Y() * v0px - crossLeadP.X() * v0py);
+            }
+            kappaNumLeadP = ringObservableLeadP * ringObservableLeadP;
             // Adding the prefactor related to the CP-violating decay (decay constants have different signs)
-            if (!fakePolSwitches.forcePolSignQA)
-              ringObservableLeadP *= polPrefactor;
-            else // Invert only for antiLambdas in this QA
-              ringObservableLeadP *= (isLambda) ? polPrefactor : -1.0 * polPrefactor;
+            ringObservableLeadP *= ringPrefactor;
             // Angular variables
             deltaPhiLeadP = wrapToPiFast(v0phi - leadPPhi); // Wrapped to [-PI, PI), for convenience
 
@@ -3050,6 +3120,11 @@ struct lambdajetpolarizationionsderived {
           float deltaThetaJet = 0.;
           float cosDeltaThetaJet = 0.;
           float ringObservableOverJetZ = 0.;
+          // KappaEff moments and the R_z-only diagnostics:
+          float kappaNumJet = 0.;
+          float kappaDenJet = 1.;
+          float ringPerpJet = 0.;
+          float chiJet = 0.;
           // PrimeJet-frame components:
           float polStarXPrimeJet = 0.;
           float polStarYPrimeJet = 0.;
@@ -3059,12 +3134,19 @@ struct lambdajetpolarizationionsderived {
           float v0pzPrimeJet = 0.;
           if (hasValidLeadingJet) {
             XYZVector cross = leadingJetUnitVec.Cross(lambdaLike3Vec);
-            ringObservable = protonLikeStarUnit3Vec.Dot(cross) / cross.R();
+            const float invCrossNorm = 1.f / cross.R();
+            if (!ringZMode) {
+              ringObservable = protonLikeStarUnit3Vec.Dot(cross) * invCrossNorm;
+            } else {
+              const float nzJet = cross.Z() * invCrossNorm;
+              ringObservable = protonLikeStarUnit3Vec.Z() * nzJet;
+              kappaDenJet = nzJet * nzJet;
+              ringPerpJet = ringPrefactor * (protonLikeStarUnit3Vec.Dot(cross) * invCrossNorm - ringObservable);
+              chiJet = std::atan2(-cross.Z() * v0p, cross.Y() * v0px - cross.X() * v0py);
+            }
+            kappaNumJet = ringObservable * ringObservable;
             // Adding prefactor
-            if (!fakePolSwitches.forcePolSignQA)
-              ringObservable *= polPrefactor;
-            else // Invert only for antiLambdas in this QA
-              ringObservable *= (isLambda) ? polPrefactor : -1.0 * polPrefactor;
+            ringObservable *= ringPrefactor;
             // Angular variables
             deltaPhiJet = wrapToPiFast(v0phi - leadingJetPhi);
             deltaEtaJet = v0eta - leadingJetEta;
@@ -3110,14 +3192,26 @@ struct lambdajetpolarizationionsderived {
           float deltaPhi2ndJet = 0.;
           float deltaTheta2ndJet = 0.;
           float cosDeltaTheta2ndJet = 0.;
+          // KappaEff moments and the R_z-only diagnostics:
+          float kappaNum2ndJet = 0.;
+          float kappaDen2ndJet = 1.;
+          float ringPerp2ndJet = 0.;
+          float chi2ndJet = 0.;
           if (hasValidSubJet) {
             XYZVector cross2ndJet = subJetUnitVec.Cross(lambdaLike3Vec);
-            ringObservable2ndJet = protonLikeStarUnit3Vec.Dot(cross2ndJet) / cross2ndJet.R();
+            const float invCrossNorm2ndJet = 1.f / cross2ndJet.R();
+            if (!ringZMode) {
+              ringObservable2ndJet = protonLikeStarUnit3Vec.Dot(cross2ndJet) * invCrossNorm2ndJet;
+            } else {
+              const float nz2ndJet = cross2ndJet.Z() * invCrossNorm2ndJet;
+              ringObservable2ndJet = protonLikeStarUnit3Vec.Z() * nz2ndJet;
+              kappaDen2ndJet = nz2ndJet * nz2ndJet;
+              ringPerp2ndJet = ringPrefactor * (protonLikeStarUnit3Vec.Dot(cross2ndJet) * invCrossNorm2ndJet - ringObservable2ndJet);
+              chi2ndJet = std::atan2(-cross2ndJet.Z() * v0p, cross2ndJet.Y() * v0px - cross2ndJet.X() * v0py);
+            }
+            kappaNum2ndJet = ringObservable2ndJet * ringObservable2ndJet;
             // Adding prefactor
-            if (!fakePolSwitches.forcePolSignQA)
-              ringObservable2ndJet *= polPrefactor;
-            else // Invert only for antiLambdas in this QA
-              ringObservable2ndJet *= (isLambda) ? polPrefactor : -1.0 * polPrefactor;
+            ringObservable2ndJet *= ringPrefactor;
             // Angular variables
             deltaPhi2ndJet = wrapToPiFast(v0phi - subleadingJetPhi);
             cosDeltaTheta2ndJet = subJetUnitVec.Dot(lambdaLikeUnit3Vec);
@@ -3125,6 +3219,36 @@ struct lambdajetpolarizationionsderived {
           }
 
           float v0phiToFillHists = wrapToPiFast(v0phi); // A short wrap to reuse some predefined axes
+
+          // R_z-only diagnostics (ringObservable* already hold R_z here):
+          if (ringZMode) {
+            if (hasValidLeadingJet) {
+              histos.fill(HIST("RzDiagnostics/pRingVsChiLeadJet"), chiJet, ringObservable);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassLeadJet"), chiJet, v0LambdaLikeMass, ringObservable);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsDeltaPhiVsDeltaEtaLeadJet"), deltaPhiJet, deltaEtaJet, ringObservable);
+              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 0.5, ringPerpJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsMass"), v0LambdaLikeMass, ringPerpJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsPhiAEE"), deltaPhiLambdaProtonStar, ringPerpJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsDeltaPhi"), deltaPhiJet, ringPerpJet);
+              histos.fill(HIST("RzDiagnostics/pCosSqThetaStarZLeadJetVsMass"), v0LambdaLikeMass, protonLikeStarUnit3Vec.Z() * protonLikeStarUnit3Vec.Z());
+            }
+            if (hasValidLeadingP) {
+              histos.fill(HIST("RzDiagnostics/pRingVsChiLeadP"), chiLeadP, ringObservableLeadP);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassLeadP"), chiLeadP, v0LambdaLikeMass, ringObservableLeadP);
+              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 1.5, ringPerpLeadP);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsMass"), v0LambdaLikeMass, ringPerpLeadP);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsPhiAEE"), deltaPhiLambdaProtonStar, ringPerpLeadP);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsDeltaPhi"), deltaPhiLeadP, ringPerpLeadP);
+            }
+            if (hasValidSubJet) {
+              histos.fill(HIST("RzDiagnostics/pRingVsChiSubJet"), chi2ndJet, ringObservable2ndJet);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassSubJet"), chi2ndJet, v0LambdaLikeMass, ringObservable2ndJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 2.5, ringPerp2ndJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsMass"), v0LambdaLikeMass, ringPerp2ndJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsPhiAEE"), deltaPhiLambdaProtonStar, ringPerp2ndJet);
+              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsDeltaPhi"), deltaPhi2ndJet, ringPerp2ndJet);
+            }
+          }
 
           // Fill ring histograms: (1D, lambda 2D correlations and jet 2D correlations):
           if (hasValidLeadingP) {
