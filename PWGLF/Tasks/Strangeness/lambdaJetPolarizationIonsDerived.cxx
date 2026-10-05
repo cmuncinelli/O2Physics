@@ -426,8 +426,8 @@ struct lambdajetpolarizationionsderived {
   // (Uses a mass interval to remove or include V0s from the final AnalysisResults to take advantage of existing post-processing codes)
   Configurable<bool> excludeOutOfPeakQA{"excludeOutOfPeakQA", false, "removes all V0s outside an approximate +/- PeakWindowNSigma*sigma window from the mass peak"}; // A naive estimator of signal
   Configurable<bool> excludeInPeakQA{"excludeInPeakQA", false, "uses only the V0s outside an approximate +/- (SidebandInnerNSigma, SidebandOuterNSigma)*sigma window from the mass peak. Should be the same width as PeakWindowNSigma."}; // A naive estimator of background
-  Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 1.0f, "Size for peak window, centered in LambdaMass from the PDG."};
-  Configurable<float> SidebandInnerNSigma{"SidebandInnerNSigma", 6.0f, "Absolute value for lower end of sideband window."};
+  Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 1.5f, "Size for peak window, centered in LambdaMass from the PDG."};
+  Configurable<float> SidebandInnerNSigma{"SidebandInnerNSigma", 5.5f, "Absolute value for lower end of sideband window."};
   Configurable<float> SidebandOuterNSigma{"SidebandOuterNSigma", 7.0f, "Absolute value for upper end of sideband window."};
 
   // Per-family histogram switches:
@@ -503,6 +503,10 @@ struct lambdajetpolarizationionsderived {
     // (TODO)
     // An additional V0-level cut on lab phi (currently for testing only):
     Configurable<std::vector<float>> v0PhiLimits{"v0PhiLimits", {0.f, constants::math::TwoPI}, "Limits on the V0 phi, in [0,2pi]. Testing only."};
+
+    // V0 Mass cuts to remove candidates outside of the usual signal extraction limits (a cheap QA procedure before full signal extraction):
+    Configurable<float> v0MassMin{"v0MassMin", 1.09f, "V0 mass min cut. Removes V0s from combinatoric background, for QA"}; // Inert cut is -999.f
+    Configurable<float> v0MassMax{"v0MassMax", 1.14f, "V0 mass max cut. Removes V0s from combinatoric background, for QA"}; // Inert cut is +999.f
   } analysisLevelCuts;
 
   /////////////////////////
@@ -1594,6 +1598,8 @@ struct lambdajetpolarizationionsderived {
         {"DCA_{p-like} to PV", analysisLevelCuts.v0MinDcaPrLikeToPV > 0.f},
         {"DCA_{#pi-like} to PV", analysisLevelCuts.v0MinDcaPiLikeToPV > 0.f},
         {"#phi_{V0}", (v0PhiLimitsVec[0] > 0.f || v0PhiLimitsVec[1] < constants::math::TwoPI)},
+        {"V0 Mass (min)", analysisLevelCuts.v0MassMin > 0.f},
+        {"V0 Mass (max)", analysisLevelCuts.v0MassMax < 999.f},
         {"Final accepted", true},
       };
       const int nAnalysisCutBins = static_cast<int>(v0AnalysisCutLabels.size());
@@ -1881,6 +1887,14 @@ struct lambdajetpolarizationionsderived {
     // (TODO)
 
     if (v0.v0Phi() < v0PhiLimitsVec[0] || v0.v0Phi() > v0PhiLimitsVec[1])
+      return false;
+    v0AnalysisCutCounter.fill();
+
+    if (v0.massV0() < analysisLevelCuts.v0MassMin)
+      return false;
+    v0AnalysisCutCounter.fill();
+
+    if (v0.massV0() > analysisLevelCuts.v0MassMax)
       return false;
     v0AnalysisCutCounter.fill();
  
