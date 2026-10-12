@@ -96,97 +96,97 @@ enum CentEstimator {
 // Helper macro to avoid writing the histogram fills 4 times for about 20 histograms:
 #define RING_OBSERVABLE_FILL_LIST(X, FOLDER)                                                                               \
   /* Counters */                                                                                                           \
-  X(FOLDER "/LeadJet/QA/hDeltaPhi", deltaPhiJet)                                                                                   \
-  X(FOLDER "/LeadJet/QA/hDeltaPhiVsDeltaEta", deltaPhiJet, deltaEtaJet)                                                            \
-  X(FOLDER "/LeadJet/QA/hDeltaTheta", deltaThetaJet)                                                                               \
-  X(FOLDER "/LeadJet/QA/hCosDeltaTheta", cosDeltaThetaJet)                                                                         \
+  X(FOLDER "/LeadJet/QA/hDeltaPhi", ringLeadJet.deltaPhi)                                                                                   \
+  X(FOLDER "/LeadJet/QA/hDeltaPhiVsDeltaEta", ringLeadJet.deltaPhi, deltaEtaLeadJet)                                                            \
+  X(FOLDER "/LeadJet/QA/hDeltaTheta", ringLeadJet.deltaTheta)                                                                               \
+  X(FOLDER "/LeadJet/QA/hCosDeltaTheta", ringLeadJet.cosDeltaTheta)                                                                         \
   X(FOLDER "/LeadJet/QA/hIntegrated", 0.)                                                                                          \
-  X(FOLDER "/LeadJet/QA/hPtJet", leadingJetPt)                                                                                     \
+  X(FOLDER "/LeadJet/QA/hPtJet", leadJet.pt)                                                                                     \
   /* Lambda pT variation -- Youpeng's proposal */                                                                          \
   X(FOLDER "/LeadJet/QA/hLambdaPt", v0pt)                                                                                          \
   /* Counters */                                                                                                           \
-  X(FOLDER "/LeadJet/QA/h2dDeltaPhiVsLambdaPt", deltaPhiJet, v0pt)                                                                 \
-  X(FOLDER "/LeadJet/QA/h2dDeltaThetaVsLambdaPt", deltaThetaJet, v0pt)                                                             \
-  X(FOLDER "/LeadJet/QA/hDeltaPhiVsLeadJetPhi", deltaPhiJet, leadingJetPhi)                                                        \
+  X(FOLDER "/LeadJet/QA/h2dDeltaPhiVsLambdaPt", ringLeadJet.deltaPhi, v0pt)                                                                 \
+  X(FOLDER "/LeadJet/QA/h2dDeltaThetaVsLambdaPt", ringLeadJet.deltaTheta, v0pt)                                                             \
+  X(FOLDER "/LeadJet/QA/hDeltaPhiVsLeadJetPhi", ringLeadJet.deltaPhi, leadJet.phi)                                                        \
   /* Additional plots for instant gratification - 1D Profiles */                                                           \
-  X(FOLDER "/LeadJet/hRingObservableCounts", ringObservable)                                                                       \
-  X(FOLDER "/LeadJet/pRingObservableDeltaPhi", deltaPhiJet, ringObservable)                                                        \
-  X(FOLDER "/LeadJet/pRingObservablePhiJet", leadingJetPhi, ringObservable)                                                        \
-  X(FOLDER "/LeadJet/pRingObservablePhiLambda", v0phi, ringObservable)                                                             \
-  X(FOLDER "/LeadJet/pRingObservableDeltaTheta", deltaThetaJet, ringObservable)                                                    \
-  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaLambda", v0eta, ringObservable)                                               \
-  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaJet", leadingJetEta, ringObservable)                                          \
-  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaJetHighEtaRes", leadingJetEta, ringObservable)                                \
-  X(FOLDER "/LeadJet/pRingObservableIntegrated", 0., ringObservable)                                                               \
-  X(FOLDER "/LeadJet/pRingObservableLambdaPt", v0pt, ringObservable)                                                               \
-  X(FOLDER "/LeadJet/pRingObservableLeadJetPVz", collisionPVz, ringObservable)                                                     \
-  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJet", leadingJetPt, ringObservable)                                                \
-  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJetVsEtaJet", leadingJetPt, leadingJetEta, ringObservable)                         \
-  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJetVsEtaV0", leadingJetPt, v0eta, ringObservable)                                  \
-  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJetVsCentrality", leadingJetPt, centrality, ringObservable)                        \
+  X(FOLDER "/LeadJet/hRingObservableCounts", ringLeadJet.ringObservable)                                                                       \
+  X(FOLDER "/LeadJet/pRingObservableDeltaPhi", ringLeadJet.deltaPhi, ringLeadJet.ringObservable)                                                        \
+  X(FOLDER "/LeadJet/pRingObservablePhiJet", leadJet.phi, ringLeadJet.ringObservable)                                                        \
+  X(FOLDER "/LeadJet/pRingObservablePhiLambda", v0phi, ringLeadJet.ringObservable)                                                             \
+  X(FOLDER "/LeadJet/pRingObservableDeltaTheta", ringLeadJet.deltaTheta, ringLeadJet.ringObservable)                                                    \
+  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaLambda", v0eta, ringLeadJet.ringObservable)                                               \
+  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaJet", leadJet.eta, ringLeadJet.ringObservable)                                          \
+  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaJetHighEtaRes", leadJet.eta, ringLeadJet.ringObservable)                                \
+  X(FOLDER "/LeadJet/pRingObservableIntegrated", 0., ringLeadJet.ringObservable)                                                               \
+  X(FOLDER "/LeadJet/pRingObservableLambdaPt", v0pt, ringLeadJet.ringObservable)                                                               \
+  X(FOLDER "/LeadJet/pRingObservableLeadJetPVz", collisionPVz, ringLeadJet.ringObservable)                                                     \
+  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJet", leadJet.pt, ringLeadJet.ringObservable)                                                \
+  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJetVsEtaJet", leadJet.pt, leadJet.eta, ringLeadJet.ringObservable)                         \
+  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJetVsEtaV0", leadJet.pt, v0eta, ringLeadJet.ringObservable)                                  \
+  X(FOLDER "/LeadJet/ProxyPtDependence/pRingVsPtJetVsCentrality", leadJet.pt, centrality, ringLeadJet.ringObservable)                        \
   /* 2D Profiles */                                                                                                        \
-  X(FOLDER "/LeadJet/p2dRingObservableDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, ringObservable)                                      \
-  X(FOLDER "/LeadJet/p2dRingObservableDeltaThetaVsLambdaPt", deltaThetaJet, v0pt, ringObservable)                                  \
-  X(FOLDER "/LeadJet/p2dRingObservableDeltaPhiVsLeadJetPt", deltaPhiJet, leadingJetPt, ringObservable)                             \
-  X(FOLDER "/LeadJet/p2dRingObservableDeltaThetaVsLeadJetPt", deltaThetaJet, leadingJetPt, ringObservable)                         \
+  X(FOLDER "/LeadJet/p2dRingObservableDeltaPhiVsLambdaPt", ringLeadJet.deltaPhi, v0pt, ringLeadJet.ringObservable)                                      \
+  X(FOLDER "/LeadJet/p2dRingObservableDeltaThetaVsLambdaPt", ringLeadJet.deltaTheta, v0pt, ringLeadJet.ringObservable)                                  \
+  X(FOLDER "/LeadJet/p2dRingObservableDeltaPhiVsLeadJetPt", ringLeadJet.deltaPhi, leadJet.pt, ringLeadJet.ringObservable)                             \
+  X(FOLDER "/LeadJet/p2dRingObservableDeltaThetaVsLeadJetPt", ringLeadJet.deltaTheta, leadJet.pt, ringLeadJet.ringObservable)                         \
   /* 1D Mass */                                                                                                            \
   X(FOLDER "/LeadJet/QA/hMass", v0LambdaLikeMass)                                                                                  \
-  X(FOLDER "/LeadJet/QA/hRingObservableNumMass", v0LambdaLikeMass, ringObservable)                                                 \
+  X(FOLDER "/LeadJet/QA/hRingObservableNumMass", v0LambdaLikeMass, ringLeadJet.ringObservable)                                                 \
   X(FOLDER "/LeadJet/hMassSigExtract", v0LambdaLikeMass)                                                                           \
   /* Counters */                                                                                                           \
-  X(FOLDER "/LeadJet/QA/h2dDeltaPhiVsMass", deltaPhiJet, v0LambdaLikeMass)                                                         \
-  X(FOLDER "/LeadJet/QA/h2dDeltaThetaVsMass", deltaThetaJet, v0LambdaLikeMass)                                                     \
-  X(FOLDER "/LeadJet/QA/h3dDeltaPhiVsMassVsLambdaPt", deltaPhiJet, v0LambdaLikeMass, v0pt)                                         \
-  X(FOLDER "/LeadJet/QA/h3dDeltaThetaVsMassVsLambdaPt", deltaThetaJet, v0LambdaLikeMass, v0pt)                                     \
-  X(FOLDER "/LeadJet/QA/h3dDeltaPhiVsMassVsLeadJetPt", deltaPhiJet, v0LambdaLikeMass, leadingJetPt)                                \
-  X(FOLDER "/LeadJet/QA/h3dDeltaThetaVsMassVsLeadJetPt", deltaThetaJet, v0LambdaLikeMass, leadingJetPt)                            \
-  X(FOLDER "/LeadJet/QA/h3dDeltaPhiVsMassVsCent", deltaPhiJet, v0LambdaLikeMass, centrality)                                       \
-  X(FOLDER "/LeadJet/QA/h3dDeltaThetaVsMassVsCent", deltaThetaJet, v0LambdaLikeMass, centrality)                                   \
+  X(FOLDER "/LeadJet/QA/h2dDeltaPhiVsMass", ringLeadJet.deltaPhi, v0LambdaLikeMass)                                                         \
+  X(FOLDER "/LeadJet/QA/h2dDeltaThetaVsMass", ringLeadJet.deltaTheta, v0LambdaLikeMass)                                                     \
+  X(FOLDER "/LeadJet/QA/h3dDeltaPhiVsMassVsLambdaPt", ringLeadJet.deltaPhi, v0LambdaLikeMass, v0pt)                                         \
+  X(FOLDER "/LeadJet/QA/h3dDeltaThetaVsMassVsLambdaPt", ringLeadJet.deltaTheta, v0LambdaLikeMass, v0pt)                                     \
+  X(FOLDER "/LeadJet/QA/h3dDeltaPhiVsMassVsLeadJetPt", ringLeadJet.deltaPhi, v0LambdaLikeMass, leadJet.pt)                                \
+  X(FOLDER "/LeadJet/QA/h3dDeltaThetaVsMassVsLeadJetPt", ringLeadJet.deltaTheta, v0LambdaLikeMass, leadJet.pt)                            \
+  X(FOLDER "/LeadJet/QA/h3dDeltaPhiVsMassVsCent", ringLeadJet.deltaPhi, v0LambdaLikeMass, centrality)                                       \
+  X(FOLDER "/LeadJet/QA/h3dDeltaThetaVsMassVsCent", ringLeadJet.deltaTheta, v0LambdaLikeMass, centrality)                                   \
   /* TProfile of Ring vs Mass */                                                                                           \
-  X(FOLDER "/LeadJet/pRingObservableMass", v0LambdaLikeMass, ringObservable)                                                       \
+  X(FOLDER "/LeadJet/pRingObservableMass", v0LambdaLikeMass, ringLeadJet.ringObservable)                                                       \
   /* 2D Profiles: Angle vs Mass */                                                                                         \
-  X(FOLDER "/LeadJet/p2dRingObservableDeltaPhiVsMass", deltaPhiJet, v0LambdaLikeMass, ringObservable)                              \
-  X(FOLDER "/LeadJet/p2dRingObservableDeltaThetaVsMass", deltaThetaJet, v0LambdaLikeMass, ringObservable)                          \
-  X(FOLDER "/LeadJet/p2dRingObservableEtaLambdaVsMass", v0eta, v0LambdaLikeMass, ringObservable)                                   \
+  X(FOLDER "/LeadJet/p2dRingObservableDeltaPhiVsMass", ringLeadJet.deltaPhi, v0LambdaLikeMass, ringLeadJet.ringObservable)                              \
+  X(FOLDER "/LeadJet/p2dRingObservableDeltaThetaVsMass", ringLeadJet.deltaTheta, v0LambdaLikeMass, ringLeadJet.ringObservable)                          \
+  X(FOLDER "/LeadJet/p2dRingObservableEtaLambdaVsMass", v0eta, v0LambdaLikeMass, ringLeadJet.ringObservable)                                   \
   /* 2D Profiles: EtaProxy vs Mass */                                                                                      \
-  X(FOLDER "/LeadJet/p2dRingObservableEtaLeadJetVsMass", leadingJetEta, v0LambdaLikeMass, ringObservable)                          \
-  X(FOLDER "/LeadJet/h2dCounterEtaLeadJetVsMass", leadingJetEta, v0LambdaLikeMass)                                                 \
+  X(FOLDER "/LeadJet/p2dRingObservableEtaLeadJetVsMass", leadJet.eta, v0LambdaLikeMass, ringLeadJet.ringObservable)                          \
+  X(FOLDER "/LeadJet/h2dCounterEtaLeadJetVsMass", leadJet.eta, v0LambdaLikeMass)                                                 \
   /* 2D Profile: Ring vs Eta variables */                                                                                  \
-  X(FOLDER "/LeadJet/EtaDependence/hCounterEtaLambdaMinusEtaJet", v0eta - leadingJetEta)                                           \
-  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaLambdaMinusEtaJet", v0eta - leadingJetEta, ringObservable)                    \
-  X(FOLDER "/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsEtaJet", v0eta, leadingJetEta, ringObservable)                      \
-  X(FOLDER "/LeadJet/EtaDependence/h2dCounterEtaLambdaVsEtaJet", v0eta, leadingJetEta)                                             \
-  X(FOLDER "/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsEtaJet_FineBins", v0eta, leadingJetEta, ringObservable)             \
-  X(FOLDER "/LeadJet/EtaDependence/h2dCounterEtaLambdaVsEtaJet_FineBins", v0eta, leadingJetEta)                                    \
+  X(FOLDER "/LeadJet/EtaDependence/hCounterEtaLambdaMinusEtaJet", v0eta - leadJet.eta)                                           \
+  X(FOLDER "/LeadJet/EtaDependence/pRingObservableEtaLambdaMinusEtaJet", v0eta - leadJet.eta, ringLeadJet.ringObservable)                    \
+  X(FOLDER "/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsEtaJet", v0eta, leadJet.eta, ringLeadJet.ringObservable)                      \
+  X(FOLDER "/LeadJet/EtaDependence/h2dCounterEtaLambdaVsEtaJet", v0eta, leadJet.eta)                                             \
+  X(FOLDER "/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsEtaJet_FineBins", v0eta, leadJet.eta, ringLeadJet.ringObservable)             \
+  X(FOLDER "/LeadJet/EtaDependence/h2dCounterEtaLambdaVsEtaJet_FineBins", v0eta, leadJet.eta)                                    \
   /* 3D Profiles: Angle vs Mass vs Lambda pT */                                                                            \
-  X(FOLDER "/LeadJet/p3dRingObservableDeltaPhiVsMassVsLambdaPt", deltaPhiJet, v0LambdaLikeMass, v0pt, ringObservable)              \
-  X(FOLDER "/LeadJet/p3dRingObservableDeltaThetaVsMassVsLambdaPt", deltaThetaJet, v0LambdaLikeMass, v0pt, ringObservable)          \
+  X(FOLDER "/LeadJet/p3dRingObservableDeltaPhiVsMassVsLambdaPt", ringLeadJet.deltaPhi, v0LambdaLikeMass, v0pt, ringLeadJet.ringObservable)              \
+  X(FOLDER "/LeadJet/p3dRingObservableDeltaThetaVsMassVsLambdaPt", ringLeadJet.deltaTheta, v0LambdaLikeMass, v0pt, ringLeadJet.ringObservable)          \
   /* 3D Profiles: Angle vs Mass vs Lead Jet pT */                                                                          \
-  X(FOLDER "/LeadJet/p3dRingObservableDeltaPhiVsMassVsLeadJetPt", deltaPhiJet, v0LambdaLikeMass, leadingJetPt, ringObservable)     \
-  X(FOLDER "/LeadJet/p3dRingObservableDeltaThetaVsMassVsLeadJetPt", deltaThetaJet, v0LambdaLikeMass, leadingJetPt, ringObservable) \
+  X(FOLDER "/LeadJet/p3dRingObservableDeltaPhiVsMassVsLeadJetPt", ringLeadJet.deltaPhi, v0LambdaLikeMass, leadJet.pt, ringLeadJet.ringObservable)     \
+  X(FOLDER "/LeadJet/p3dRingObservableDeltaThetaVsMassVsLeadJetPt", ringLeadJet.deltaTheta, v0LambdaLikeMass, leadJet.pt, ringLeadJet.ringObservable) \
   /* 2D Profile: Mass vs Centrality */                                                                                     \
-  X(FOLDER "/LeadJet/p2dRingObservableMassVsCent", v0LambdaLikeMass, centrality, ringObservable)                                   \
+  X(FOLDER "/LeadJet/p2dRingObservableMassVsCent", v0LambdaLikeMass, centrality, ringLeadJet.ringObservable)                                   \
   /* 3D Profiles: Angle vs Mass vs Centrality */                                                                           \
-  X(FOLDER "/LeadJet/p3dRingObservableDeltaPhiVsMassVsCent", deltaPhiJet, v0LambdaLikeMass, centrality, ringObservable)            \
-  X(FOLDER "/LeadJet/p3dRingObservableDeltaThetaVsMassVsCent", deltaThetaJet, v0LambdaLikeMass, centrality, ringObservable)        \
-  X(FOLDER "/LeadJet/pRingVsCentrality", centrality, ringObservable)                                                               \
+  X(FOLDER "/LeadJet/p3dRingObservableDeltaPhiVsMassVsCent", ringLeadJet.deltaPhi, v0LambdaLikeMass, centrality, ringLeadJet.ringObservable)            \
+  X(FOLDER "/LeadJet/p3dRingObservableDeltaThetaVsMassVsCent", ringLeadJet.deltaTheta, v0LambdaLikeMass, centrality, ringLeadJet.ringObservable)        \
+  X(FOLDER "/LeadJet/pRingVsCentrality", centrality, ringLeadJet.ringObservable)                                                               \
   /* 2D Profiles of the ring: lab momentum planes */                                                                      \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPxPy", v0px, v0py, ringObservable)                                                        \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPzPx", v0pz, v0px, ringObservable)                                                        \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPyPz", v0py, v0pz, ringObservable)                                                        \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPxPy", v0px, v0py, ringLeadJet.ringObservable)                                                        \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPzPx", v0pz, v0px, ringLeadJet.ringObservable)                                                        \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPyPz", v0py, v0pz, ringLeadJet.ringObservable)                                                        \
   /* Ring scalar on the AEE planes. R is invariant under the rotation, so only the binning should change */               \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPxAeePyAee", v0pxAee, v0pyAee, ringObservable)                                            \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPzPxAee", v0pz, v0pxAee, ringObservable)                                                  \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPyAeePz", v0pyAee, v0pz, ringObservable)                                                  \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPxAeePyAee", v0pxAee, v0pyAee, ringLeadJet.ringObservable)                                            \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPzPxAee", v0pz, v0pxAee, ringLeadJet.ringObservable)                                                  \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPyAeePz", v0pyAee, v0pz, ringLeadJet.ringObservable)                                                  \
   /* Ring scalar on the coordinates transverse to the jet (PrimeJet). */                                                  \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPxPyPrimeJet", v0pxPrimeJet, v0pyPrimeJet, ringObservable)                                \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPzPxPrimeJet", v0pzPrimeJet, v0pxPrimeJet, ringObservable)                                \
-  X(FOLDER "/RingMaps/p2dRingObservableVsPyPzPrimeJet", v0pyPrimeJet, v0pzPrimeJet, ringObservable)                                \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPxPyPrimeJet", v0pxPrimeJet, v0pyPrimeJet, ringLeadJet.ringObservable)                                \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPzPxPrimeJet", v0pzPrimeJet, v0pxPrimeJet, ringLeadJet.ringObservable)                                \
+  X(FOLDER "/RingMaps/p2dRingObservableVsPyPzPrimeJet", v0pyPrimeJet, v0pzPrimeJet, ringLeadJet.ringObservable)                                \
   /* Ring projection kernel */                                                                                            \
-  X(FOLDER "/LeadJet/RingKernel/p2dRingObservableCosDeltaThetaVsJetZ", cosDeltaThetaJet, jetZ, ringObservable)                    \
-  X(FOLDER "/LeadJet/RingKernel/h2dCountsCosDeltaThetaVsJetZ", cosDeltaThetaJet, jetZ)                                            \
-  X(FOLDER "/LeadJet/RingKernel/p3dRingObservableCosDeltaThetaVsJetZVsLambdaZ", cosDeltaThetaJet, jetZ, lambdaZ, ringObservable)  \
-  /* Jet-transverse coordinate system's polarization maps. Filled here to use existing hasValidLeadingJet check */        \
+  X(FOLDER "/LeadJet/RingKernel/p2dRingObservableCosDeltaThetaVsJetZ", ringLeadJet.cosDeltaTheta, leadJetZ, ringLeadJet.ringObservable)                    \
+  X(FOLDER "/LeadJet/RingKernel/h2dCountsCosDeltaThetaVsJetZ", ringLeadJet.cosDeltaTheta, leadJetZ)                                            \
+  X(FOLDER "/LeadJet/RingKernel/p3dRingObservableCosDeltaThetaVsJetZVsLambdaZ", ringLeadJet.cosDeltaTheta, leadJetZ, lambdaZ, ringLeadJet.ringObservable)  \
+  /* Jet-transverse coordinate system's polarization maps. Filled here to use existing leadJet.isValid check */        \
   X(FOLDER "/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPxPyPrimeJet", v0pxPrimeJet, v0pyPrimeJet, polStarXPrimeJet)            \
   X(FOLDER "/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPxPyPrimeJet", v0pxPrimeJet, v0pyPrimeJet, polStarYPrimeJet)            \
   X(FOLDER "/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPxPyPrimeJet", v0pxPrimeJet, v0pyPrimeJet, polStarZPrimeJet)            \
@@ -199,92 +199,92 @@ enum CentEstimator {
   X(FOLDER "/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPyPzPrimeJet", v0pyPrimeJet, v0pzPrimeJet, polStarYPrimeJet)            \
   X(FOLDER "/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPyPzPrimeJet", v0pyPrimeJet, v0pzPrimeJet, polStarZPrimeJet)            \
   X(FOLDER "/PolMaps/PrimeJet/h2dCountsVsPyPzPrimeJet", v0pyPrimeJet, v0pzPrimeJet)                                       \
-  /* QAs on DeltaPhiJet -- Filed here as deltaPhiJet is only defined under hasValidLeadingJet */                          \
-  X(FOLDER "/LeadJet/QA/pPxStarDeltaPhi", deltaPhiJet, polStarX)                                                          \
-  X(FOLDER "/LeadJet/QA/pPyStarDeltaPhi", deltaPhiJet, polStarY)                                                          \
-  X(FOLDER "/LeadJet/QA/pPzStarDeltaPhi", deltaPhiJet, polStarZ)                                                          \
-  X(FOLDER "/LeadJet/QA/p2dPxStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarX)                                        \
-  X(FOLDER "/LeadJet/QA/p2dPyStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarY)                                        \
-  X(FOLDER "/LeadJet/QA/p2dPzStarDeltaPhiVsLambdaPt", deltaPhiJet, v0pt, polStarZ)                                        \
+  /* QAs on DeltaPhiJet -- Filed here as ringLeadJet.deltaPhi is only defined under leadJet.isValid */                          \
+  X(FOLDER "/LeadJet/QA/pPxStarDeltaPhi", ringLeadJet.deltaPhi, polStarX)                                                          \
+  X(FOLDER "/LeadJet/QA/pPyStarDeltaPhi", ringLeadJet.deltaPhi, polStarY)                                                          \
+  X(FOLDER "/LeadJet/QA/pPzStarDeltaPhi", ringLeadJet.deltaPhi, polStarZ)                                                          \
+  X(FOLDER "/LeadJet/QA/p2dPxStarDeltaPhiVsLambdaPt", ringLeadJet.deltaPhi, v0pt, polStarX)                                        \
+  X(FOLDER "/LeadJet/QA/p2dPyStarDeltaPhiVsLambdaPt", ringLeadJet.deltaPhi, v0pt, polStarY)                                        \
+  X(FOLDER "/LeadJet/QA/p2dPzStarDeltaPhiVsLambdaPt", ringLeadJet.deltaPhi, v0pt, polStarZ)                                        \
   /* KappaEff moments: kappa = 3 <num>/<den>, and products for the covariances */                                         \
-  X(FOLDER "/LeadJet/KappaEff/pKappaNumLeadJetVsMass", v0LambdaLikeMass, kappaNumJet)                                     \
-  X(FOLDER "/LeadJet/KappaEff/pKappaDenLeadJetVsMass", v0LambdaLikeMass, kappaDenJet)                                     \
-  X(FOLDER "/LeadJet/KappaEff/pKappaNumTimesDenLeadJetVsMass", v0LambdaLikeMass, kappaNumJet * kappaDenJet)               \
-  X(FOLDER "/LeadJet/KappaEff/pRingTimesDenLeadJetVsMass", v0LambdaLikeMass, ringObservable * kappaDenJet)                \
+  X(FOLDER "/LeadJet/KappaEff/pKappaNumLeadJetVsMass", v0LambdaLikeMass, ringLeadJet.kappaNum)                                     \
+  X(FOLDER "/LeadJet/KappaEff/pKappaDenLeadJetVsMass", v0LambdaLikeMass, ringLeadJet.kappaDen)                                     \
+  X(FOLDER "/LeadJet/KappaEff/pKappaNumTimesDenLeadJetVsMass", v0LambdaLikeMass, ringLeadJet.kappaNum * ringLeadJet.kappaDen)               \
+  X(FOLDER "/LeadJet/KappaEff/pRingTimesDenLeadJetVsMass", v0LambdaLikeMass, ringLeadJet.ringObservable * ringLeadJet.kappaDen)                \
   /* CheapSigExtract mass region equivalents of KappaEff (bin 1 sideband, bin 2 peak, otherwise underflow) */             \
-  X(FOLDER "/LeadJet/KappaEff/pRingLeadJetVsMassRegion", massRegion, ringObservable)                                      \
-  X(FOLDER "/LeadJet/KappaEff/pKappaNumLeadJetVsMassRegion", massRegion, kappaNumJet)                                     \
-  X(FOLDER "/LeadJet/KappaEff/pKappaDenLeadJetVsMassRegion", massRegion, kappaDenJet)                                     \
-  X(FOLDER "/LeadJet/KappaEff/pKappaNumTimesDenLeadJetVsMassRegion", massRegion, kappaNumJet * kappaDenJet)               \
-  X(FOLDER "/LeadJet/KappaEff/pRingTimesDenLeadJetVsMassRegion", massRegion, ringObservable * kappaDenJet)                \
+  X(FOLDER "/LeadJet/KappaEff/pRingLeadJetVsMassRegion", massRegion, ringLeadJet.ringObservable)                                      \
+  X(FOLDER "/LeadJet/KappaEff/pKappaNumLeadJetVsMassRegion", massRegion, ringLeadJet.kappaNum)                                     \
+  X(FOLDER "/LeadJet/KappaEff/pKappaDenLeadJetVsMassRegion", massRegion, ringLeadJet.kappaDen)                                     \
+  X(FOLDER "/LeadJet/KappaEff/pKappaNumTimesDenLeadJetVsMassRegion", massRegion, ringLeadJet.kappaNum * ringLeadJet.kappaDen)               \
+  X(FOLDER "/LeadJet/KappaEff/pRingTimesDenLeadJetVsMassRegion", massRegion, ringLeadJet.ringObservable * ringLeadJet.kappaDen)                \
   /* Differential KappaEff -- vs proxy pT and vs centrality, still per mass region (axes shared with event mixing) */     \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingLeadJetVsPtVsMassRegion", leadingJetPt, massRegion, ringObservable)     \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumLeadJetVsPtVsMassRegion", leadingJetPt, massRegion, kappaNumJet)    \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaDenLeadJetVsPtVsMassRegion", leadingJetPt, massRegion, kappaDenJet)    \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumTimesDenLeadJetVsPtVsMassRegion", leadingJetPt, massRegion, kappaNumJet * kappaDenJet) \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingTimesDenLeadJetVsPtVsMassRegion", leadingJetPt, massRegion, ringObservable * kappaDenJet) \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringObservable) \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumLeadJetVsCentralityVsMassRegion", centrality, massRegion, kappaNumJet) \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaDenLeadJetVsCentralityVsMassRegion", centrality, massRegion, kappaDenJet) \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumTimesDenLeadJetVsCentralityVsMassRegion", centrality, massRegion, kappaNumJet * kappaDenJet) \
-  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingTimesDenLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringObservable * kappaDenJet)
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingLeadJetVsPtVsMassRegion", leadJet.pt, massRegion, ringLeadJet.ringObservable)     \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumLeadJetVsPtVsMassRegion", leadJet.pt, massRegion, ringLeadJet.kappaNum)    \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaDenLeadJetVsPtVsMassRegion", leadJet.pt, massRegion, ringLeadJet.kappaDen)    \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumTimesDenLeadJetVsPtVsMassRegion", leadJet.pt, massRegion, ringLeadJet.kappaNum * ringLeadJet.kappaDen) \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingTimesDenLeadJetVsPtVsMassRegion", leadJet.pt, massRegion, ringLeadJet.ringObservable * ringLeadJet.kappaDen) \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringLeadJet.ringObservable) \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringLeadJet.kappaNum) \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaDenLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringLeadJet.kappaDen) \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dKappaNumTimesDenLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringLeadJet.kappaNum * ringLeadJet.kappaDen) \
+  X(FOLDER "/LeadJet/KappaEff/Differential/p2dRingTimesDenLeadJetVsCentralityVsMassRegion", centrality, massRegion, ringLeadJet.ringObservable * ringLeadJet.kappaDen)
 // (TODO: add counters for regular TH2Ds about centrality)
 
 // For leading particle
 #define RING_OBSERVABLE_LEADP_FILL_LIST(X, FOLDER)                                                            \
-  X(FOLDER "/LeadP/QA/hDeltaPhiLeadP", deltaPhiLeadP)                                                         \
-  X(FOLDER "/LeadP/QA/hDeltaThetaLeadP", deltaThetaLeadP)                                                     \
-  X(FOLDER "/LeadP/QA/hPtLeadP", leadPPt)                                                                     \
-  X(FOLDER "/LeadP/QA/hCosDeltaThetaLeadP", cosDeltaThetaLeadP)                                               \
+  X(FOLDER "/LeadP/QA/hDeltaPhiLeadP", ringLeadP.deltaPhi)                                                         \
+  X(FOLDER "/LeadP/QA/hDeltaThetaLeadP", ringLeadP.deltaTheta)                                                     \
+  X(FOLDER "/LeadP/QA/hPtLeadP", leadP.pt)                                                                     \
+  X(FOLDER "/LeadP/QA/hCosDeltaThetaLeadP", ringLeadP.cosDeltaTheta)                                               \
   /* TProfile of Ring vs Mass */                                                                              \
-  X(FOLDER "/LeadP/pRingObservableLeadPMass", v0LambdaLikeMass, ringObservableLeadP)                          \
-  X(FOLDER "/LeadP/hRingObservableLeadPCounts", ringObservableLeadP)                                          \
-  X(FOLDER "/LeadP/pRingObservableLeadPDeltaPhi", deltaPhiLeadP, ringObservableLeadP)                         \
-  X(FOLDER "/LeadP/pRingObservableLeadPDeltaTheta", deltaThetaLeadP, ringObservableLeadP)                     \
-  X(FOLDER "/LeadP/EtaDependence/pRingObservableEtaLambdaLeadP", v0eta, ringObservableLeadP)                  \
-  X(FOLDER "/LeadP/EtaDependence/pRingObservableEtaLeadP", leadPEta, ringObservableLeadP)                     \
-  X(FOLDER "/LeadP/EtaDependence/pRingObservableEtaLeadPHighEtaRes", leadPEta, ringObservableLeadP)           \
-  X(FOLDER "/LeadP/pRingObservableLeadPIntegrated", 0., ringObservableLeadP)                                  \
-  X(FOLDER "/LeadP/pRingObservableLeadPLambdaPt", v0pt, ringObservableLeadP)                                  \
-  X(FOLDER "/LeadP/pRingObservableLeadPPVz", collisionPVz, ringObservableLeadP)                               \
-  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP", leadPPt, ringObservableLeadP)                           \
-  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadPVsEtaLeadP", leadPPt, leadPEta, ringObservableLeadP)       \
-  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadPVsEtaV0", leadPPt, v0eta, ringObservableLeadP)             \
-  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadPVsCentrality", leadPPt, centrality, ringObservableLeadP)   \
-  X(FOLDER "/LeadP/EtaDependence/p2dRingObservableEtaLambdaVsEtaLeadP", v0eta, leadPEta, ringObservableLeadP) \
-  X(FOLDER "/LeadP/EtaDependence/h2dCounterEtaLambdaVsEtaLeadP", v0eta, leadPEta)                             \
-  X(FOLDER "/RingMaps/p2dRingObservableLeadPVsPxPy", v0px, v0py, ringObservableLeadP)                         \
-  X(FOLDER "/RingMaps/p2dRingObservableLeadPVsPzPx", v0pz, v0px, ringObservableLeadP)                         \
-  X(FOLDER "/RingMaps/p2dRingObservableLeadPVsPyPz", v0py, v0pz, ringObservableLeadP)                         \
+  X(FOLDER "/LeadP/pRingObservableLeadPMass", v0LambdaLikeMass, ringLeadP.ringObservable)                          \
+  X(FOLDER "/LeadP/hRingObservableLeadPCounts", ringLeadP.ringObservable)                                          \
+  X(FOLDER "/LeadP/pRingObservableLeadPDeltaPhi", ringLeadP.deltaPhi, ringLeadP.ringObservable)                         \
+  X(FOLDER "/LeadP/pRingObservableLeadPDeltaTheta", ringLeadP.deltaTheta, ringLeadP.ringObservable)                     \
+  X(FOLDER "/LeadP/EtaDependence/pRingObservableEtaLambdaLeadP", v0eta, ringLeadP.ringObservable)                  \
+  X(FOLDER "/LeadP/EtaDependence/pRingObservableEtaLeadP", leadP.eta, ringLeadP.ringObservable)                     \
+  X(FOLDER "/LeadP/EtaDependence/pRingObservableEtaLeadPHighEtaRes", leadP.eta, ringLeadP.ringObservable)           \
+  X(FOLDER "/LeadP/pRingObservableLeadPIntegrated", 0., ringLeadP.ringObservable)                                  \
+  X(FOLDER "/LeadP/pRingObservableLeadPLambdaPt", v0pt, ringLeadP.ringObservable)                                  \
+  X(FOLDER "/LeadP/pRingObservableLeadPPVz", collisionPVz, ringLeadP.ringObservable)                               \
+  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP", leadP.pt, ringLeadP.ringObservable)                           \
+  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadPVsEtaLeadP", leadP.pt, leadP.eta, ringLeadP.ringObservable)       \
+  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadPVsEtaV0", leadP.pt, v0eta, ringLeadP.ringObservable)             \
+  X(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadPVsCentrality", leadP.pt, centrality, ringLeadP.ringObservable)   \
+  X(FOLDER "/LeadP/EtaDependence/p2dRingObservableEtaLambdaVsEtaLeadP", v0eta, leadP.eta, ringLeadP.ringObservable) \
+  X(FOLDER "/LeadP/EtaDependence/h2dCounterEtaLambdaVsEtaLeadP", v0eta, leadP.eta)                             \
+  X(FOLDER "/RingMaps/p2dRingObservableLeadPVsPxPy", v0px, v0py, ringLeadP.ringObservable)                         \
+  X(FOLDER "/RingMaps/p2dRingObservableLeadPVsPzPx", v0pz, v0px, ringLeadP.ringObservable)                         \
+  X(FOLDER "/RingMaps/p2dRingObservableLeadPVsPyPz", v0py, v0pz, ringLeadP.ringObservable)                         \
   /* Ring projection kernel */                                                                                \
-  X(FOLDER "/LeadP/RingKernel/p2dRingObservableLeadPCosDeltaThetaVsLeadPZ", cosDeltaThetaLeadP, leadPZ, ringObservableLeadP) \
-  X(FOLDER "/LeadP/RingKernel/h2dCountsLeadPCosDeltaThetaVsLeadPZ", cosDeltaThetaLeadP, leadPZ)               \
-  X(FOLDER "/LeadP/RingKernel/p3dRingObservableLeadPCosDeltaThetaVsLeadPZVsLambdaZ", cosDeltaThetaLeadP, leadPZ, lambdaZ, ringObservableLeadP) \
+  X(FOLDER "/LeadP/RingKernel/p2dRingObservableLeadPCosDeltaThetaVsLeadPZ", ringLeadP.cosDeltaTheta, leadPZ, ringLeadP.ringObservable) \
+  X(FOLDER "/LeadP/RingKernel/h2dCountsLeadPCosDeltaThetaVsLeadPZ", ringLeadP.cosDeltaTheta, leadPZ)               \
+  X(FOLDER "/LeadP/RingKernel/p3dRingObservableLeadPCosDeltaThetaVsLeadPZVsLambdaZ", ringLeadP.cosDeltaTheta, leadPZ, lambdaZ, ringLeadP.ringObservable) \
   /* 2D Profiles: EtaProxy vs Mass */                                                                         \
-  X(FOLDER "/LeadP/p2dRingObservableLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass, ringObservableLeadP)    \
-  X(FOLDER "/LeadP/h2dCounterLeadPEtaLeadPVsMass", leadPEta, v0LambdaLikeMass)                                \
+  X(FOLDER "/LeadP/p2dRingObservableLeadPEtaLeadPVsMass", leadP.eta, v0LambdaLikeMass, ringLeadP.ringObservable)    \
+  X(FOLDER "/LeadP/h2dCounterLeadPEtaLeadPVsMass", leadP.eta, v0LambdaLikeMass)                                \
   /* KappaEff moments */                                                                                      \
-  X(FOLDER "/LeadP/KappaEff/pKappaNumLeadPVsMass", v0LambdaLikeMass, kappaNumLeadP)                           \
-  X(FOLDER "/LeadP/KappaEff/pKappaDenLeadPVsMass", v0LambdaLikeMass, kappaDenLeadP)                           \
-  X(FOLDER "/LeadP/KappaEff/pKappaNumTimesDenLeadPVsMass", v0LambdaLikeMass, kappaNumLeadP * kappaDenLeadP)   \
-  X(FOLDER "/LeadP/KappaEff/pRingTimesDenLeadPVsMass", v0LambdaLikeMass, ringObservableLeadP * kappaDenLeadP) \
+  X(FOLDER "/LeadP/KappaEff/pKappaNumLeadPVsMass", v0LambdaLikeMass, ringLeadP.kappaNum)                           \
+  X(FOLDER "/LeadP/KappaEff/pKappaDenLeadPVsMass", v0LambdaLikeMass, ringLeadP.kappaDen)                           \
+  X(FOLDER "/LeadP/KappaEff/pKappaNumTimesDenLeadPVsMass", v0LambdaLikeMass, ringLeadP.kappaNum * ringLeadP.kappaDen)   \
+  X(FOLDER "/LeadP/KappaEff/pRingTimesDenLeadPVsMass", v0LambdaLikeMass, ringLeadP.ringObservable * ringLeadP.kappaDen) \
   /* KappaEff with cheap signal extraction procedure */                                                       \
-  X(FOLDER "/LeadP/KappaEff/pRingLeadPVsMassRegion", massRegion, ringObservableLeadP)                         \
-  X(FOLDER "/LeadP/KappaEff/pKappaNumLeadPVsMassRegion", massRegion, kappaNumLeadP)                           \
-  X(FOLDER "/LeadP/KappaEff/pKappaDenLeadPVsMassRegion", massRegion, kappaDenLeadP)                           \
-  X(FOLDER "/LeadP/KappaEff/pKappaNumTimesDenLeadPVsMassRegion", massRegion, kappaNumLeadP * kappaDenLeadP)   \
-  X(FOLDER "/LeadP/KappaEff/pRingTimesDenLeadPVsMassRegion", massRegion, ringObservableLeadP * kappaDenLeadP) \
+  X(FOLDER "/LeadP/KappaEff/pRingLeadPVsMassRegion", massRegion, ringLeadP.ringObservable)                         \
+  X(FOLDER "/LeadP/KappaEff/pKappaNumLeadPVsMassRegion", massRegion, ringLeadP.kappaNum)                           \
+  X(FOLDER "/LeadP/KappaEff/pKappaDenLeadPVsMassRegion", massRegion, ringLeadP.kappaDen)                           \
+  X(FOLDER "/LeadP/KappaEff/pKappaNumTimesDenLeadPVsMassRegion", massRegion, ringLeadP.kappaNum * ringLeadP.kappaDen)   \
+  X(FOLDER "/LeadP/KappaEff/pRingTimesDenLeadPVsMassRegion", massRegion, ringLeadP.ringObservable * ringLeadP.kappaDen) \
   /* Differential KappaEff -- vs proxy pT and vs centrality, still per mass region (axes shared with event mixing) */ \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingLeadPVsPtVsMassRegion", leadPPt, massRegion, ringObservableLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumLeadPVsPtVsMassRegion", leadPPt, massRegion, kappaNumLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaDenLeadPVsPtVsMassRegion", leadPPt, massRegion, kappaDenLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumTimesDenLeadPVsPtVsMassRegion", leadPPt, massRegion, kappaNumLeadP * kappaDenLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingTimesDenLeadPVsPtVsMassRegion", leadPPt, massRegion, ringObservableLeadP * kappaDenLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingLeadPVsCentralityVsMassRegion", centrality, massRegion, ringObservableLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumLeadPVsCentralityVsMassRegion", centrality, massRegion, kappaNumLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaDenLeadPVsCentralityVsMassRegion", centrality, massRegion, kappaDenLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumTimesDenLeadPVsCentralityVsMassRegion", centrality, massRegion, kappaNumLeadP * kappaDenLeadP) \
-  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingTimesDenLeadPVsCentralityVsMassRegion", centrality, massRegion, ringObservableLeadP * kappaDenLeadP)
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingLeadPVsPtVsMassRegion", leadP.pt, massRegion, ringLeadP.ringObservable) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumLeadPVsPtVsMassRegion", leadP.pt, massRegion, ringLeadP.kappaNum) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaDenLeadPVsPtVsMassRegion", leadP.pt, massRegion, ringLeadP.kappaDen) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumTimesDenLeadPVsPtVsMassRegion", leadP.pt, massRegion, ringLeadP.kappaNum * ringLeadP.kappaDen) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingTimesDenLeadPVsPtVsMassRegion", leadP.pt, massRegion, ringLeadP.ringObservable * ringLeadP.kappaDen) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingLeadPVsCentralityVsMassRegion", centrality, massRegion, ringLeadP.ringObservable) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumLeadPVsCentralityVsMassRegion", centrality, massRegion, ringLeadP.kappaNum) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaDenLeadPVsCentralityVsMassRegion", centrality, massRegion, ringLeadP.kappaDen) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dKappaNumTimesDenLeadPVsCentralityVsMassRegion", centrality, massRegion, ringLeadP.kappaNum * ringLeadP.kappaDen) \
+  X(FOLDER "/LeadP/KappaEff/Differential/p2dRingTimesDenLeadPVsCentralityVsMassRegion", centrality, massRegion, ringLeadP.ringObservable * ringLeadP.kappaDen)
 
 // A macro that encapsulates all eta checks for leading particle and V0s, along with the fills
 // Parameters:
@@ -295,82 +295,82 @@ enum CentEstimator {
   do {                                                                                                                  \
     if (LEADP_IS_POS) {                                                                                                 \
       /* leadP marginal: positive side */                                                                               \
-      APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP", leadPPt, ringObservableLeadP)            \
+      APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP", leadP.pt, ringLeadP.ringObservable)            \
       if (V0_IS_POS) {                                                                                                  \
         /* V0 marginal: positive side */                                                                                \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0", leadPPt, ringObservableLeadP)             \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0", leadP.pt, ringLeadP.ringObservable)             \
         /* Joint: (+leadP, +V0) */                                                                                      \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_PosEtaV0", leadPPt, ringObservableLeadP) \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_PosEtaV0", leadP.pt, ringLeadP.ringObservable) \
       } else {                                                                                                          \
         /* V0 marginal: negative side */                                                                                \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0", leadPPt, ringObservableLeadP)             \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0", leadP.pt, ringLeadP.ringObservable)             \
         /* Joint: (+leadP, -V0) */                                                                                      \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_NegEtaV0", leadPPt, ringObservableLeadP) \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaLeadP_NegEtaV0", leadP.pt, ringLeadP.ringObservable) \
       }                                                                                                                 \
     } else {                                                                                                            \
       /* leadP marginal: negative side */                                                                               \
-      APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP", leadPPt, ringObservableLeadP)            \
+      APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP", leadP.pt, ringLeadP.ringObservable)            \
       if (V0_IS_POS) {                                                                                                  \
         /* V0 marginal: positive side */                                                                                \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0", leadPPt, ringObservableLeadP)             \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_PosEtaV0", leadP.pt, ringLeadP.ringObservable)             \
         /* Joint: (-leadP, +V0) */                                                                                      \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_PosEtaV0", leadPPt, ringObservableLeadP) \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_PosEtaV0", leadP.pt, ringLeadP.ringObservable) \
       } else {                                                                                                          \
         /* V0 marginal: negative side */                                                                                \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0", leadPPt, ringObservableLeadP)             \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaV0", leadP.pt, ringLeadP.ringObservable)             \
         /* Joint: (-leadP, -V0) */                                                                                      \
-        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_NegEtaV0", leadPPt, ringObservableLeadP) \
+        APPLY_HISTO_FILL(FOLDER "/LeadP/ProxyPtDependence/pRingVsPtLeadP_NegEtaLeadP_NegEtaV0", leadP.pt, ringLeadP.ringObservable) \
       }                                                                                                                 \
     }                                                                                                                   \
   } while (0)
 
 // For subleading jet:
 #define RING_OBSERVABLE_2NDJET_FILL_LIST(X, FOLDER)                                                                         \
-  X(FOLDER "/SubJet/QA/hDeltaPhi2ndJet", deltaPhi2ndJet)                                                                    \
-  X(FOLDER "/SubJet/QA/hDeltaTheta2ndJet", deltaTheta2ndJet)                                                                \
-  X(FOLDER "/SubJet/QA/hCosDeltaTheta2ndJet", cosDeltaTheta2ndJet)                                                          \
-  X(FOLDER "/SubJet/QA/hPt2ndJet", subleadingJetPt)                                                                         \
+  X(FOLDER "/SubJet/QA/hDeltaPhi2ndJet", ringSubJet.deltaPhi)                                                                    \
+  X(FOLDER "/SubJet/QA/hDeltaTheta2ndJet", ringSubJet.deltaTheta)                                                                \
+  X(FOLDER "/SubJet/QA/hCosDeltaTheta2ndJet", ringSubJet.cosDeltaTheta)                                                          \
+  X(FOLDER "/SubJet/QA/hPt2ndJet", subJet.pt)                                                                         \
   /* TProfile of Ring vs Mass */                                                                                            \
-  X(FOLDER "/SubJet/pRingObservable2ndJetMass", v0LambdaLikeMass, ringObservable2ndJet)                                     \
-  X(FOLDER "/SubJet/hRingObservable2ndJetCounter", ringObservable2ndJet)                                                    \
-  X(FOLDER "/SubJet/pRingObservable2ndJetDeltaPhi", deltaPhi2ndJet, ringObservable2ndJet)                                   \
-  X(FOLDER "/SubJet/pRingObservable2ndJetDeltaTheta", deltaTheta2ndJet, ringObservable2ndJet)                               \
-  X(FOLDER "/SubJet/EtaDependence/pRingObservableEtaLambda2ndJet", v0eta, ringObservable2ndJet)                             \
-  X(FOLDER "/SubJet/EtaDependence/pRingObservableEta2ndJet", subleadingJetEta, ringObservable2ndJet)                        \
-  X(FOLDER "/SubJet/pRingObservable2ndJetIntegrated", 0., ringObservable2ndJet)                                             \
-  X(FOLDER "/SubJet/pRingObservable2ndJetLambdaPt", v0pt, ringObservable2ndJet)                                             \
-  X(FOLDER "/SubJet/pRingObservableSubLeadPVz", collisionPVz, ringObservable2ndJet)                                         \
-  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJet", subleadingJetPt, ringObservable2ndJet)                              \
-  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJetVsEta2ndJet", subleadingJetPt, subleadingJetEta, ringObservable2ndJet) \
-  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJetVsEtaV0", subleadingJetPt, v0eta, ringObservable2ndJet)                \
-  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJetVsCentrality", subleadingJetPt, centrality, ringObservable2ndJet)      \
-  X(FOLDER "/SubJet/EtaDependence/p2dRingObservableEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta, ringObservable2ndJet)    \
-  X(FOLDER "/SubJet/EtaDependence/h2dCounterEtaLambdaVsEta2ndJet", v0eta, subleadingJetEta)                                 \
+  X(FOLDER "/SubJet/pRingObservable2ndJetMass", v0LambdaLikeMass, ringSubJet.ringObservable)                                     \
+  X(FOLDER "/SubJet/hRingObservable2ndJetCounter", ringSubJet.ringObservable)                                                    \
+  X(FOLDER "/SubJet/pRingObservable2ndJetDeltaPhi", ringSubJet.deltaPhi, ringSubJet.ringObservable)                                   \
+  X(FOLDER "/SubJet/pRingObservable2ndJetDeltaTheta", ringSubJet.deltaTheta, ringSubJet.ringObservable)                               \
+  X(FOLDER "/SubJet/EtaDependence/pRingObservableEtaLambda2ndJet", v0eta, ringSubJet.ringObservable)                             \
+  X(FOLDER "/SubJet/EtaDependence/pRingObservableEta2ndJet", subJet.eta, ringSubJet.ringObservable)                        \
+  X(FOLDER "/SubJet/pRingObservable2ndJetIntegrated", 0., ringSubJet.ringObservable)                                             \
+  X(FOLDER "/SubJet/pRingObservable2ndJetLambdaPt", v0pt, ringSubJet.ringObservable)                                             \
+  X(FOLDER "/SubJet/pRingObservableSubLeadPVz", collisionPVz, ringSubJet.ringObservable)                                         \
+  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJet", subJet.pt, ringSubJet.ringObservable)                              \
+  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJetVsEta2ndJet", subJet.pt, subJet.eta, ringSubJet.ringObservable) \
+  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJetVsEtaV0", subJet.pt, v0eta, ringSubJet.ringObservable)                \
+  X(FOLDER "/SubJet/ProxyPtDependence/pRingVsPt2ndJetVsCentrality", subJet.pt, centrality, ringSubJet.ringObservable)      \
+  X(FOLDER "/SubJet/EtaDependence/p2dRingObservableEtaLambdaVsEta2ndJet", v0eta, subJet.eta, ringSubJet.ringObservable)    \
+  X(FOLDER "/SubJet/EtaDependence/h2dCounterEtaLambdaVsEta2ndJet", v0eta, subJet.eta)                                 \
   /* 2D Profiles: EtaProxy vs Mass */                                                                                       \
-  X(FOLDER "/SubJet/p2dRingObservable2ndJetEta2ndJetVsMass", subleadingJetEta, v0LambdaLikeMass, ringObservable2ndJet)      \
-  X(FOLDER "/SubJet/h2dCounter2ndJetEta2ndJetVsMass", subleadingJetEta, v0LambdaLikeMass)                                   \
+  X(FOLDER "/SubJet/p2dRingObservable2ndJetEta2ndJetVsMass", subJet.eta, v0LambdaLikeMass, ringSubJet.ringObservable)      \
+  X(FOLDER "/SubJet/h2dCounter2ndJetEta2ndJetVsMass", subJet.eta, v0LambdaLikeMass)                                   \
   /* KappaEff moments */                                                                                                    \
-  X(FOLDER "/SubJet/KappaEff/pKappaNumSubJetVsMass", v0LambdaLikeMass, kappaNum2ndJet)                                      \
-  X(FOLDER "/SubJet/KappaEff/pKappaDenSubJetVsMass", v0LambdaLikeMass, kappaDen2ndJet)                                      \
-  X(FOLDER "/SubJet/KappaEff/pKappaNumTimesDenSubJetVsMass", v0LambdaLikeMass, kappaNum2ndJet * kappaDen2ndJet)             \
-  X(FOLDER "/SubJet/KappaEff/pRingTimesDenSubJetVsMass", v0LambdaLikeMass, ringObservable2ndJet * kappaDen2ndJet)           \
+  X(FOLDER "/SubJet/KappaEff/pKappaNumSubJetVsMass", v0LambdaLikeMass, ringSubJet.kappaNum)                                      \
+  X(FOLDER "/SubJet/KappaEff/pKappaDenSubJetVsMass", v0LambdaLikeMass, ringSubJet.kappaDen)                                      \
+  X(FOLDER "/SubJet/KappaEff/pKappaNumTimesDenSubJetVsMass", v0LambdaLikeMass, ringSubJet.kappaNum * ringSubJet.kappaDen)             \
+  X(FOLDER "/SubJet/KappaEff/pRingTimesDenSubJetVsMass", v0LambdaLikeMass, ringSubJet.ringObservable * ringSubJet.kappaDen)           \
   /* KappaEff with cheap signal extraction procedure */                                                                     \
-  X(FOLDER "/SubJet/KappaEff/pRingSubJetVsMassRegion", massRegion, ringObservable2ndJet)                                    \
-  X(FOLDER "/SubJet/KappaEff/pKappaNumSubJetVsMassRegion", massRegion, kappaNum2ndJet)                                      \
-  X(FOLDER "/SubJet/KappaEff/pKappaDenSubJetVsMassRegion", massRegion, kappaDen2ndJet)                                      \
-  X(FOLDER "/SubJet/KappaEff/pKappaNumTimesDenSubJetVsMassRegion", massRegion, kappaNum2ndJet * kappaDen2ndJet)             \
-  X(FOLDER "/SubJet/KappaEff/pRingTimesDenSubJetVsMassRegion", massRegion, ringObservable2ndJet * kappaDen2ndJet)           \
+  X(FOLDER "/SubJet/KappaEff/pRingSubJetVsMassRegion", massRegion, ringSubJet.ringObservable)                                    \
+  X(FOLDER "/SubJet/KappaEff/pKappaNumSubJetVsMassRegion", massRegion, ringSubJet.kappaNum)                                      \
+  X(FOLDER "/SubJet/KappaEff/pKappaDenSubJetVsMassRegion", massRegion, ringSubJet.kappaDen)                                      \
+  X(FOLDER "/SubJet/KappaEff/pKappaNumTimesDenSubJetVsMassRegion", massRegion, ringSubJet.kappaNum * ringSubJet.kappaDen)             \
+  X(FOLDER "/SubJet/KappaEff/pRingTimesDenSubJetVsMassRegion", massRegion, ringSubJet.ringObservable * ringSubJet.kappaDen)           \
   /* Differential KappaEff -- vs proxy pT and vs centrality, still per mass region (axes shared with event mixing) */       \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingSubJetVsPtVsMassRegion", subleadingJetPt, massRegion, ringObservable2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumSubJetVsPtVsMassRegion", subleadingJetPt, massRegion, kappaNum2ndJet)  \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaDenSubJetVsPtVsMassRegion", subleadingJetPt, massRegion, kappaDen2ndJet)  \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumTimesDenSubJetVsPtVsMassRegion", subleadingJetPt, massRegion, kappaNum2ndJet * kappaDen2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingTimesDenSubJetVsPtVsMassRegion", subleadingJetPt, massRegion, ringObservable2ndJet * kappaDen2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingSubJetVsCentralityVsMassRegion", centrality, massRegion, ringObservable2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumSubJetVsCentralityVsMassRegion", centrality, massRegion, kappaNum2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaDenSubJetVsCentralityVsMassRegion", centrality, massRegion, kappaDen2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumTimesDenSubJetVsCentralityVsMassRegion", centrality, massRegion, kappaNum2ndJet * kappaDen2ndJet) \
-  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingTimesDenSubJetVsCentralityVsMassRegion", centrality, massRegion, ringObservable2ndJet * kappaDen2ndJet)
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingSubJetVsPtVsMassRegion", subJet.pt, massRegion, ringSubJet.ringObservable) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumSubJetVsPtVsMassRegion", subJet.pt, massRegion, ringSubJet.kappaNum)  \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaDenSubJetVsPtVsMassRegion", subJet.pt, massRegion, ringSubJet.kappaDen)  \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumTimesDenSubJetVsPtVsMassRegion", subJet.pt, massRegion, ringSubJet.kappaNum * ringSubJet.kappaDen) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingTimesDenSubJetVsPtVsMassRegion", subJet.pt, massRegion, ringSubJet.ringObservable * ringSubJet.kappaDen) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingSubJetVsCentralityVsMassRegion", centrality, massRegion, ringSubJet.ringObservable) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumSubJetVsCentralityVsMassRegion", centrality, massRegion, ringSubJet.kappaNum) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaDenSubJetVsCentralityVsMassRegion", centrality, massRegion, ringSubJet.kappaDen) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dKappaNumTimesDenSubJetVsCentralityVsMassRegion", centrality, massRegion, ringSubJet.kappaNum * ringSubJet.kappaDen) \
+  X(FOLDER "/SubJet/KappaEff/Differential/p2dRingTimesDenSubJetVsCentralityVsMassRegion", centrality, massRegion, ringSubJet.ringObservable * ringSubJet.kappaDen)
 
 #define POLARIZATION_PROFILE_FILL_LIST(X, FOLDER)                          \
   /* 1D TProfiles vs v0phi */                                              \
@@ -472,7 +472,6 @@ struct lambdajetpolarizationionsderived {
   Configurable<bool> useRingZ{"useRingZ", false, "redefine the ring as the projection R_z = P_z cdot n_z for every proxy"};
   Configurable<bool> useRingZT{"useRingZT", false, "redefine the ring as R_z^T = R_z - 'helicity term'"}; // Exclusive with useRingZ (they cannot both be active!)
   // Configurable<bool> doPPAnalysis{"doPPAnalysis", false, "if in pp, set to true. Default is HI"};
-  // Configurable<bool> doJetProxy5dQA{"doJetProxy5dQA", false, "generates expensive THnSparse histograms for joint distribution QA of the jet proxies and collisions"};
 
   // A very inexpensive "signal extraction" imitation based on v0InMassPeak bool:
   // (Uses a mass interval to remove or include V0s from the final AnalysisResults to take advantage of existing post-processing codes)
@@ -523,8 +522,7 @@ struct lambdajetpolarizationionsderived {
     Configurable<int> nProxyResamples{"nProxyResamples", 1, "The amount of resamplings of jet direction per event. Use ONLY for forceRandJet, forceDatalikeJet and doMixedEventProxies"};
   } fakePolSwitches;
 
-  // Configurable<float> jetRForSmudging{"jetRForSmudging", 0.4, "QA quantity: the chosen R scale for the jet direction smudge"}; // Superseeded by jetR: kept the same scale in analysis and QA
-  Configurable<float> jetR{"jetR", 0.4f, "Radius of the jet"}; // Provide manually, please.
+  Configurable<float> jetR{"jetR", 0.4f, "Radius of the jet"}; // Provide manually, please. Also used for forceJetDirectionSmudge
   Configurable<float> minLeadParticlePt{"minLeadParticlePt", 4.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
   Configurable<float> minLeadJetPt{"minLeadJetPt", 10.0f, "Minimum Pt for leading jet to be considered valid (may be more restrictive than TableProducer)"};
   Configurable<float> minSubLeadJetPt{"minSubLeadJetPt", 8.0f, "Minimum Pt for subleading jet to be considered valid (may be more restrictive than TableProducer)"};
@@ -572,8 +570,6 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisLambdaMass{"axisLambdaMass", {450, 1.08f, 1.15f}, "#Lambda mass in GeV/c"}; // Default is {200, 1.101f, 1.131f}
 
     // Symmetric momentum-plane axes for the vector-field / ring 2D profiles:
-    ConfigurableAxis axisLambdaPx{"axisLambdaPx", {40, -3.0f, 3.0f}, "#Lambda p_{x} (GeV/c)"};
-    ConfigurableAxis axisLambdaPy{"axisLambdaPy", {40, -3.0f, 3.0f}, "#Lambda p_{y} (GeV/c)"};
     ConfigurableAxis axisLambdaPz{"axisLambdaPz", {40, -4.0f, 4.0f}, "#Lambda p_{z} (GeV/c)"};
 
     // Rotated-frame momentum-plane axes (Aee, PrimeV0 and PrimeJet systems):
@@ -679,18 +675,10 @@ struct lambdajetpolarizationionsderived {
     ConfigurableAxis axisDeltaComponents{"axisDeltaComponents", {5, 0.0, 5.0}, "0: r_k, 1: n_k, 2: r_k^2, 3: n_k^2, 4: r_k*n_k"};
   } axisConfigurations;
 
-  // Helper functions:
-  // Fast wrapping into [-PI, PI) (restricted to this interval for function speed)
-  inline double wrapToPiFast(double phi)
-  {
-    constexpr double TwoPi = constants::math::TwoPI;
-    constexpr double Pi = constants::math::PI;
-    if (phi >= Pi)
-      phi -= TwoPi;
-    else if (phi < -Pi)
-      phi += TwoPi;
-    return phi;
-  }
+  // ===============================
+  // Helper structs
+  // ===============================
+  // (Kept together, so everything the task carries around can be read in one place)
 
   // A small tracker struct for convenience -- Accumulates values for the Delta Method error estimator:
   struct EventDeltaTracker {
@@ -736,6 +724,77 @@ struct lambdajetpolarizationionsderived {
     }
   };
 
+  /// \brief Kinematics of one jet proxy (leadP, leadJet or subJet). The same struct wherever a proxy is stored.
+  /// \note  -999.f marks a value that was never filled (ALICE convention): e.g., pt = -999 for a leading particle
+  ///        without a table entry in this collision.
+  struct ProxyKinematics {
+    bool isValid = false; //! passed the proxy's minimum pT. Re-evaluated by applyProxyDistortion
+    float pt = -999.f;
+    float eta = -999.f;
+    float phi = -999.f;
+  };
+
+  /// \brief One proxy of each kind: the borrowed proxies of forcePreviousJet and doMixedEventProxies.
+  struct SetOfProxies {
+    ProxyKinematics leadP;
+    ProxyKinematics leadJet;
+    ProxyKinematics subJet;
+  };
+
+  /// \brief The collision-level mixing axes' cache. Cached once per collision so the pooling never needs a table iterator.
+  struct MixingAxes {
+    float zvtx = -999.f;
+    float centrality = -999.f;
+  };
+
+  /// \brief One proxy's per-collision caches, shared by the main loop and the event mixing (one instance per proxy).
+  /// \note  Direct-indexed by collision slot instead of hashed (at 1E6 collisions per dataframe, unordered_map did many
+  ///        scattered allocations and lookup ended up with a costly DRAM access).
+  struct ProxyByCollision {
+    std::vector<ProxyKinematics> proxyKinematicsVec; //! the collision's own proxy, before any distortion
+    std::vector<int32_t> mixedSourcesVec;           //! doMixedEventProxies LUT: nProxyResamples source slots per target (-1 = empty entry)
+    std::vector<int32_t> candidateCountVec;         //! mixing candidates offered to each target (read back for QA)
+  };
+
+  // A simple struct for doMixedEventProxies. Stores the borrowed proxy and the event it came from.
+  // (rebuilt on read from the source collision's caches -- the mixing LUTs only store the source slot to avoid cluttering memory with large nProxyResamples)
+  struct MixedProxyInfo {
+    ProxyKinematics proxy;     //! isValid stays false on an empty LUT entry
+    float zvtx = -999.f;       //! Knowingly repeated for the LeadP, LeadJet and SubJet, so memory is occupied 3x for this same value.
+    float centrality = -999.f;
+    int64_t sourceCollisionId = -1;
+  };
+
+  /// \brief The per-V0 quantities the ring needs, computed once per V0 and shared by every proxy.
+  struct V0RingInputs {
+    XYZVector lambdaLike3Vec;
+    XYZVector lambdaLikeUnit3Vec;
+    XYZVector protonLikeStarUnit3Vec;
+    float v0phi;
+    float v0p; //! |p_Lambda|, only used for the R_z bearing chi
+    float v0px;
+    float v0py;
+    float ringPrefactor;
+    float protonStarRingBeamComponent;     //! p_D^* on the beam axis (R_z) or on the beam axis made transverse to the Lambda (R_z^T)
+    float protonStarHelicityBeamComponent; //! the helicity part that R_z^T removes
+  };
+
+  /// \brief The ring observable and its companions, for one proxy and one V0. The defaults are the values of a missing proxy.
+  struct ProxyRingCache {
+    float ringObservable = 0.;
+    float deltaPhi = 0.;
+    float deltaTheta = 0.;
+    float cosDeltaTheta = 0.;
+    // KappaEff moments (cross moment u v and projection weight w):
+    float kappaNum = 0.;
+    float kappaDen = 1.;
+    // Longitudinal-ring diagnostics (R_z and R_z^T only):
+    float ringPerp = 0.;
+    float helicityTerm = 0.;
+    float chi = 0.;
+    float nz = 0.;
+  };
+
   // Allocating one tracker per family so the accumulators are allocated only once:
   EventDeltaTracker trackRing, trackRingKinCuts, trackJetKinCuts, trackJetLambdaKinCuts;
 
@@ -746,6 +805,24 @@ struct lambdajetpolarizationionsderived {
 
   // V0 phi selection:
   std::vector<float> v0PhiLimitsVec;
+
+  // Ring definition for the whole run: the full ring (default), R_z = P_z n_z, or R_z^T = R_z minus its helicity term.
+  // Both longitudinal definitions share every code path but the beam-axis component of p* (set once in init):
+  bool longitudinalRingMode = false;
+  bool transverseBeamAxisMode = false;
+
+  // Helper functions:
+  // Fast wrapping into [-PI, PI) (restricted to this interval for function speed)
+  inline double wrapToPiFast(double phi)
+  {
+    constexpr double TwoPi = constants::math::TwoPI;
+    constexpr double Pi = constants::math::PI;
+    if (phi >= Pi)
+      phi -= TwoPi;
+    else if (phi < -Pi)
+      phi += TwoPi;
+    return phi;
+  }
 
   void init(InitContext const&)
   {
@@ -773,6 +850,8 @@ struct lambdajetpolarizationionsderived {
     if (useRingZ && useRingZT) {
       LOG(fatal) << "useRingZ and useRingZT are mutually exclusive ring definitions: enable at most one.";
     }
+    longitudinalRingMode = useRingZ || useRingZT;
+    transverseBeamAxisMode = useRingZT;
 
     // V0 phi selection:
     v0PhiLimitsVec = (std::vector<float>)analysisLevelCuts.v0PhiLimits;
@@ -1763,16 +1842,6 @@ struct lambdajetpolarizationionsderived {
     histos.add("KinematicsQA/Jet/h2dSubLeadJetEtaVsPVz", "SubLead Jet #eta Vs PVz;#eta;Primary Vertex Z [cm];Counts", kTH2D, {axisConfigurations.axisEta, axisConfigurations.axisPVz});
     histos.add("KinematicsQA/Jet/h2dLeadPEtaVsPVz", "Lead Ptc #eta Vs PVz;#eta;Primary Vertex Z [cm];Counts", kTH2D, {axisConfigurations.axisEta, axisConfigurations.axisPVz});
 
-    // For building and event-mixing-like procedure similar to forceDatalikeJet:
-    // if (doJetProxy5dQA) {
-    //   histos.add("KinematicsQA/Jet/h5dLeadJetEtaPhiPtPVzCent", "h5dLeadJetEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
-    //              {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
-    //   histos.add("KinematicsQA/Jet/h5dSubLeadJetEtaPhiPtPVzCent", "h5dSubLeadJetEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
-    //              {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
-    //   histos.add("KinematicsQA/Jet/h5dLeadPEtaPhiPtPVzCent", "h5dLeadPEtaPhiPtPVzCent;#eta;#phi;p_{t};Primary Vertex Z [cm];Centrality (%);Counts", kTHnSparseF,
-    //              {axisConfigurations.axisEtaCoarse, axisConfigurations.axisPhi, axisConfigurations.axisJetPt, axisConfigurations.axisPVz, axisConfigurations.axisCentrality});
-    // }
-
     // doMixedEventProxies QA: gauge the size of the "too few collisions per bin" problem (see resonanceMergeDF.cxx)
     // Booked per proxy, since the three mixings are independent and can succeed/fail at different rates.
     if (fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA) {
@@ -1929,6 +1998,7 @@ struct lambdajetpolarizationionsderived {
       histos->fill(HIST("h2dAnalysisLevelSelectionV0sVsMass"), binValue, massV0);
     }
   };
+
   AnalysisCutFlowCounter v0AnalysisCutCounter{-1, &histos}; // Any index works here (resetForNewV0 is always called for a new V0 anyways)
  
   /// \brief A function that applies analysisLevelCuts' cuts to select V0s
@@ -2047,34 +2117,17 @@ struct lambdajetpolarizationionsderived {
   std::discrete_distribution<int> etaLeadPDist{etaLeadPWeights.begin(), etaLeadPWeights.end()}; // Will be passed as the etaDist variable
   std::discrete_distribution<int> phiLeadPDist{phiLeadPWeights.begin(), phiLeadPWeights.end()};
 
-  /// \brief One jet proxy (leadP, leadJet or subJet). Bound by reference so applyProxyDistortion() edits in-place.
-  struct ProxyState {
-    bool& hasValidProxy; //! whether the proxy is valid. Re-evaluated against minPtThreshold after distortion
-    float& pt;
-    float& eta;
-    float& phi;
-    XYZVector& unitVec; //! the proxy direction as a unit vector
-  };
-
-  /// \brief The cache slots holding the source proxy for forcePreviousJet and doMixedEventProxies. Read-only and by reference.
-  /// \note  Fallback skips this event using ProxyState::hasValidProxy.
-  /// \note  forcePreviousJet fills these in the main loop, from the previous analysed collision's own proxy.
-  //         doMixedEventProxies instead overwrites the caller's cache fields with this collision's mixed proxy right before the call.
-  struct ProxyCacheRef {
-    bool& hadProxy;
-    float& pt; //! the borrowed proxy carries its own pt: it is adopted, not recomputed
-    float& eta;
-    float& phi;
-  };
-
   /// \brief Applies whichever fakePolSwitches distortion is active to a jet-proxy direction, in place. No-op if none are on.
   /// \param proxy input/edited in-place: the proxy's kinematics, overwritten by whichever distortion is active.
-  /// \param minPtThreshold pT threshold for re-evaluating hasValidProxy after distortion.
-  /// \param cache input only: the previous-jet/mixed-event source proxy. The caller keeps it up to date. not this function.
+  /// \param unitVec input/edited in-place: the proxy direction as a unit vector.
+  /// \param minPtThreshold pT threshold for re-evaluating proxy.isValid after distortion.
+  /// \param source input only: the previous-jet/mixed-event source proxy. The caller keeps it up to date, not this function.
+  ///        (forcePreviousJet fills it from the previous analysed collision's own proxy, doMixedEventProxies from the mixing LUT right before the call)
   /// \param etaDist,phiDist sampling distributions for forceDatalikeJet (drawn from the task's own rng member).
   /// \note  Shared across leadP/leadJet/subJet: the caller resolves which proxy-specific procedure (e.g., LUT for evtMixing) applies.
+  /// \note  A missing source proxy invalidates this collision's proxy (the fallback skips the event).
   // Helper to modify the jet direction for QA and for spurious signal baseline removal tests:
-  inline void applyProxyDistortion(ProxyState proxy, float minPtThreshold, float maxAbsEta, ProxyCacheRef cache,
+  inline void applyProxyDistortion(ProxyKinematics& proxy, XYZVector& unitVec, float minPtThreshold, float maxAbsEta, ProxyKinematics const& source,
                                    std::discrete_distribution<int>& etaDist, std::discrete_distribution<int>& phiDist)
   {
     if (!fakePolSwitches.forcePerpToJet && !fakePolSwitches.forceJetDirectionSmudge && !fakePolSwitches.forceRandJet && !fakePolSwitches.forcePreviousJet && !fakePolSwitches.forceDatalikeJet && !fakePolSwitches.doMixedEventProxies) [[likely]] {
@@ -2092,16 +2145,16 @@ struct lambdajetpolarizationionsderived {
     if (fakePolSwitches.forcePerpToJet) {
       // First, we build a vector perpendicular to the jet by picking an arbitrary vector not parallel to the jet
       XYZVector perpVec;
-      if (std::abs(proxy.unitVec.X()) > 0.99) {
-        perpVec = XYZVector(-proxy.unitVec.Z(), 0., proxy.unitVec.X()).Unit(); // Cross product with Y-axis (0, 1, 0)
+      if (std::abs(unitVec.X()) > 0.99) {
+        perpVec = XYZVector(-unitVec.Z(), 0., unitVec.X()).Unit(); // Cross product with Y-axis (0, 1, 0)
       } else {
-        perpVec = XYZVector(0., proxy.unitVec.Z(), -proxy.unitVec.Y()).Unit(); // Cross product with X-axis (1, 0, 0)
+        perpVec = XYZVector(0., unitVec.Z(), -unitVec.Y()).Unit(); // Cross product with X-axis (1, 0, 0)
       }
 
       // Now we rotate around the jet axis by a random angle, just to make sure we are not introducing a bias in the QA:
       // We will use Rodrigues' rotation formula (v_rot = v*cos(randomAngle) + (Jet \cross v)*sin(randomAngle))
       const double randomAngle = randomGen.Uniform(0., constants::math::TwoPI);
-      proxy.unitVec = perpVec * std::cos(randomAngle) + proxy.unitVec.Cross(perpVec) * std::sin(randomAngle);
+      unitVec = perpVec * std::cos(randomAngle) + unitVec.Cross(perpVec) * std::sin(randomAngle);
     } else if (fakePolSwitches.forceJetDirectionSmudge) {
       // Smear the jet direction by a small random angle to estimate sensitivity to
       // jet axis uncertainty. We rotate the jet axis by angle theta around a uniformly
@@ -2112,16 +2165,16 @@ struct lambdajetpolarizationionsderived {
       // 1) We pick a uniformly random axis perpendicular to the jet.
       // (re-using the same Rodrigues formula as in the forcePerpToJet block above)
       XYZVector perpVec;
-      if (std::abs(proxy.unitVec.X()) > 0.99) {
-        perpVec = XYZVector(-proxy.unitVec.Z(), 0., proxy.unitVec.X()).Unit(); // Cross product with Y-axis (0, 1, 0)
+      if (std::abs(unitVec.X()) > 0.99) {
+        perpVec = XYZVector(-unitVec.Z(), 0., unitVec.X()).Unit(); // Cross product with Y-axis (0, 1, 0)
       } else {
-        perpVec = XYZVector(0., proxy.unitVec.Z(), -proxy.unitVec.Y()).Unit(); // Cross product with X-axis (1, 0, 0)
+        perpVec = XYZVector(0., unitVec.Z(), -unitVec.Y()).Unit(); // Cross product with X-axis (1, 0, 0)
       }
 
       // Rotate perpVec around the jet axis by a uniform random azimuth to get
       // a uniformly distributed random perpendicular direction (the smear axis):
       const double smearAzimuth = randomGen.Uniform(0., constants::math::TwoPI);
-      XYZVector smearAxis = perpVec * std::cos(smearAzimuth) + proxy.unitVec.Cross(perpVec) * std::sin(smearAzimuth);
+      XYZVector smearAxis = perpVec * std::cos(smearAzimuth) + unitVec.Cross(perpVec) * std::sin(smearAzimuth);
 
       // 2) draw the smearing polar angle from a Gaussian:
       // sigma = 0.05 * R --> ~68% of events smeared within 5% of R,
@@ -2135,7 +2188,7 @@ struct lambdajetpolarizationionsderived {
       // 3) rotate the jet axis by smearAngle around smearAxis.
       // Rodrigues is v_rot = v*cos(theta) + (k \cross v)*sin(theta) + k*(k \cdot v)*(1-cos(theta))
       // But the last term vanishes because smearAxis is perpendicular to unitVec:
-      proxy.unitVec = proxy.unitVec * std::cos(smearAngle) + smearAxis.Cross(proxy.unitVec) * std::sin(smearAngle);
+      unitVec = unitVec * std::cos(smearAngle) + smearAxis.Cross(unitVec) * std::sin(smearAngle);
       // Also, rotation preserves the norm, so no re-normalisation is needed for this to be a unit vector.
     } else if (fakePolSwitches.forceRandJet) {
       // This randomization was made different for each proxy (LeadP, LeadJet, SubLeadJet): bear that in mind!
@@ -2146,22 +2199,22 @@ struct lambdajetpolarizationionsderived {
       const double randPhi = randomGen.Uniform(0., constants::math::TwoPI);
 
       // 2) Construct the new random unit vector (there is no need to use the magnitude at all! We only need direction here):
-      proxy.unitVec = XYZVector(sinTheta * std::cos(randPhi), sinTheta * std::sin(randPhi), cosTheta);
+      unitVec = XYZVector(sinTheta * std::cos(randPhi), sinTheta * std::sin(randPhi), cosTheta);
     } else if (borrowedPhysicalProxy) { // forcePreviousJet or doMixedEventProxies: a real proxy reconstructed in another collision
-      if (cache.hadProxy) {
+      if (source.isValid) {
         // Adopt the source proxy wholesale:
         // From here on this collision is treated as if it had had that leading particle/jet all along.
-        proxy.pt = cache.pt;
-        proxy.eta = cache.eta;
-        proxy.phi = cache.phi;
-        const double inverseCoshEta = 1.0 / std::cosh(cache.eta);
-        const double sinPhi = std::sin(cache.phi);
-        const double cosPhi = std::cos(cache.phi);
-        proxy.unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(cache.eta));
+        proxy.pt = source.pt;
+        proxy.eta = source.eta;
+        proxy.phi = source.phi;
+        const double inverseCoshEta = 1.0 / std::cosh(source.eta);
+        const double sinPhi = std::sin(source.phi);
+        const double cosPhi = std::cos(source.phi);
+        unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(source.eta));
       } else {
         // No source proxy for this collision: the previous collision had none, or the mixing bins were too sparse.
         // Either way this collision cannot be used.
-        proxy.hasValidProxy = false;
+        proxy.isValid = false;
       }
     } else if (fakePolSwitches.forceDatalikeJet) { // A compromise between forceRandJet and forcePreviousJet, using data-like weights for sampling jets
       const float etaMin = -0.92f;
@@ -2179,127 +2232,100 @@ struct lambdajetpolarizationionsderived {
       const double inverseCoshEta = 1.0 / std::cosh(proxy.eta);
       const double sinPhi = std::sin(proxy.phi);
       const double cosPhi = std::cos(proxy.phi);
-      proxy.unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(proxy.eta));
+      unitVec = XYZVector(cosPhi * inverseCoshEta, sinPhi * inverseCoshEta, std::tanh(proxy.eta));
     }
 
-    if (proxy.hasValidProxy) { // If you don't check this flag here, the borrowed-proxy miss above would be silently overwritten
+    if (proxy.isValid) { // If you don't check this flag here, the borrowed-proxy miss above would be silently overwritten
       // if (borrowedPhysicalProxy) {
       //   // The adopted proxy is a real one that already passed this same cut when the pool was built
-      //   // (minimum-pT gates on the mixing LUTs, hasValidProxy on the previous collision).
+      //   // (minimum-pT gates on the mixing LUTs, isValid on the previous collision).
       //   // Re-checked only as a guard: it should never fire.
-      //   proxy.hasValidProxy = proxy.pt > minPtThreshold;
+      //   proxy.isValid = proxy.pt > minPtThreshold;
       // }
-      // Artificial proxy handling -- only the direction was "invented", so pT, phi and eta are rebuilt from proxy.unitVec.
+      // Artificial proxy handling -- only the direction was "invented", so pT, phi and eta are rebuilt from unitVec.
       // (Without this, later kinematic selections and QAs are inconsistent with the calculated ring observable)
       if (!borrowedPhysicalProxy) {
         // For stability (Rho is the projection on the transverse plane, badly behaved for high |eta|):
-        const double transverseNorm = std::max(proxy.unitVec.Rho(), 1e-12); // Stability guard
+        const double transverseNorm = std::max(unitVec.Rho(), 1e-12); // Stability guard
 
         // Our choice is preserving |p| across the change of direction, so pT follows the new polar angle:
         proxy.pt = beforeDistTotalMomentum * transverseNorm;
 
         if (!fakePolSwitches.forceDatalikeJet) { // DatalikeJet doesn't require recalculating these directions
           // Recalculate phi:
-          proxy.phi = RecoDecay::constrainAngle(std::atan2(proxy.unitVec.Y(), proxy.unitVec.X()), 0.0f); // atan2 outputs [-PI, PI), and DataModel convention was [0,2PI) as per FastJet's phi() getter
+          proxy.phi = RecoDecay::constrainAngle(std::atan2(unitVec.Y(), unitVec.X()), 0.0f); // atan2 outputs [-PI, PI), and DataModel convention was [0,2PI) as per FastJet's phi() getter
 
           // Stable eta computation:
           // Stabler than 0.5 * std::log((1. + cosTheta) / (1. - cosTheta))
           // (for forceDatalikeJet this reproduces the eta/phi its own branch sampled, so one path covers all four modes)
-          proxy.eta = std::asinh(proxy.unitVec.Z() / transverseNorm);
+          proxy.eta = std::asinh(unitVec.Z() / transverseNorm);
         }
 
         // These are not jets we measured, so the pT selection is optional here: it exists to let the bias
         // it introduces be measured.
         if (fakePolSwitches.gatePtOnArtificialProxies)
-          proxy.hasValidProxy = proxy.pt > minPtThreshold;
+          proxy.isValid = proxy.pt > minPtThreshold;
         // forceRandJet draws isotropic jets in solid angle, so this puts all "artificial" modes under data-like acceptance:
         if (fakePolSwitches.gateEtaOnArtificialProxies)
-          proxy.hasValidProxy = std::abs(proxy.eta) < maxAbsEta;
+          proxy.isValid = std::abs(proxy.eta) < maxAbsEta;
       }
     }
   }
 
-  // Caching the previous collision's jet directions -- A feature for forcePreviousJet QA:
-  // Slots holding a borrowed proxy (one set per proxy type).
-  // One instance for prevJet carried between collisions, and one for mixedProxy in each collision.
-  struct ProxyCacheSlots {
-    // Leading jet
-    bool hadLeadJet;
-    float leadJetPt;
-    float leadJetEta;
-    float leadJetPhi;
-    // Subleading jet
-    bool hadSubJet;
-    float subJetPt;
-    float subJetEta;
-    float subJetPhi;
-    // Leading particle
-    bool hadLeadP;
-    float leadPPt;
-    float leadPEta;
-    float leadPPhi;
-  };
-
-  /// \brief Per-collision leading/subleading jet, computed once per dataframe and shared by both the main loop below
-  /// (instead of re-scanning RingJets once per resampling pass) and the leadJet/subJet event mixing functions:
-  struct JetProxyCache {
-    bool hasValidLeadingJet = false;
-    float leadingJetPt = -1.f;
-    float leadingJetEta = 0.f;
-    float leadingJetPhi = 0.f;
-    bool hasValidSubJet = false;
-    float subleadingJetPt = -1.f;
-    float subleadingJetEta = 0.f;
-    float subleadingJetPhi = 0.f;
-  };
-
-  /// \brief The collision-level mixing axes' cache. Cached once per collision so the pooling never needs a table iterator.
-  struct MixingAxes {
-    float zvtx = -999.f;
-    float centrality = -1.f;
-  };
-
-  /// \brief Leading particle of a collision, resolved once in the pre-pass so the mixing never has to slice RingLeadPs.
-  ///        Similar to JetProxyCache in its philosophy. Kept separate for a separate loop's accessing pattern.
-  struct LeadPCache {
-    bool isValid = false;
-    float pt = -999.f;
-    float eta = -999.f;
-    float phi = -999.f;
-  };
-
-  // A simple struct for doMixedEventProxies. Stores the borrowed proxy and the event it came from.
-  // (rebuilt on read from the source collision's caches -- the mixing LUTs only store the source slot to avoid cluttering memory with large nProxyResamples)
-  struct MixedProxyInfo {
-    float pt;
-    float eta;
-    float phi;
-    float zvtx; //! Knowingly repeated for the LeadP, LeadJet and SubJet, so memory is occupied 3x for this same value.
-    float centrality;
-    int64_t sourceCollisionId = -1;
-  };
+  /// \brief The ring observable of one V0 with respect to one proxy, plus everything derived from the same cross product.
+  /// \param proxyUnitVec the proxy direction as a unit vector (after applyProxyDistortion).
+  /// \param proxyPhi the proxy azimuth, for deltaPhi.
+  /// \param v0Inputs the per-V0 quantities, computed once and shared by every proxy.
+  /// \note  R = (3/alpha) p_D_hat^* \cdot n, with n = (t_hat x p_Lambda)/|t_hat x p_Lambda|. The longitudinal modes keep only
+  ///        the beam-axis part of p_D^* (R_z) or that part made transverse to the Lambda (R_z^T).
+  /// \note  Call it only for a valid proxy: a missing proxy keeps the ProxyRingCache defaults.
+  ProxyRingCache computeProxyRing(const XYZVector& proxyUnitVec, float proxyPhi, const V0RingInputs& v0Inputs)
+  {
+    ProxyRingCache ring;
+    XYZVector cross = proxyUnitVec.Cross(v0Inputs.lambdaLike3Vec);
+    const float invCrossNorm = 1.f / cross.R(); // Caching the .R() result
+    const float ringFullUnit = v0Inputs.protonLikeStarUnit3Vec.Dot(cross) * invCrossNorm; // v: the unitless full ring
+    if (!longitudinalRingMode) {
+      ring.ringObservable = ringFullUnit;
+    } else {
+      ring.nz = cross.Z() * invCrossNorm;
+      ring.ringObservable = v0Inputs.protonStarRingBeamComponent * ring.nz;
+      ring.kappaDen = ring.nz * ring.nz;
+      // Diagnostics only: the complement R - R_long, the helicity term R_z - R_z^T, and the bearing chi:
+      ring.ringPerp = v0Inputs.ringPrefactor * (ringFullUnit - ring.ringObservable);
+      ring.helicityTerm = v0Inputs.ringPrefactor * v0Inputs.protonStarHelicityBeamComponent * ring.nz;
+      ring.chi = std::atan2(-cross.Z() * v0Inputs.v0p, cross.Y() * v0Inputs.v0px - cross.X() * v0Inputs.v0py);
+    }
+    ring.kappaNum = ring.ringObservable * ringFullUnit; // u v (u^2 for the full ring)
+    // Adding the prefactor related to the CP-violating decay (decay constants have different signs). Prefactor goes last!
+    ring.ringObservable *= v0Inputs.ringPrefactor;
+    // Angular variables
+    ring.deltaPhi = wrapToPiFast(v0Inputs.v0phi - proxyPhi); // Wrapped to [-PI, PI), for convenience
+    ring.cosDeltaTheta = proxyUnitVec.Dot(v0Inputs.lambdaLikeUnit3Vec); // Uses the pre-calculated unit vectors to avoid recomputation
+    ring.deltaTheta = std::acos(ring.cosDeltaTheta);                     // 3D angular separation. Same as ROOT::Math::VectorUtil::Angle(proxyUnitVec, lambdaLike3Vec);
+    return ring;
+  }
 
   /// \brief Uniform random pick of nProxyResamples DISTINCT sources among each target's candidate window, via reservoir sampling
   ///        (Uses Algorithm R with nProxyResamples slots, without replacement, as a repeated source adds no new jet direction and would only shrink the error bars artificially)
   ///        (cannibalization of proxies by neighbouring collisions in Continuous Readout is not a worry as ITS hits are being demanded)
   /// \note  Reuses the task's own rng member rather than a separate generator per proxy.
   /// \note  Draws even while the reservoir is still filling with candidates for mixing, so nProxyResamples = 1 is the single-slot rule, draw for draw.
-  void reservoirInsert(std::vector<int32_t>& candidateCount, std::vector<int32_t>& lut,
-                       size_t targetSlot, int64_t targetId, size_t sourceSlot, int64_t sourceId)
+  void reservoirInsert(ProxyByCollision& proxyByCollision, size_t targetSlot, int64_t targetId, size_t sourceSlot, int64_t sourceId)
   {
     // A collision must never borrow from itself:
     // (StrictlyUpperSameIndexPolicy should make this impossible, but we check nonetheless)
     if (targetId == sourceId)
       LOG(fatal) << "EventMixing: collision " << targetId << " offered itself as a mixing source.";
     const size_t nResamples = static_cast<size_t>(fakePolSwitches.nProxyResamples);
-    const int32_t nSeen = ++candidateCount[targetSlot];
+    const int32_t nSeen = ++proxyByCollision.candidateCountVec[targetSlot];
     std::uniform_int_distribution<int> pick(0, nSeen - 1);
     const size_t drawn = static_cast<size_t>(pick(rng));
     if (static_cast<size_t>(nSeen) <= nResamples) // Reservoir not full yet: fill the next slot directly.
-      lut[targetSlot * nResamples + (nSeen - 1)] = static_cast<int32_t>(sourceSlot);
+      proxyByCollision.mixedSourcesVec[targetSlot * nResamples + (nSeen - 1)] = static_cast<int32_t>(sourceSlot);
     else if (drawn < nResamples)
       // Reservoir full: Algorithm R.
-      lut[targetSlot * nResamples + drawn] = static_cast<int32_t>(sourceSlot);
+      proxyByCollision.mixedSourcesVec[targetSlot * nResamples + drawn] = static_cast<int32_t>(sourceSlot);
   }
 
   /// \brief How many different target collisions each source collision ended up supplying, from a finished LUT.
@@ -2315,6 +2341,43 @@ struct lambdajetpolarizationionsderived {
     return usage;
   }
 
+  /// \brief The proxy a target collision borrows in one resampling pass, rebuilt from the source collision's own caches.
+  /// \return An empty MixedProxyInfo (proxy.isValid = false, sourceCollisionId = -1) on an empty LUT entry.
+  /// \note  Only valid proxies are pooled, so a stored source always carries proxy.isValid = true.
+  MixedProxyInfo rebuildBorrowedProxyFromCache(ProxyByCollision const& proxyByCollision, std::vector<MixingAxes> const& mixingAxesByCollision,
+                               int64_t collisionIndexBase, size_t targetSlot, size_t pass)
+  {
+    const size_t nResamples = static_cast<size_t>(fakePolSwitches.nProxyResamples);
+    const int32_t sourceSlot = proxyByCollision.mixedSourcesVec[targetSlot * nResamples + pass];
+    if (sourceSlot < 0)
+      return MixedProxyInfo{};
+    auto const& axes = mixingAxesByCollision[sourceSlot];
+    return MixedProxyInfo{proxyByCollision.proxyKinematicsVec[sourceSlot], axes.zvtx, axes.centrality, collisionIndexBase + sourceSlot};
+  }
+
+  /// \brief Distinct sources a target stored, i.e. how many of its resampling passes borrow (entries fill contiguously from the first).
+  size_t distinctSourcesOf(ProxyByCollision const& proxyByCollision, size_t targetSlot)
+  {
+    return std::min(static_cast<size_t>(proxyByCollision.candidateCountVec[targetSlot]), static_cast<size_t>(fakePolSwitches.nProxyResamples));
+  }
+
+  /// \brief Aggregates every collision with a valid proxy by its (Zvtx, proxy pT, centrality) mixing bin.
+  /// \note  Collisions are visited in ascending index order, so each pool/window already comes out sorted by collision index.
+  std::vector<std::vector<int32_t>> poolByBin(BinningPolicyBase<3>& mixBinning, std::vector<ProxyKinematics> const& proxyKinematicsVec,
+                                              std::vector<MixingAxes> const& mixingAxesByCollision)
+  {
+    std::vector<std::vector<int32_t>> pools(mixBinning.getAllBinsCount()); // Method from BinningPolicy.h
+    for (size_t slot = 0; slot < proxyKinematicsVec.size(); ++slot) {
+      if (!proxyKinematicsVec[slot].isValid)
+        continue;
+      auto const& axes = mixingAxesByCollision[slot];
+      const int bin = mixBinning.getBin(std::make_tuple(axes.zvtx, proxyKinematicsVec[slot].pt, axes.centrality));
+      if (bin >= 0)
+        pools[bin].push_back(static_cast<int32_t>(slot));
+    }
+    return pools;
+  }
+
   // Defining filters for events:
   Filter zvtxFilter = (nabs(o2::aod::lambdajetpol::zvtx) < maxZVtxPosition);
 
@@ -2323,22 +2386,16 @@ struct lambdajetpolarizationionsderived {
   Preslice<aod::RingJets> perColJets = o2::aod::lambdajetpol::ringCollisionId;
   Preslice<aod::RingLaV0s> perColV0s = o2::aod::lambdajetpol::ringCollisionId;
   Preslice<aod::RingLeadPs> perColLeadPs = o2::aod::lambdajetpol::ringCollisionId;
-  // // For doMixedEventProxies:
-  // SliceCache mixCache;
   /// \brief Main analysis loop: for each collision, rebuilds the leading jet/particle proxies (with optional fakePolSwitches distortions), then loops over V0s computing the ring observable and polarization-vector profiles for every enabled kinematic-cut family.
   void processPolarizationData(soa::Filtered<o2::aod::RingCollisions> const& collisions, o2::aod::RingJets const& jets, o2::aod::RingLaV0s const& v0s,
                                o2::aod::RingLeadPs const& leadPs)
   {
     // Caches for borrowed physical jets (previous jet event mixing, or full window event mixing):
-    ProxyCacheSlots prevJetCache{};    // Carried between collisions. Zero-initialized, so bools start as false
-    ProxyCacheSlots mixedProxyCache{}; // Refilled per collision from the mixing LUTs
+    SetOfProxies prevJetCache{};    // Carried between collisions. Default-initialized, so every isValid starts as false
+    SetOfProxies mixedProxyCache{}; // Refilled per collision from the mixing LUTs
     // As forcePreviousJet and doMixedEventProxies are mutually exclusive we can bind them to a single variable:
-    ProxyCacheSlots& proxyCache = fakePolSwitches.doMixedEventProxies ? mixedProxyCache : prevJetCache;
+    SetOfProxies& proxyCache = fakePolSwitches.doMixedEventProxies ? mixedProxyCache : prevJetCache;
     // forcePreviousJet cannot be resampled (fatal in init), while doMixedEventProxies reads one LUT entry per resampling pass.
-    // Ring definition for the whole run: the full ring (default), R_z = P_z n_z, or R_z^T = R_z minus its helicity term.
-    // Both longitudinal definitions share every code path but the beam-axis component of p*:
-    const bool longitudinalRingMode = useRingZ || useRingZT;
-    const bool transverseBeamAxisMode = useRingZT;
 
     // Building vectors for event mixing and leading/subleading jet finding:
     int64_t collisionIndexBase = 0;
@@ -2365,100 +2422,68 @@ struct lambdajetpolarizationionsderived {
 
     // Direct-indexed instead of hashed (vectors instead of unordered_maps):
     // (at 1E6 collisions per dataframe, unordered_map did many scattered allocations and lookup ended up with a costly DRAM access)
-    std::vector<JetProxyCache> jetProxyByCollision(collisionIndexExtent);
-    std::vector<LeadPCache> leadPByCollision(collisionIndexExtent);
     std::vector<MixingAxes> mixingAxesByCollision(collisionIndexExtent);
     // doMixedEventProxies caches: three independent mixings, one per proxy (a collision may have a valid LeadP, but no SubLeadJet).
     // Mixing is binned on (Zvtx, proxy pt, centrality), varying only eta/phi.
     // Each target owns nProxyResamples consecutive entries, so we only write the indices instead of copying MixedProxyInfo as in previous implementations.
     const size_t nResamples = static_cast<size_t>(fakePolSwitches.nProxyResamples);
     const size_t mixingLutSize = fakePolSwitches.doMixedEventProxies ? collisionIndexExtent * nResamples : 0;
-    std::vector<int32_t> mixedLeadPByCollision(mixingLutSize, -1);
-    std::vector<int32_t> mixedLeadJetByCollision(mixingLutSize, -1);
-    std::vector<int32_t> mixedSubJetByCollision(mixingLutSize, -1);
-    // Candidate counters for the the mixing: main loop below reads them back for QA.
-    std::vector<int32_t> leadPCandidateCount(collisionIndexExtent, 0);
-    std::vector<int32_t> leadJetCandidateCount(collisionIndexExtent, 0);
-    std::vector<int32_t> subJetCandidateCount(collisionIndexExtent, 0);
+    ProxyByCollision leadPByCollision, leadJetByCollision, subJetByCollision;
+    for (auto const& proxyByCollision : {&leadPByCollision, &leadJetByCollision, &subJetByCollision}) {
+      proxyByCollision->proxyKinematicsVec.assign(collisionIndexExtent, ProxyKinematics{});
+      proxyByCollision->mixedSourcesVec.assign(mixingLutSize, -1);
+      proxyByCollision->candidateCountVec.assign(collisionIndexExtent, 0); // Candidate counters for the mixing: main loop below reads them back for QA
+    }
 
     // Leading/subleading jet per collision, resolved once here instead of inside the (possibly nProxyResamples times resampled) main loop.
     // Both the main loop and the leadJet/subJet mixing functions read from this, so RingJets is scanned exactly once
     for (auto const& collision : collisions) {
       const auto collId = collision.globalIndex();
       const size_t slot = slotOf(collId);
-      JetProxyCache cache;
+      ProxyKinematics leadJet;
+      ProxyKinematics subJet;
 
       // Cached here so the pooling below never needs a collision iterator:
       mixingAxesByCollision[slot] = {collision.zvtx(), getCentrality(collision)};
 
       // std::optional avoids undefined behaviour from a default-constructed iterator:
-      std::optional<o2::aod::RingJets::iterator> leadingJet;
-      std::optional<o2::aod::RingJets::iterator> subleadingJet;
+      std::optional<o2::aod::RingJets::iterator> leadJetRow;
+      std::optional<o2::aod::RingJets::iterator> subJetRow;
       for (auto const& jet : jets.sliceBy(perColJets, collId)) {
         const auto jetpt = jet.jetPt();
-        if (jetpt > cache.leadingJetPt) {
+        if (jetpt > leadJet.pt) {
           // Current leading becomes subleading:
-          cache.subleadingJetPt = cache.leadingJetPt;
-          subleadingJet = leadingJet; // may still be std::nullopt on first pass -- that is fine!
+          subJet.pt = leadJet.pt;
+          subJetRow = leadJetRow; // may still be std::nullopt on first pass -- that is fine!
           // Now update the leading jet:
-          cache.leadingJetPt = jetpt;
-          leadingJet = jet;
-        } else if (jetpt > cache.subleadingJetPt) { // Update subleading only:
-          cache.subleadingJetPt = jetpt;
-          subleadingJet = jet;
+          leadJet.pt = jetpt;
+          leadJetRow = jet;
+        } else if (jetpt > subJet.pt) { // Update subleading only:
+          subJet.pt = jetpt;
+          subJetRow = jet;
         }
       }
       // Finer control on jet momentum, further than TableProducer pre-selection:
-      cache.hasValidLeadingJet = cache.leadingJetPt > minLeadJetPt;
-      cache.hasValidSubJet = cache.subleadingJetPt > minSubLeadJetPt;
-      if (cache.hasValidLeadingJet) {
-        cache.leadingJetEta = leadingJet->jetEta();
-        cache.leadingJetPhi = leadingJet->jetPhi();
+      leadJet.isValid = leadJet.pt > minLeadJetPt;
+      subJet.isValid = subJet.pt > minSubLeadJetPt;
+      if (leadJet.isValid) {
+        leadJet.eta = leadJetRow->jetEta();
+        leadJet.phi = leadJetRow->jetPhi();
       }
-      if (cache.hasValidSubJet) {
-        cache.subleadingJetEta = subleadingJet->jetEta();
-        cache.subleadingJetPhi = subleadingJet->jetPhi();
+      if (subJet.isValid) {
+        subJet.eta = subJetRow->jetEta();
+        subJet.phi = subJetRow->jetPhi();
       }
-      jetProxyByCollision[slot] = cache;
+      leadJetByCollision.proxyKinematicsVec[slot] = leadJet;
+      subJetByCollision.proxyKinematicsVec[slot] = subJet;
 
       // The leading particle is resolved here too, so the pooling reads a vector instead of slicing RingLeadPs.
       // A collision with no leadP simply keeps isValid = false, and its mixing axes are stored regardless
       for (auto const& lp : leadPs.sliceBy(perColLeadPs, collId)) {
-        leadPByCollision[slot] = {lp.leadParticlePt() > minLeadParticlePt, lp.leadParticlePt(), lp.leadParticleEta(), lp.leadParticlePhi()};
+        leadPByCollision.proxyKinematicsVec[slot] = {lp.leadParticlePt() > minLeadParticlePt, lp.leadParticlePt(), lp.leadParticleEta(), lp.leadParticlePhi()};
         break; // Table has at most one LeadP per collision, but we break nonetheless
       }
     }
-
-    // A borrow, rebuilt from the source collision's own caches (empty MixedProxyInfo, sourceCollisionId = -1, on an empty entry):
-    auto borrowedFrom = [&](int32_t sourceSlot, float pt, float eta, float phi) {
-      auto const& axes = mixingAxesByCollision[sourceSlot];
-      return MixedProxyInfo{pt, eta, phi, axes.zvtx, axes.centrality, collisionIndexBase + sourceSlot};
-    };
-    auto borrowedLeadP = [&](size_t targetSlot, size_t pass) {
-      const int32_t sourceSlot = mixedLeadPByCollision[targetSlot * nResamples + pass];
-      if (sourceSlot < 0)
-        return MixedProxyInfo{};
-      auto const& lp = leadPByCollision[sourceSlot];
-      return borrowedFrom(sourceSlot, lp.pt, lp.eta, lp.phi);
-    };
-    auto borrowedLeadJet = [&](size_t targetSlot, size_t pass) {
-      const int32_t sourceSlot = mixedLeadJetByCollision[targetSlot * nResamples + pass];
-      if (sourceSlot < 0)
-        return MixedProxyInfo{};
-      auto const& jp = jetProxyByCollision[sourceSlot];
-      return borrowedFrom(sourceSlot, jp.leadingJetPt, jp.leadingJetEta, jp.leadingJetPhi);
-    };
-    auto borrowedSubJet = [&](size_t targetSlot, size_t pass) {
-      const int32_t sourceSlot = mixedSubJetByCollision[targetSlot * nResamples + pass];
-      if (sourceSlot < 0)
-        return MixedProxyInfo{};
-      auto const& jp = jetProxyByCollision[sourceSlot];
-      return borrowedFrom(sourceSlot, jp.subleadingJetPt, jp.subleadingJetEta, jp.subleadingJetPhi);
-    };
-    // Distinct sources a target stored, i.e. how many of its resampling passes borrow (entries fill contiguously from the first):
-    auto distinctSourcesOf = [&](std::vector<int32_t> const& candidateCount, size_t targetSlot) {
-      return std::min(static_cast<size_t>(candidateCount[targetSlot]), nResamples);
-    };
 
     // A small guard:
     const bool doMixingQA = fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA;
@@ -2487,28 +2512,11 @@ struct lambdajetpolarizationionsderived {
       // Counting what actually enters the mixing (not what enters the dataframe), before any pooling starts:
       int64_t nValidLeadP = 0, nValidLeadJet = 0, nValidSubJet = 0;
       for (size_t slot = 0; slot < collisionIndexExtent; ++slot) {
-        nValidLeadP += leadPByCollision[slot].isValid ? 1 : 0;
-        nValidLeadJet += jetProxyByCollision[slot].hasValidLeadingJet ? 1 : 0;
-        nValidSubJet += jetProxyByCollision[slot].hasValidSubJet ? 1 : 0;
+        nValidLeadP += leadPByCollision.proxyKinematicsVec[slot].isValid ? 1 : 0;
+        nValidLeadJet += leadJetByCollision.proxyKinematicsVec[slot].isValid ? 1 : 0;
+        nValidSubJet += subJetByCollision.proxyKinematicsVec[slot].isValid ? 1 : 0;
       }
       LOG(info) << "LUT input: " << collisions.size() << " collisions, extent " << collisionIndexExtent << ", validLeadP " << nValidLeadP << ", validLeadJet " << nValidLeadJet << ", validSubJet " << nValidSubJet;
-
-      /// \brief Aggregates every collision with a usable proxy by its mixing bin.
-      ///        proxyPtOf returns the proxy pT for a slot, or a negative sentinel when that collision has no proxy this analysis would accept.
-      /// \note  Collisions are visited in ascending index order, so each pool/window already comes out sorted by collision index.
-      auto poolByBin = [&](auto const& proxyPtOf) {
-        std::vector<std::vector<int32_t>> pools(mixBinning.getAllBinsCount()); // Method from BinningPolicy.h
-        for (size_t slot = 0; slot < collisionIndexExtent; ++slot) {
-          const float proxyPt = proxyPtOf(slot);
-          if (proxyPt < 0.f)
-            continue;
-          auto const& axes = mixingAxesByCollision[slot];
-          const int bin = mixBinning.getBin(std::make_tuple(axes.zvtx, proxyPt, axes.centrality));
-          if (bin >= 0)
-            pools[bin].push_back(static_cast<int32_t>(slot));
-        }
-        return pools;
-      };
 
       /// \brief Pairs each collision with the next mixedEventWindowSize partners inside its own bin, never itself.
       /// \note  Reproduces CombinationsBlockStrictlyUpperSameIndexPolicy exactly, in the same bins, same forward window,
@@ -2547,15 +2555,15 @@ struct lambdajetpolarizationionsderived {
 
       // Starting the window loops for each jet proxy:
       // Leading particle:
-      const auto leadPPools = poolByBin([&](size_t slot) { return leadPByCollision[slot].isValid ? leadPByCollision[slot].pt : -999.f; });
+      const auto leadPPools = poolByBin(mixBinning, leadPByCollision.proxyKinematicsVec, mixingAxesByCollision);
       if (doMixingQA) {
         windowNeighboursOf(leadPPools, [&](size_t nNeighbours) { histos.fill(HIST("EventMixingQA/hMixedEventLeadPWindowNeighbours"), nNeighbours); });
       }
       const int64_t nPairsLeadP = pairWithinWindows(leadPPools, [&](size_t slot1, int64_t id1, size_t slot2, int64_t id2) {
         // Both sides of the pair feed each other's reservoir, properly using what is already in memory. This also lets a collision borrow from
         // earlier collisions as well, eliminating the forward-only bias of the sliding window in the event mixing procedure.
-        reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, slot1, id1, slot2, id2);
-        reservoirInsert(leadPCandidateCount, mixedLeadPByCollision, slot2, id2, slot1, id1);
+        reservoirInsert(leadPByCollision, slot1, id1, slot2, id2);
+        reservoirInsert(leadPByCollision, slot2, id2, slot1, id1);
         if (doMixingQA)
           histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexEligible"), id2 - id1);
       });
@@ -2563,13 +2571,13 @@ struct lambdajetpolarizationionsderived {
       LOG(info) << "  leadP loop: " << std::chrono::duration<double>(tLeadPDone - tLutStart).count() << " s, " << nPairsLeadP << " pairs";
 
       // Leading jet:
-      const auto leadJetPools = poolByBin([&](size_t slot) { return jetProxyByCollision[slot].hasValidLeadingJet ? jetProxyByCollision[slot].leadingJetPt : -999.f; });
+      const auto leadJetPools = poolByBin(mixBinning, leadJetByCollision.proxyKinematicsVec, mixingAxesByCollision);
       if (doMixingQA) {
         windowNeighboursOf(leadJetPools, [&](size_t nNeighbours) { histos.fill(HIST("EventMixingQA/hMixedEventLeadJetWindowNeighbours"), nNeighbours); });
       }
       const int64_t nPairsLeadJet = pairWithinWindows(leadJetPools, [&](size_t slot1, int64_t id1, size_t slot2, int64_t id2) {
-        reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, slot1, id1, slot2, id2);
-        reservoirInsert(leadJetCandidateCount, mixedLeadJetByCollision, slot2, id2, slot1, id1);
+        reservoirInsert(leadJetByCollision, slot1, id1, slot2, id2);
+        reservoirInsert(leadJetByCollision, slot2, id2, slot1, id1);
         if (doMixingQA)
           histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexEligible"), id2 - id1);
       });
@@ -2577,13 +2585,13 @@ struct lambdajetpolarizationionsderived {
       LOG(info) << "  leadJet loop: " << std::chrono::duration<double>(tLeadJetDone - tLeadPDone).count() << " s, " << nPairsLeadJet << " pairs";
 
       // Subleading jet:
-      const auto subJetPools = poolByBin([&](size_t slot) { return jetProxyByCollision[slot].hasValidSubJet ? jetProxyByCollision[slot].subleadingJetPt : -999.f; });
+      const auto subJetPools = poolByBin(mixBinning, subJetByCollision.proxyKinematicsVec, mixingAxesByCollision);
       if (doMixingQA) {
         windowNeighboursOf(subJetPools, [&](size_t nNeighbours) { histos.fill(HIST("EventMixingQA/hMixedEventSubJetWindowNeighbours"), nNeighbours); });
       }
       const int64_t nPairsSubJet = pairWithinWindows(subJetPools, [&](size_t slot1, int64_t id1, size_t slot2, int64_t id2) {
-        reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, slot1, id1, slot2, id2);
-        reservoirInsert(subJetCandidateCount, mixedSubJetByCollision, slot2, id2, slot1, id1);
+        reservoirInsert(subJetByCollision, slot1, id1, slot2, id2);
+        reservoirInsert(subJetByCollision, slot2, id2, slot1, id1);
         if (doMixingQA)
           histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexEligible"), id2 - id1);
       });
@@ -2593,40 +2601,40 @@ struct lambdajetpolarizationionsderived {
 
       // Source-usage QA, over every stored entry (one per borrowing/resampling pass. An entry's target is entry / nResamples):
       if (doMixingQA) {
-        for (size_t entry = 0; entry < mixedLeadPByCollision.size(); ++entry) {
-          const int32_t sourceSlot = mixedLeadPByCollision[entry];
+        for (size_t entry = 0; entry < leadPByCollision.mixedSourcesVec.size(); ++entry) {
+          const int32_t sourceSlot = leadPByCollision.mixedSourcesVec[entry];
           if (sourceSlot < 0) continue;
           histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadPDeltaIndexSelected"), static_cast<int64_t>(entry / nResamples) - sourceSlot);
         }
-        for (size_t entry = 0; entry < mixedLeadJetByCollision.size(); ++entry) {
-          const int32_t sourceSlot = mixedLeadJetByCollision[entry];
+        for (size_t entry = 0; entry < leadJetByCollision.mixedSourcesVec.size(); ++entry) {
+          const int32_t sourceSlot = leadJetByCollision.mixedSourcesVec[entry];
           if (sourceSlot < 0) continue;
           histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventLeadJetDeltaIndexSelected"), static_cast<int64_t>(entry / nResamples) - sourceSlot);
         }
-        for (size_t entry = 0; entry < mixedSubJetByCollision.size(); ++entry) {
-          const int32_t sourceSlot = mixedSubJetByCollision[entry];
+        for (size_t entry = 0; entry < subJetByCollision.mixedSourcesVec.size(); ++entry) {
+          const int32_t sourceSlot = subJetByCollision.mixedSourcesVec[entry];
           if (sourceSlot < 0) continue;
           histos.fill(HIST("EventMixingQA/IndexQA/hMixedEventSubJetDeltaIndexSelected"), static_cast<int64_t>(entry / nResamples) - sourceSlot);
         }
 
         // One fill per source, at its own eta/phi (the slot reaches its cache directly, so no LUT re-scan is needed):
-        for (auto const& kv : tallySourceUsage(mixedLeadPByCollision)) {
-          auto const& source = leadPByCollision[kv.first];
+        for (auto const& kv : tallySourceUsage(leadPByCollision.mixedSourcesVec)) {
+          auto const& source = leadPByCollision.proxyKinematicsVec[kv.first];
           histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadPSourceUsageCount"), kv.second);
           histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsEta"), source.eta, kv.second);
           histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadPSourceUsageVsPhi"), source.phi, kv.second);
         }
-        for (auto const& kv : tallySourceUsage(mixedLeadJetByCollision)) {
-          auto const& source = jetProxyByCollision[kv.first];
+        for (auto const& kv : tallySourceUsage(leadJetByCollision.mixedSourcesVec)) {
+          auto const& source = leadJetByCollision.proxyKinematicsVec[kv.first];
           histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventLeadJetSourceUsageCount"), kv.second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsEta"), source.leadingJetEta, kv.second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsPhi"), source.leadingJetPhi, kv.second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsEta"), source.eta, kv.second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventLeadJetSourceUsageVsPhi"), source.phi, kv.second);
         }
-        for (auto const& kv : tallySourceUsage(mixedSubJetByCollision)) {
-          auto const& source = jetProxyByCollision[kv.first];
+        for (auto const& kv : tallySourceUsage(subJetByCollision.mixedSourcesVec)) {
+          auto const& source = subJetByCollision.proxyKinematicsVec[kv.first];
           histos.fill(HIST("EventMixingQA/SourceUsage/hMixedEventSubJetSourceUsageCount"), kv.second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsEta"), source.subleadingJetEta, kv.second);
-          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsPhi"), source.subleadingJetPhi, kv.second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsEta"), source.eta, kv.second);
+          histos.fill(HIST("EventMixingQA/SourceUsage/pMixedEventSubJetSourceUsageVsPhi"), source.phi, kv.second);
         }
       }
       LOG(info) << "LUT build: " << std::chrono::duration<double>(std::chrono::steady_clock::now() - tLutStart).count() << " s for " << collisions.size() << " collisions";
@@ -2640,6 +2648,7 @@ struct lambdajetpolarizationionsderived {
         const float collisionPVz = collision.zvtx();
 
         const auto collId = collision.globalIndex(); // The self-index accessor
+        const size_t collSlot = slotOf(collId);       // This collision's slot in the per-collision caches
         const float centrality = getCentrality(collision);
 
         // Used this dummy for backwards compatibility, under the reasonable assumption that the field points always in the same *direction* in the used runs
@@ -2672,102 +2681,89 @@ struct lambdajetpolarizationionsderived {
         // the converse is not true: events can have a leading particle with no jet
         // if no jet survives the pT threshold/the background subtraction)
         // (At least that is the case when minLeadParticlePt = 0)
-        float leadPPt = -1.; // pT = -1 means "table entry not found for this collision".
-        float leadPEta = 0.;
-        float leadPPhi = 0.;
+        ProxyKinematics leadP; // Initialized with the default guard values (see ProxyKinematics)
         float leadPPx = 0., leadPPy = 0., leadPPz = 0.;
         for (auto const& lp : leadPsInColl) {
           // Table should contain exactly one entry per collision, but we break immediately to be safe:
-          leadPPt = lp.leadParticlePt();
-          leadPEta = lp.leadParticleEta();
-          leadPPhi = lp.leadParticlePhi();
+          leadP.pt = lp.leadParticlePt();
+          leadP.eta = lp.leadParticleEta();
+          leadP.phi = lp.leadParticlePhi();
           // Using dynamic columns to make code cleaner:
           leadPPx = lp.leadParticlePx();
           leadPPy = lp.leadParticlePy();
           leadPPz = lp.leadParticlePz();
         }
-        // // Discard events with no leading particle (FastJet didn't even run in these cases!):
-        // if (leadPPt < 0.)
-        //   continue;
-
         // Apply minimum pT selection for the leading particle (not necessarily the same as in derived data builder. Can be a stricter cut!):
-        bool hasValidLeadingP = leadPPt > minLeadParticlePt;
+        leadP.isValid = leadP.pt > minLeadParticlePt;
 
         // Snapshot this collision's own leading particle before any distortion can overwrite it,
         // so forcePreviousJet can hand it to the next collision:
-        const bool beforeDistHasValidLeadP = hasValidLeadingP;
-        const float beforeDistLeadPPt = leadPPt;
-        const float beforeDistLeadPEta = leadPEta;
-        const float beforeDistLeadPPhi = leadPPhi;
+        const ProxyKinematics beforeDistLeadP = leadP;
 
         // Build leading particle unit vector, outside the V0 loop for performance.
-        XYZVector leadPUnitVec(1., 0., 0.); // dummy (overwritten below when hasValidLeadingP)
+        XYZVector leadPUnitVec(1., 0., 0.); // dummy (overwritten below when leadP.isValid)
         float leadPZ = 0.;                  // \hat t_z of the leading-particle proxy (see axisLeadPZ)
-        if (hasValidLeadingP) {
+        if (leadP.isValid) {
           leadPUnitVec = XYZVector(leadPPx, leadPPy, leadPPz).Unit();
           leadPZ = leadPUnitVec.Z();
 
           // doMixedEventProxies: get this collision's mixing partner (if any) from the LUT built above:
-          // (this check is performed only if hasValidLeadingP is true for performance, as the LeadPPt matching for the event mixing would also demand a minimum jet pT)
+          // (this check is performed only if leadP.isValid is true for performance, as the LeadPPt matching for the event mixing would also demand a minimum jet pT)
           // (it is also a physics selection: we want to mix the correlations in events that could actually have a ring formed)
           if (fakePolSwitches.doMixedEventProxies) {
-            const MixedProxyInfo mixLeadP = borrowedLeadP(slotOf(collId), idxResampling); // Fetching information for this collId's event mixing source
-            proxyCache.hadLeadP = (mixLeadP.sourceCollisionId >= 0); // Empty entry: no valid mixing target, or fewer distinct sources than resampling passes
+            const MixedProxyInfo mixLeadP = rebuildBorrowedProxyFromCache(leadPByCollision, mixingAxesByCollision, collisionIndexBase, collSlot, idxResampling); // Fetching information for this collId's event mixing source
+            proxyCache.leadP = mixLeadP.proxy; // Empty entry (isValid = false): no valid mixing target, or fewer distinct sources than resampling passes
 
-            // Declaring bools before the hadLeadP checks as they will be used inside the doMixingQA block too:
+            // Declaring bools before the proxyCache.leadP.isValid checks as they will be used inside the doMixingQA block too:
             bool samePtProxyLeadP = false;
             bool sameEtaProxyLeadP = false;
             bool samePhiProxyLeadP = false;
-            if (proxyCache.hadLeadP) {
-              proxyCache.leadPPt = mixLeadP.pt;
-              proxyCache.leadPEta = mixLeadP.eta;
-              proxyCache.leadPPhi = mixLeadP.phi;
-
+            if (proxyCache.leadP.isValid) {
               // bit-by-bit checks of correspondence (asked for no-lint on these "paranoid" checks):
               // (inexpensive enough that we can check this at production time)
-              samePtProxyLeadP = (mixLeadP.pt == leadPPt);    // NOLINT(clang-diagnostic-float-equal)
-              sameEtaProxyLeadP = (mixLeadP.eta == leadPEta); // NOLINT(clang-diagnostic-float-equal)
-              samePhiProxyLeadP = (mixLeadP.phi == leadPPhi); // NOLINT(clang-diagnostic-float-equal)
+              samePtProxyLeadP = (mixLeadP.proxy.pt == leadP.pt);    // NOLINT(clang-diagnostic-float-equal)
+              sameEtaProxyLeadP = (mixLeadP.proxy.eta == leadP.eta); // NOLINT(clang-diagnostic-float-equal)
+              samePhiProxyLeadP = (mixLeadP.proxy.phi == leadP.phi); // NOLINT(clang-diagnostic-float-equal)
               if (samePtProxyLeadP && sameEtaProxyLeadP && samePhiProxyLeadP) { // Astronomically small chance, even with the birthday paradox
                 LOG(fatal) << "EventMixing: borrowed leadP is bit-identical to the target's own in pt, eta and phi. Target collision "
-                           << collId << ", source " << mixLeadP.sourceCollisionId << ", pt " << leadPPt;
+                           << collId << ", source " << mixLeadP.sourceCollisionId << ", pt " << leadP.pt;
               }
             }
 
             if (doMixingQA) {
               // Filled hit or miss, so the zero bin is the miss rate seen from the pool's side (once per collision, not per resampling pass):
               if (idxResampling == 0) {
-                const int nCandidates = leadPCandidateCount[slotOf(collId)]; // Zero-initialised, so no existence check needed
+                const int nCandidates = leadPByCollision.candidateCountVec[collSlot]; // Zero-initialised, so no existence check needed
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPCandidates"), nCandidates);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadPCandidatesVsPt"), nCandidates, leadPPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadPCandidatesVsPt"), nCandidates, leadP.pt);
                 if (doResamplingPassQA)
-                  histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPDistinctSources"), distinctSourcesOf(leadPCandidateCount, slotOf(collId)));
+                  histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPDistinctSources"), distinctSourcesOf(leadPByCollision, collSlot));
               }
 
-              if (proxyCache.hadLeadP) {
+              if (proxyCache.leadP.isValid) {
                 // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 1);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetZVtx"), 1, collisionPVz);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetCentrality"), 1, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt"), 1, leadPPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt"), 1, leadP.pt);
 
-                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta"), proxyCache.leadPEta, leadPEta);
-                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPPhiVsLeadPPhi"), proxyCache.leadPPhi, leadPPhi);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPt"), proxyCache.leadPPt - leadPPt);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPEtaVsLeadPEta"), proxyCache.leadP.eta, leadP.eta);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadPPhiVsLeadPPhi"), proxyCache.leadP.phi, leadP.phi);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPt"), proxyCache.leadP.pt - leadP.pt);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaZvtx"), mixLeadP.zvtx - collisionPVz);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaCent"), mixLeadP.centrality - centrality);
 
                 // QAing the binning policy itself to verify if any wrong proxies are being borrowed:
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaPtVsTargetPt"), proxyCache.leadPPt - leadPPt, leadPPt);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaPtVsTargetPt"), proxyCache.leadP.pt - leadP.pt, leadP.pt);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaZvtxVsTargetZvtx"), mixLeadP.zvtx - collisionPVz, collisionPVz);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/h2dMixedEventLeadPDeltaCentVsTargetCent"), mixLeadP.centrality - centrality, centrality);
 
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaEta"), proxyCache.leadPEta - leadPEta);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi"), wrapToPiFast(proxyCache.leadPPhi - leadPPhi));
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaEta"), proxyCache.leadP.eta - leadP.eta);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadPDeltaPhi"), wrapToPiFast(proxyCache.leadP.phi - leadP.phi));
 
                 // 2D Index Vs Delta Mixed-Variable QAs:
                 const float deltaIndexLeadP = static_cast<float>(collId - mixLeadP.sourceCollisionId);
-                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaPtVsDeltaIndex"), deltaIndexLeadP, mixLeadP.pt - leadPPt);
+                histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaPtVsDeltaIndex"), deltaIndexLeadP, mixLeadP.proxy.pt - leadP.pt);
                 histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaZvtxVsDeltaIndex"), deltaIndexLeadP, mixLeadP.zvtx - collisionPVz);
                 histos.fill(HIST("EventMixingQA/IndexQA/h2dMixedEventLeadPDeltaCentVsDeltaIndex"), deltaIndexLeadP, mixLeadP.centrality - centrality);
 
@@ -2789,253 +2785,209 @@ struct lambdajetpolarizationionsderived {
                   histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPIdentityFlags"), 3);
 
                 // Possible shared-track case in event splitting, done in a log scale:
-                const float angularSepLeadP = std::hypot(mixLeadP.eta - leadPEta, wrapToPiFast(mixLeadP.phi - leadPPhi));
+                const float angularSepLeadP = std::hypot(mixLeadP.proxy.eta - leadP.eta, wrapToPiFast(mixLeadP.proxy.phi - leadP.phi));
                 histos.fill(HIST("EventMixingQA/IdentityChecks/hMixedEventLeadPLogAngularSep"), angularSepLeadP > 0.f ? std::log10(angularSepLeadP) : -7.f);
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadPOutcome"), 0);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetZVtx"), 0, collisionPVz);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetCentrality"), 0, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt"), 0, leadPPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadPOutcomeVsTargetProxyPt"), 0, leadP.pt);
               }
             }
           }
 
           // Apply distortion logic:
-          // (modifies (leadPPt, leadPEta, leadPPhi, leadPUnitVec) as if the modified proxy was the actual proxy of this event)
-          applyProxyDistortion({hasValidLeadingP, leadPPt, leadPEta, leadPPhi, leadPUnitVec},
-                               minLeadParticlePt, fakePolSwitches.maxLeadPProxyEta, {proxyCache.hadLeadP, proxyCache.leadPPt, proxyCache.leadPEta, proxyCache.leadPPhi},
-                               etaLeadPDist, phiLeadPDist);
+          // (modifies (leadP, leadPUnitVec) as if the modified proxy was the actual proxy of this event)
+          applyProxyDistortion(leadP, leadPUnitVec, minLeadParticlePt, fakePolSwitches.maxLeadPProxyEta, proxyCache.leadP, etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms (i.e., the actually used proxy).
           // A borrowed-proxy miss and a failed pT gate will skip the fill.
-          if (hasValidLeadingP) {
-            histos.fill(HIST("KinematicsQA/Jet/hLeadPEta"), leadPEta);
-            histos.fill(HIST("KinematicsQA/Jet/hLeadPPhi"), leadPPhi);
-            histos.fill(HIST("KinematicsQA/Jet/hJetCounterPtLeadP"), leadPPt);
+          if (leadP.isValid) {
+            histos.fill(HIST("KinematicsQA/Jet/hLeadPEta"), leadP.eta);
+            histos.fill(HIST("KinematicsQA/Jet/hLeadPPhi"), leadP.phi);
+            histos.fill(HIST("KinematicsQA/Jet/hJetCounterPtLeadP"), leadP.pt);
 
-            histos.fill(HIST("KinematicsQA/Jet/h2dLeadPEtaVsPhi"), leadPEta, leadPPhi);
-            histos.fill(HIST("KinematicsQA/Jet/h2dLeadPEtaVsPVz"), leadPEta, collisionPVz);
-            // if (doJetProxy5dQA)
-            //   histos.fill(HIST("KinematicsQA/Jet/h5dLeadPEtaPhiPtPVzCent"), leadPEta, leadPPhi, leadPPt, collisionPVz, centrality);
+            histos.fill(HIST("KinematicsQA/Jet/h2dLeadPEtaVsPhi"), leadP.eta, leadP.phi);
+            histos.fill(HIST("KinematicsQA/Jet/h2dLeadPEtaVsPVz"), leadP.eta, collisionPVz);
           }
         }
 
-        // 3) Fetching leading jet and subleading jet -- Resolved once per collision in the jetProxyByCollision pre-pass:
-        const JetProxyCache& jetProxies = jetProxyByCollision[slotOf(collId)];
-        float leadingJetPt = jetProxies.leadingJetPt;
-        float subleadingJetPt = jetProxies.subleadingJetPt;
-
-        // Defining local bools that may be changed by applyProxyDistortion:
-        bool hasValidLeadingJet = jetProxies.hasValidLeadingJet;
-        bool hasValidSubJet = jetProxies.hasValidSubJet;
+        // 3) Fetching leading jet and subleading jet -- Resolved once per collision in the leadJetByCollision/subJetByCollision pre-pass:
+        // (Local copies, as applyProxyDistortion may change them for this collision only)
+        ProxyKinematics leadJet = leadJetByCollision.proxyKinematicsVec[collSlot];
+        ProxyKinematics subJet = subJetByCollision.proxyKinematicsVec[collSlot];
 
         // Build jet vectors (only when the corresponding jet exists):
-        // Dummy initialisations are safe: all jet-dependent fills are gated on hasValidLeadingJet / hasValidSubJet.
-        float leadingJetEta = 0.;
-        float leadingJetPhi = 0.;
+        // Dummy initialisations are safe: all jet-dependent fills are gated on leadJet.isValid / subJet.isValid.
         // Useful scalars for PrimeJet coordinates:
-        float jetZ = 0.;
+        float leadJetZ = 0.;
         float inverseJetTransverse = 0.;
-        XYZVector leadingJetUnitVec(1., 0., 0.); // dummy (overwritten below)
-        if (hasValidLeadingJet) {
-          leadingJetEta = jetProxies.leadingJetEta;
-          leadingJetPhi = jetProxies.leadingJetPhi;
+        XYZVector leadJetUnitVec(1., 0., 0.); // dummy (overwritten below)
+        if (leadJet.isValid) {
           // Rebuild the direction from the cached eta/phi (cheaper than calling jetPx() internal getters and then normalizing with .Unit()):
-          const double inverseCoshEta = 1.0 / std::cosh(leadingJetEta);
-          leadingJetUnitVec = XYZVector(std::cos(leadingJetPhi) * inverseCoshEta, std::sin(leadingJetPhi) * inverseCoshEta, std::tanh(leadingJetEta));
+          const double inverseCoshEta = 1.0 / std::cosh(leadJet.eta);
+          leadJetUnitVec = XYZVector(std::cos(leadJet.phi) * inverseCoshEta, std::sin(leadJet.phi) * inverseCoshEta, std::tanh(leadJet.eta));
 
           // Apply distortion logic:
           if (fakePolSwitches.doMixedEventProxies) {
             // Get this collision's leading-jet mixing partner (if any) from the LUT built above:
-            const MixedProxyInfo mixLeadJet = borrowedLeadJet(slotOf(collId), idxResampling);
-            proxyCache.hadLeadJet = (mixLeadJet.sourceCollisionId >= 0);
-            if (proxyCache.hadLeadJet) {
-              proxyCache.leadJetPt = mixLeadJet.pt;
-              proxyCache.leadJetEta = mixLeadJet.eta;
-              proxyCache.leadJetPhi = mixLeadJet.phi;
-
+            const MixedProxyInfo mixLeadJet = rebuildBorrowedProxyFromCache(leadJetByCollision, mixingAxesByCollision, collisionIndexBase, collSlot, idxResampling);
+            proxyCache.leadJet = mixLeadJet.proxy;
+            if (proxyCache.leadJet.isValid) {
               // bit-by-bit checks of correspondence:
-              const bool samePtProxyLeadJet = (mixLeadJet.pt == leadingJetPt);      // NOLINT(clang-diagnostic-float-equal)
-              const bool sameEtaProxyLeadJet = (mixLeadJet.eta == leadingJetEta);   // NOLINT(clang-diagnostic-float-equal)
-              const bool samePhiProxyLeadJet = (mixLeadJet.phi == leadingJetPhi);   // NOLINT(clang-diagnostic-float-equal)
+              const bool samePtProxyLeadJet = (mixLeadJet.proxy.pt == leadJet.pt);    // NOLINT(clang-diagnostic-float-equal)
+              const bool sameEtaProxyLeadJet = (mixLeadJet.proxy.eta == leadJet.eta); // NOLINT(clang-diagnostic-float-equal)
+              const bool samePhiProxyLeadJet = (mixLeadJet.proxy.phi == leadJet.phi); // NOLINT(clang-diagnostic-float-equal)
               if (samePtProxyLeadJet && sameEtaProxyLeadJet && samePhiProxyLeadJet) { // Astronomically small chance, even with the birthday paradox
                 LOG(fatal) << "EventMixing: borrowed LeadJet is bit-identical to the target's own in pt, eta and phi. Target collision "
-                           << collId << ", source " << mixLeadJet.sourceCollisionId << ", pt " << leadingJetPt;
+                           << collId << ", source " << mixLeadJet.sourceCollisionId << ", pt " << leadJet.pt;
               }
             }
 
             if (doMixingQA) {
               if (idxResampling == 0) {
-                const int nCandidates = leadJetCandidateCount[slotOf(collId)];
+                const int nCandidates = leadJetByCollision.candidateCountVec[collSlot];
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetCandidates"), nCandidates);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadJetCandidatesVsPt"), nCandidates, leadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedLeadJetCandidatesVsPt"), nCandidates, leadJet.pt);
                 if (doResamplingPassQA)
-                  histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetDistinctSources"), distinctSourcesOf(leadJetCandidateCount, slotOf(collId)));
+                  histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetDistinctSources"), distinctSourcesOf(leadJetByCollision, collSlot));
               }
 
-              if (proxyCache.hadLeadJet) {
+              if (proxyCache.leadJet.isValid) {
                 // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome"), 1);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetZVtx"), 1, collisionPVz);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetCentrality"), 1, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt"), 1, leadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt"), 1, leadJet.pt);
 
-                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta"), proxyCache.leadJetEta, leadingJetEta);
-                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetPhiVsLeadJetPhi"), proxyCache.leadJetPhi, leadingJetPhi);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPt"), proxyCache.leadJetPt - leadingJetPt);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetEtaVsLeadJetEta"), proxyCache.leadJet.eta, leadJet.eta);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedLeadJetPhiVsLeadJetPhi"), proxyCache.leadJet.phi, leadJet.phi);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPt"), proxyCache.leadJet.pt - leadJet.pt);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaZvtx"), mixLeadJet.zvtx - collisionPVz);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaCent"), mixLeadJet.centrality - centrality);
 
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaEta"), proxyCache.leadJetEta - leadingJetEta);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi"), wrapToPiFast(proxyCache.leadJetPhi - leadingJetPhi));
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaEta"), proxyCache.leadJet.eta - leadJet.eta);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventLeadJetDeltaPhi"), wrapToPiFast(proxyCache.leadJet.phi - leadJet.phi));
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventLeadJetOutcome"), 0);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetZVtx"), 0, collisionPVz);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetCentrality"), 0, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt"), 0, leadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventLeadJetOutcomeVsTargetProxyPt"), 0, leadJet.pt);
               }
             }
           }
-          applyProxyDistortion({hasValidLeadingJet, leadingJetPt, leadingJetEta, leadingJetPhi, leadingJetUnitVec},
-                               minLeadJetPt, fakePolSwitches.maxJetProxyEta, {proxyCache.hadLeadJet, proxyCache.leadJetPt, proxyCache.leadJetEta, proxyCache.leadJetPhi},
-                               etaLeadPDist, phiLeadPDist);
+          applyProxyDistortion(leadJet, leadJetUnitVec, minLeadJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.leadJet, etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
-          // Do not gate on the post-distortion hasValidLeadingJet (a pT cut) value here!
-          if (hasValidLeadingJet) {
-            histos.fill(HIST("KinematicsQA/Jet/hLeadJetEta"), leadingJetEta);
-            histos.fill(HIST("KinematicsQA/Jet/hLeadJetPhi"), leadingJetPhi);
-            histos.fill(HIST("KinematicsQA/Jet/hJetCounterPtJet"), leadingJetPt);
+          // Do not gate on the post-distortion leadJet.isValid (a pT cut) value here!
+          if (leadJet.isValid) {
+            histos.fill(HIST("KinematicsQA/Jet/hLeadJetEta"), leadJet.eta);
+            histos.fill(HIST("KinematicsQA/Jet/hLeadJetPhi"), leadJet.phi);
+            histos.fill(HIST("KinematicsQA/Jet/hJetCounterPtJet"), leadJet.pt);
 
-            histos.fill(HIST("KinematicsQA/Jet/h2dLeadJetEtaVsPhi"), leadingJetEta, leadingJetPhi);
-            histos.fill(HIST("KinematicsQA/Jet/h2dLeadJetEtaVsPVz"), leadingJetEta, collisionPVz);
-            // if (doJetProxy5dQA)
-            //   histos.fill(HIST("KinematicsQA/Jet/h5dLeadJetEtaPhiPtPVzCent"), leadingJetEta, leadingJetPhi, leadingJetPt, collisionPVz, centrality);
+            histos.fill(HIST("KinematicsQA/Jet/h2dLeadJetEtaVsPhi"), leadJet.eta, leadJet.phi);
+            histos.fill(HIST("KinematicsQA/Jet/h2dLeadJetEtaVsPVz"), leadJet.eta, collisionPVz);
 
             // PrimeJet coordinate system variables:
             // (Calculated once per collision, after applyProxyDistortion, using a Gram-Schmidt-like orthonormalisation)
             // \hat x_Jet = (\hat z - t_z \hat t)/t_T, \hat y_Jet = (\hat t \times \hat z)/t_T
-            jetZ = leadingJetUnitVec.Z(); // \hat z_Jet = \hat t
-            const float jetFrameTt = std::sqrt(1.0f - jetZ * jetZ); // t_T = sqrt(1 - t_z^2) = 1/cosh(eta_jet)
+            leadJetZ = leadJetUnitVec.Z(); // \hat z_Jet = \hat t
+            const float jetFrameTt = std::sqrt(1.0f - leadJetZ * leadJetZ); // t_T = sqrt(1 - t_z^2) = 1/cosh(eta_jet)
             inverseJetTransverse = (jetFrameTt > 1e-4f) ? (1.0f / jetFrameTt) : 0.0f; // Paranoid guard with the pseudorapidity cuts, but safer nonetheless
           }
         }
 
-        float subleadingJetEta = 0.;
-        float subleadingJetPhi = 0.;
         XYZVector subJetUnitVec(1., 0., 0.);
-        if (hasValidSubJet) {
-          subleadingJetEta = jetProxies.subleadingJetEta;
-          subleadingJetPhi = jetProxies.subleadingJetPhi;
-          const double inverseCoshEtaSub = 1.0 / std::cosh(subleadingJetEta);
-          subJetUnitVec = XYZVector(std::cos(subleadingJetPhi) * inverseCoshEtaSub, std::sin(subleadingJetPhi) * inverseCoshEtaSub, std::tanh(subleadingJetEta));
+        if (subJet.isValid) {
+          const double inverseCoshEtaSub = 1.0 / std::cosh(subJet.eta);
+          subJetUnitVec = XYZVector(std::cos(subJet.phi) * inverseCoshEtaSub, std::sin(subJet.phi) * inverseCoshEtaSub, std::tanh(subJet.eta));
 
           // Apply distortion logic:
           if (fakePolSwitches.doMixedEventProxies) {
             // Get this collision's subleading-jet mixing partner (if any) from the LUT built above:
-            const MixedProxyInfo mixSubJet = borrowedSubJet(slotOf(collId), idxResampling);
-            proxyCache.hadSubJet = (mixSubJet.sourceCollisionId >= 0);
-            if (proxyCache.hadSubJet) {
-              proxyCache.subJetPt = mixSubJet.pt;
-              proxyCache.subJetEta = mixSubJet.eta;
-              proxyCache.subJetPhi = mixSubJet.phi;
-
+            const MixedProxyInfo mixSubJet = rebuildBorrowedProxyFromCache(subJetByCollision, mixingAxesByCollision, collisionIndexBase, collSlot, idxResampling);
+            proxyCache.subJet = mixSubJet.proxy;
+            if (proxyCache.subJet.isValid) {
               // bit-by-bit checks of correspondence:
-              const bool samePtProxySubJet = (mixSubJet.pt == subleadingJetPt);      // NOLINT(clang-diagnostic-float-equal)
-              const bool sameEtaProxySubJet = (mixSubJet.eta == subleadingJetEta);   // NOLINT(clang-diagnostic-float-equal)
-              const bool samePhiProxySubJet = (mixSubJet.phi == subleadingJetPhi);   // NOLINT(clang-diagnostic-float-equal)
+              const bool samePtProxySubJet = (mixSubJet.proxy.pt == subJet.pt);    // NOLINT(clang-diagnostic-float-equal)
+              const bool sameEtaProxySubJet = (mixSubJet.proxy.eta == subJet.eta); // NOLINT(clang-diagnostic-float-equal)
+              const bool samePhiProxySubJet = (mixSubJet.proxy.phi == subJet.phi); // NOLINT(clang-diagnostic-float-equal)
               if (samePtProxySubJet && sameEtaProxySubJet && samePhiProxySubJet) { // Astronomically small chance, even with the birthday paradox
                 LOG(fatal) << "EventMixing: borrowed SubJet is bit-identical to the target's own in pt, eta and phi. Target collision "
-                           << collId << ", source " << mixSubJet.sourceCollisionId << ", pt " << subleadingJetPt;
+                           << collId << ", source " << mixSubJet.sourceCollisionId << ", pt " << subJet.pt;
               }
             }
 
             if (doMixingQA) {
               if (idxResampling == 0) {
-                const int nCandidates = subJetCandidateCount[slotOf(collId)];
+                const int nCandidates = subJetByCollision.candidateCountVec[collSlot];
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetCandidates"), nCandidates);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedSubJetCandidatesVsPt"), nCandidates, subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedSubJetCandidatesVsPt"), nCandidates, subJet.pt);
                 if (doResamplingPassQA)
-                  histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetDistinctSources"), distinctSourcesOf(subJetCandidateCount, slotOf(collId)));
+                  histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetDistinctSources"), distinctSourcesOf(subJetByCollision, collSlot));
               }
 
-              if (proxyCache.hadSubJet) {
+              if (proxyCache.subJet.isValid) {
                 // Only fill the comparison histograms on an actual hit (source vs. this collision's own):
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome"), 1);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetZVtx"), 1, collisionPVz);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetCentrality"), 1, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt"), 1, subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt"), 1, subJet.pt);
 
-                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetEtaVsSubJetEta"), proxyCache.subJetEta, subleadingJetEta);
-                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetPhiVsSubJetPhi"), proxyCache.subJetPhi, subleadingJetPhi);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPt"), proxyCache.subJetPt - subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetEtaVsSubJetEta"), proxyCache.subJet.eta, subJet.eta);
+                histos.fill(HIST("EventMixingQA/AnglrCorrltns/h2dMixedSubJetPhiVsSubJetPhi"), proxyCache.subJet.phi, subJet.phi);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPt"), proxyCache.subJet.pt - subJet.pt);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaZvtx"), mixSubJet.zvtx - collisionPVz);
                 histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaCent"), mixSubJet.centrality - centrality);
 
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaEta"), proxyCache.subJetEta - subleadingJetEta);
-                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi"), wrapToPiFast(proxyCache.subJetPhi - subleadingJetPhi));
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaEta"), proxyCache.subJet.eta - subJet.eta);
+                histos.fill(HIST("EventMixingQA/SourceTargetDeltas/hMixedEventSubJetDeltaPhi"), wrapToPiFast(proxyCache.subJet.phi - subJet.phi));
               } else {
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/hMixedEventSubJetOutcome"), 0);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetZVtx"), 0, collisionPVz);
                 histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetCentrality"), 0, centrality);
-                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt"), 0, subleadingJetPt);
+                histos.fill(HIST("EventMixingQA/CollLoopOutcome/h2dMixedEventSubJetOutcomeVsTargetProxyPt"), 0, subJet.pt);
               }
             }
           }
-          applyProxyDistortion({hasValidSubJet, subleadingJetPt, subleadingJetEta, subleadingJetPhi, subJetUnitVec},
-                               minSubLeadJetPt, fakePolSwitches.maxJetProxyEta, {proxyCache.hadSubJet, proxyCache.subJetPt, proxyCache.subJetEta, proxyCache.subJetPhi},
-                               etaLeadPDist, phiLeadPDist);
+          applyProxyDistortion(subJet, subJetUnitVec, minSubLeadJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.subJet, etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
-          // Do not gate on the post-distortion hasValidSubJet (a pT cut) value here!
-          if (hasValidSubJet) {
-            histos.fill(HIST("KinematicsQA/Jet/hSubLeadJetEta"), subleadingJetEta);
-            histos.fill(HIST("KinematicsQA/Jet/hSubLeadJetPhi"), subleadingJetPhi);
-            histos.fill(HIST("KinematicsQA/Jet/hJetCounterPt2ndJet"), subleadingJetPt);
+          // Do not gate on the post-distortion subJet.isValid (a pT cut) value here!
+          if (subJet.isValid) {
+            histos.fill(HIST("KinematicsQA/Jet/hSubLeadJetEta"), subJet.eta);
+            histos.fill(HIST("KinematicsQA/Jet/hSubLeadJetPhi"), subJet.phi);
+            histos.fill(HIST("KinematicsQA/Jet/hJetCounterPt2ndJet"), subJet.pt);
 
-            histos.fill(HIST("KinematicsQA/Jet/h2dSubLeadJetEtaVsPhi"), subleadingJetEta, subleadingJetPhi);
-            histos.fill(HIST("KinematicsQA/Jet/h2dSubLeadJetEtaVsPVz"), subleadingJetEta, collisionPVz);
-            // if (doJetProxy5dQA)
-            //   histos.fill(HIST("KinematicsQA/Jet/h5dSubLeadJetEtaPhiPtPVzCent"), subleadingJetEta, subleadingJetPhi, subleadingJetPt, collisionPVz, centrality);
+            histos.fill(HIST("KinematicsQA/Jet/h2dSubLeadJetEtaVsPhi"), subJet.eta, subJet.phi);
+            histos.fill(HIST("KinematicsQA/Jet/h2dSubLeadJetEtaVsPVz"), subJet.eta, collisionPVz);
           }
         }
 
         // forcePreviousJet: hand this collision's own proxies to the next collision.
         if (fakePolSwitches.forcePreviousJet) {
-          prevJetCache = ProxyCacheSlots{jetProxies.hasValidLeadingJet, jetProxies.leadingJetPt, jetProxies.leadingJetEta, jetProxies.leadingJetPhi,
-                                         jetProxies.hasValidSubJet, jetProxies.subleadingJetPt, jetProxies.subleadingJetEta, jetProxies.subleadingJetPhi,
-                                         beforeDistHasValidLeadP, beforeDistLeadPPt, beforeDistLeadPEta, beforeDistLeadPPhi};
+          prevJetCache = SetOfProxies{beforeDistLeadP, leadJetByCollision.proxyKinematicsVec[collSlot], subJetByCollision.proxyKinematicsVec[collSlot]};
         }
 
         // (jet eta cuts only meaningful when the jet actually exists)
-        const bool kinematicJetCheck = hasValidLeadingJet && (std::abs(leadingJetEta) < 0.5);
-        const bool kinematic2ndJetCheck = hasValidSubJet && (std::abs(subleadingJetEta) < 0.5);
-        const bool kinematicLeadPCheck = hasValidLeadingP && (std::abs(leadPEta) < 0.5);
+        const bool kinematicLeadJetCheck = leadJet.isValid && (std::abs(leadJet.eta) < 0.5);
+        const bool kinematicSubJetCheck = subJet.isValid && (std::abs(subJet.eta) < 0.5);
+        const bool kinematicLeadPCheck = leadP.isValid && (std::abs(leadP.eta) < 0.5);
 
         // Quick bools that are useful for detector asymmetry QA:
-        const bool jetEtaPos = hasValidLeadingJet && (leadingJetEta >= 0.); // Only perform >= check if has validJet
-        const bool subJetEtaPos = hasValidSubJet && (subleadingJetEta >= 0.);
-        const bool leadPEtaPos = hasValidLeadingP && (leadPEta >= 0.);
+        const bool leadJetEtaPos = leadJet.isValid && (leadJet.eta >= 0.); // Only perform >= check if has validJet
+        const bool subJetEtaPos = subJet.isValid && (subJet.eta >= 0.);
+        const bool leadPEtaPos = leadP.isValid && (leadP.eta >= 0.);
 
         // Stricter QA version of the bools -- Jets have a radius that makes it possible eta_{jet} > 0, yet half its tracks are in eta < 0
         // (This does not apply to leading particles, obviously. They have no substructure in eta)
-        const bool jetEtaStrict = hasValidLeadingJet && (std::abs(leadingJetEta) >= jetR);
-        const bool subJetEtaStrict = hasValidSubJet && (std::abs(subleadingJetEta) >= jetR);
+        const bool leadJetEtaStrict = leadJet.isValid && (std::abs(leadJet.eta) >= jetR);
+        const bool subJetEtaStrict = subJet.isValid && (std::abs(subJet.eta) >= jetR);
         // If one was to define bools for each side of the detector (not needed in the current if-else structure on TProfile fills)
-        // const bool jetEtaStrictPos = jetEtaPos && jetEtaStrict;
-        // const bool jetEtaStrictNeg = !jetEtaPos && jetEtaStrict;
+        // const bool leadJetEtaStrictPos = leadJetEtaPos && leadJetEtaStrict;
+        // const bool leadJetEtaStrictNeg = !leadJetEtaPos && leadJetEtaStrict;
         // const bool subJetEtaStrictPos = subJetEtaPos && subJetEtaStrict;
         // const bool subJetEtaStrictNeg = !subJetEtaPos && subJetEtaStrict;
-
-        // Fetching number of Lambda-like V0s in collision (must be known before full loop, to fill "pRingVsNV0s"):
-        // int nLambdaLikeV0s = 0;
-        // for (auto const& v0 : v0sInColl) {
-        //   if (v0.isLambda() ^ v0.isAntiLambda()){ // XOR (only the non-ambiguous candidates)
-        //     nLambdaLikeV0s++;
-        //   }
-        // }
-        // Code above was superseeded: new datamodel does not store ambiguous candidates!
-        // The new getter comes at the very start of processPolarizationData() now.
 
         // Initialize delta method accumulators (reset for new collision):
         for (auto const& tracker : {&trackRing, &trackRingKinCuts, &trackJetKinCuts, &trackJetLambdaKinCuts})
@@ -3096,9 +3048,9 @@ struct lambdajetpolarizationionsderived {
           histos.fill(HIST("KinematicsQA/V0/hV0Eta"), v0eta);
           histos.fill(HIST("KinematicsQA/V0/hV0Pt"), v0pt);
           histos.fill(HIST("KinematicsQA/V0/h2dV0PhiVsEta"), v0phi, v0eta);
-          if (hasValidLeadingJet) { // Using post-distortion/mixing variables for the jets
-            histos.fill(HIST("KinematicsQA/V0/h2dV0PhiVsJetPhi"), v0phi, leadingJetPhi);
-            histos.fill(HIST("KinematicsQA/V0/h2dV0EtaVsJetEta"), v0eta, leadingJetEta);
+          if (leadJet.isValid) { // Using post-distortion/mixing variables for the jets
+            histos.fill(HIST("KinematicsQA/V0/h2dV0PhiVsJetPhi"), v0phi, leadJet.phi);
+            histos.fill(HIST("KinematicsQA/V0/h2dV0EtaVsJetEta"), v0eta, leadJet.eta);
           }
           // Proton-like daughter:
           histos.fill(HIST("KinematicsQA/V0dau/hPrPhi"), protonLikePhi);
@@ -3163,18 +3115,12 @@ struct lambdajetpolarizationionsderived {
           // Rewriting the proton star angle in a [0,2PI) interval (axis conventions), as ROOT::Math::Cartesian3D defines it in (-PI,PI]:
           const float protonLikeStarPhiWrap = RecoDecay::constrainAngle(protonLikeStarUnit3Vec.Phi(), 0.f);
 
-          // Calculating the phi* angle:
-          // e_z = p_Lambda_hat; // e_x = normalize(z_hat cross p_Lambda); // e_y = e_z cross e_x;
-          // // phi_star = atan2(p_p_star dot e_y, p_p_star dot e_x);
-          // XYZVector e_x(-lambdaLikeUnit3Vec.Y(), lambdaLikeUnit3Vec.X(), 0.); // Same as e_x = zHat.Cross(lambdaLikeUnit3Vec);
-          // XYZVector e_y = lambdaLikeUnit3Vec.Cross(e_x); // e_y completes the right-handed coordinate system (e_z is lambdaLikeUnit3Vec)
-          // float pX = protonLikeStarUnit3Vec.Dot(e_x);
-          // float pY = protonLikeStarUnit3Vec.Dot(e_y);
-          // float phiStar = std::atan2(pY, pX);
-          // Faster implementation:
-          // pX = p_y * L_x - p_x * L_y
+          // phi*: azimuth of the proton* around the Lambda direction, measured from z_hat x p_Lambda_hat.
+          // With e_z = p_Lambda_hat, e_x = z_hat x p_Lambda_hat and e_y = e_z x e_x = z_hat - L_z * p_Lambda_hat:
+          //   pX = p_D_hat^* \cdot e_x = p_D,y^* * L_x - p_D,x^* * L_y
+          //   pY = p_D_hat^* \cdot e_y = p_D,z^* - L_z * (p_D_hat^* \cdot p_Lambda_hat)
+          // e_x and e_y are left unnormalized on purpose, because atan2 would not see their sin(theta_Lambda) norm (saves up a normalization)
           float pX = protonLikeStarUnit3Vec.Y() * lambdaLikeUnit3Vec.X() - protonLikeStarUnit3Vec.X() * lambdaLikeUnit3Vec.Y();
-          // pY = p_z - L_z * (p_proton_star dot p_lambda_hat)
           float pY = protonLikeStarUnit3Vec.Z() - lambdaLikeUnit3Vec.Z() * cosFakePol; // (Reusing cosFakePol calculated earlier!)
           float phiStar = std::atan2(pY, pX);                                          // This will give an output from -PI to PI
 
@@ -3199,7 +3145,7 @@ struct lambdajetpolarizationionsderived {
           // AEE-frame's relevant polarization:
           const float protonStarPt = protonLikeStarUnit3Vec.Rho(); // TODO: check if this makes sense. Should it be the un-normalized version instead?
 
-          // Guarded inverse values for calculating rotations, similar to the jetZ guard below:
+          // Guarded inverse values for calculating rotations, similar to the leadJetZ guard below:
           const float invProtonStarPt = (protonStarPt > 1e-6f) ? (1.0f / protonStarPt) : 0.0f;
           const float invV0pt = (v0pt > 1e-6f) ? (1.0f / v0pt) : 0.0f;
 
@@ -3258,63 +3204,22 @@ struct lambdajetpolarizationionsderived {
           histos.fill(HIST("KinematicsQA/ProtonStar/h2dV0PhiVsPrStarPhi"), v0phi, protonLikeStarPhiWrap);
           histos.fill(HIST("KinematicsQA/ProtonStar/h2dV0EtaVsPrStarEta"), v0eta, protonLikeStarUnit3Vec.Eta());
 
-          ////////////////////////////////////////////
-          // Ring observable: Leading particle proxy
-          // Only computed when a valid leading particle exists (pT > minLeadParticlePt)
-          ////////////////////////////////////////////
-          float ringObservableLeadP = 0.;
-          float deltaPhiLeadP = 0.;
-          float deltaThetaLeadP = 0.;
-          float cosDeltaThetaLeadP = 0.;
-          // KappaEff moments (cross moment u v and projection weight w) and the longitudinal-ring diagnostics:
-          float kappaNumLeadP = 0.;
-          float kappaDenLeadP = 1.;
-          float ringPerpLeadP = 0.;
-          float chiLeadP = 0.;
-          float nzLeadP = 0.;
-          float helicityTermLeadP = 0.;
-          if (hasValidLeadingP) {
-            XYZVector crossLeadP = leadPUnitVec.Cross(lambdaLike3Vec);
-            const float invCrossNormLeadP = 1.f / crossLeadP.R(); // Caching the .R() result
-            const float ringFullUnitLeadP = protonLikeStarUnit3Vec.Dot(crossLeadP) * invCrossNormLeadP; // v: the unitless full ring
-            if (!longitudinalRingMode) {
-              ringObservableLeadP = ringFullUnitLeadP;
-            } else {
-              nzLeadP = crossLeadP.Z() * invCrossNormLeadP;
-              ringObservableLeadP = protonStarRingBeamComponent * nzLeadP;
-              kappaDenLeadP = nzLeadP * nzLeadP;
-              // Diagnostics only: the complement R - R_long, the helicity term R_z - R_z^T, and the bearing chi:
-              ringPerpLeadP = ringPrefactor * (ringFullUnitLeadP - ringObservableLeadP);
-              helicityTermLeadP = ringPrefactor * protonStarHelicityBeamComponent * nzLeadP;
-              chiLeadP = std::atan2(-crossLeadP.Z() * v0p, crossLeadP.Y() * v0px - crossLeadP.X() * v0py);
-            }
-            kappaNumLeadP = ringObservableLeadP * ringFullUnitLeadP; // u v (u^2 for the full ring)
-            // Adding the prefactor related to the CP-violating decay (decay constants have different signs)
-            ringObservableLeadP *= ringPrefactor;
-            // Angular variables
-            deltaPhiLeadP = wrapToPiFast(v0phi - leadPPhi); // Wrapped to [-PI, PI), for convenience
+          // Per-V0 inputs of the ring, shared by every proxy:
+          const V0RingInputs v0RingInputs{lambdaLike3Vec, lambdaLikeUnit3Vec, protonLikeStarUnit3Vec, v0phi, v0p, v0px, v0py,
+                                          ringPrefactor, protonStarRingBeamComponent, protonStarHelicityBeamComponent};
 
-            cosDeltaThetaLeadP = leadPUnitVec.Dot(lambdaLikeUnit3Vec); // Uses the pre-calculated unit vectors to avoid recomputation
-            deltaThetaLeadP = std::acos(cosDeltaThetaLeadP);           // 3D angular separation. Same as ROOT::Math::VectorUtil::Angle(leadPUnitVec, lambdaLike3Vec);
-          }
+          ////////////////////////////////////////////
+          // Ring observable: one computeProxyRing() call per proxy
+          // Only computed when the proxy is valid. A missing proxy keeps the ProxyRingCache defaults.
+          // (each proxy needs its own minimum pT, see the isValid flags)
+          ////////////////////////////////////////////
+          const ProxyRingCache ringLeadP = leadP.isValid ? computeProxyRing(leadPUnitVec, leadP.phi, v0RingInputs) : ProxyRingCache{};
+          const ProxyRingCache ringLeadJet = leadJet.isValid ? computeProxyRing(leadJetUnitVec, leadJet.phi, v0RingInputs) : ProxyRingCache{};
+          const ProxyRingCache ringSubJet = subJet.isValid ? computeProxyRing(subJetUnitVec, subJet.phi, v0RingInputs) : ProxyRingCache{};
 
-          //////////////////////////////////////////
-          // Ring observable: Leading jet proxy
-          // Only computed when a leading jet exists in this collision.
-          //////////////////////////////////////////
-          float ringObservable = 0.;
-          float deltaPhiJet = 0.;
-          float deltaEtaJet = 0.;
-          float deltaThetaJet = 0.;
-          float cosDeltaThetaJet = 0.;
-          float ringObservableOverJetZ = 0.;
-          // KappaEff moments and the longitudinal-ring diagnostics:
-          float kappaNumJet = 0.;
-          float kappaDenJet = 1.;
-          float ringPerpJet = 0.;
-          float chiJet = 0.;
-          float nzJet = 0.;
-          float helicityTermJet = 0.;
+          // Leading-jet-only companions of the ring:
+          float deltaEtaLeadJet = 0.;
+          float ringObservableOverLeadJetZ = 0.;
           // PrimeJet-frame components:
           float polStarXPrimeJet = 0.;
           float polStarYPrimeJet = 0.;
@@ -3322,149 +3227,78 @@ struct lambdajetpolarizationionsderived {
           float v0pxPrimeJet = 0.;
           float v0pyPrimeJet = 0.;
           float v0pzPrimeJet = 0.;
-          if (hasValidLeadingJet) {
-            XYZVector cross = leadingJetUnitVec.Cross(lambdaLike3Vec);
-            const float invCrossNorm = 1.f / cross.R();
-            const float ringFullUnitJet = protonLikeStarUnit3Vec.Dot(cross) * invCrossNorm; // v: the unitless full ring
-            if (!longitudinalRingMode) {
-              ringObservable = ringFullUnitJet;
-            } else {
-              nzJet = cross.Z() * invCrossNorm;
-              ringObservable = protonStarRingBeamComponent * nzJet;
-              kappaDenJet = nzJet * nzJet;
-              ringPerpJet = ringPrefactor * (ringFullUnitJet - ringObservable);
-              helicityTermJet = ringPrefactor * protonStarHelicityBeamComponent * nzJet;
-              chiJet = std::atan2(-cross.Z() * v0p, cross.Y() * v0px - cross.X() * v0py);
-            }
-            kappaNumJet = ringObservable * ringFullUnitJet; // u v (u^2 for the full ring)
-            // Adding prefactor
-            ringObservable *= ringPrefactor;
-            // Angular variables
-            deltaPhiJet = wrapToPiFast(v0phi - leadingJetPhi);
-            deltaEtaJet = v0eta - leadingJetEta;
-
-            cosDeltaThetaJet = leadingJetUnitVec.Dot(lambdaLikeUnit3Vec);
-            deltaThetaJet = std::acos(cosDeltaThetaJet);
+          if (leadJet.isValid) {
+            deltaEtaLeadJet = v0eta - leadJet.eta;
 
             // PrimeJet-frame components, using the per-collision basis scalars:
-            const float protonStarDotJet = protonLikeStarUnit3Vec.Dot(leadingJetUnitVec);
-            polStarZPrimeJet = polPrefactor * protonStarDotJet; // P_{z'Jet} = p* \cdot \hat t (polarization on jet direction)
-            polStarXPrimeJet = polPrefactor * (protonLikeStarUnit3Vec.Z() - jetZ * protonStarDotJet) * inverseJetTransverse; // P_{x'Jet} = (p*_z - t_z (p* \cdot \hat t)) / t_T
-            polStarYPrimeJet = polPrefactor * (protonLikeStarUnit3Vec.X() * leadingJetUnitVec.Y() - protonLikeStarUnit3Vec.Y() * leadingJetUnitVec.X()) * inverseJetTransverse; // P_{y'Jet} = (p*_x t_y - p*_y t_x) / t_T
+            const float protonStarDotLeadJet = protonLikeStarUnit3Vec.Dot(leadJetUnitVec);
+            polStarZPrimeJet = polPrefactor * protonStarDotLeadJet; // P_{z'Jet} = p* \cdot \hat t (polarization on jet direction)
+            polStarXPrimeJet = polPrefactor * (protonLikeStarUnit3Vec.Z() - leadJetZ * protonStarDotLeadJet) * inverseJetTransverse; // P_{x'Jet} = (p*_z - t_z (p* \cdot \hat t)) / t_T
+            polStarYPrimeJet = polPrefactor * (protonLikeStarUnit3Vec.X() * leadJetUnitVec.Y() - protonLikeStarUnit3Vec.Y() * leadJetUnitVec.X()) * inverseJetTransverse; // P_{y'Jet} = (p*_x t_y - p*_y t_x) / t_T
 
             // The same rotation is applied to the Lambda momentum to plot it in this new system:
-            v0pzPrimeJet = lambdaLike3Vec.Dot(leadingJetUnitVec);
-            v0pxPrimeJet = (v0pz - jetZ * v0pzPrimeJet) * inverseJetTransverse;
-            v0pyPrimeJet = (v0px * leadingJetUnitVec.Y() - v0py * leadingJetUnitVec.X()) * inverseJetTransverse;
+            v0pzPrimeJet = lambdaLike3Vec.Dot(leadJetUnitVec);
+            v0pxPrimeJet = (v0pz - leadJetZ * v0pzPrimeJet) * inverseJetTransverse;
+            v0pyPrimeJet = (v0px * leadJetUnitVec.Y() - v0py * leadJetUnitVec.X()) * inverseJetTransverse;
 
             // Testing an invariance -- <R>/\hat{t}_z -- Possible source of an artificial (trivial) sign flip in the observable:
-            if (std::abs(jetZ) > 1e-4)
-              ringObservableOverJetZ = ringObservable / jetZ;
+            if (std::abs(leadJetZ) > 1e-4)
+              ringObservableOverLeadJetZ = ringLeadJet.ringObservable / leadJetZ;
             else
-              ringObservableOverJetZ = 0.0; // A simple guard. May not be the best, but works
-
-            // // A second projection schema, where e_x = normalize(t_hat cross p_Lambda), using t_hat instead of z_hat (different from phi*):
-            // // (this decomposes in an orthogonal basis related to the jet coordinates)
-            // XYZVector ez = lambdaLikeUnit3Vec;
-            // XYZVector ex = leadingJetUnitVec.Cross(lambdaLike3Vec);
-            // XYZVector ey = ez.Cross(ex);
-
-            // ringObservableExProjection = ringObservable;
-            // ringObservableEyProjection =
-            // // Assuming that energy can get inside the average in:
-            // // P_Lambda \cdot p_Lambda = E_Lambda/m_Lambda * P_Lambda^* \cdot p_Lambda = <E_Lambda/m_Lambda * p_D^*> * p_Lambda
-            // ringObservableEzProjection = cosFakePol * lambdaLike4Vec.E()/v0LambdaLikeMass;
-          }
-
-          //////////////////////////////////////////
-          // Ring observable: Subleading jet proxy
-          // Only computed when a subleading jet exists in this collision.
-          //////////////////////////////////////////
-          float ringObservable2ndJet = 0.;
-          float deltaPhi2ndJet = 0.;
-          float deltaTheta2ndJet = 0.;
-          float cosDeltaTheta2ndJet = 0.;
-          // KappaEff moments and the longitudinal-ring diagnostics:
-          float kappaNum2ndJet = 0.;
-          float kappaDen2ndJet = 1.;
-          float ringPerp2ndJet = 0.;
-          float chi2ndJet = 0.;
-          float nz2ndJet = 0.;
-          float helicityTerm2ndJet = 0.;
-          if (hasValidSubJet) {
-            XYZVector cross2ndJet = subJetUnitVec.Cross(lambdaLike3Vec);
-            const float invCrossNorm2ndJet = 1.f / cross2ndJet.R();
-            const float ringFullUnit2ndJet = protonLikeStarUnit3Vec.Dot(cross2ndJet) * invCrossNorm2ndJet; // v: the unitless full ring
-            if (!longitudinalRingMode) {
-              ringObservable2ndJet = ringFullUnit2ndJet;
-            } else {
-              nz2ndJet = cross2ndJet.Z() * invCrossNorm2ndJet;
-              ringObservable2ndJet = protonStarRingBeamComponent * nz2ndJet;
-              kappaDen2ndJet = nz2ndJet * nz2ndJet;
-              ringPerp2ndJet = ringPrefactor * (ringFullUnit2ndJet - ringObservable2ndJet);
-              helicityTerm2ndJet = ringPrefactor * protonStarHelicityBeamComponent * nz2ndJet;
-              chi2ndJet = std::atan2(-cross2ndJet.Z() * v0p, cross2ndJet.Y() * v0px - cross2ndJet.X() * v0py);
-            }
-            kappaNum2ndJet = ringObservable2ndJet * ringFullUnit2ndJet; // u v (u^2 for the full ring)
-            // Adding prefactor
-            ringObservable2ndJet *= ringPrefactor;
-            // Angular variables
-            deltaPhi2ndJet = wrapToPiFast(v0phi - subleadingJetPhi);
-            cosDeltaTheta2ndJet = subJetUnitVec.Dot(lambdaLikeUnit3Vec);
-            deltaTheta2ndJet = std::acos(cosDeltaTheta2ndJet);
+              ringObservableOverLeadJetZ = 0.0; // A simple guard. May not be the best, but works
           }
 
           float v0phiToFillHists = wrapToPiFast(v0phi); // A short wrap to reuse some predefined axes
 
-          // Longitudinal-ring diagnostics (ringObservable* already hold R_z or R_z^T here):
+          // Longitudinal-ring diagnostics (every proxy's ringObservable already holds R_z or R_z^T here):
           if (longitudinalRingMode) {
-            if (hasValidLeadingJet) {
-              histos.fill(HIST("RzDiagnostics/pHelicityTermIntegrated"), 0.5, helicityTermJet);
-              histos.fill(HIST("RzDiagnostics/pHelicityTermLeadJetVsEtaLambda"), v0eta, helicityTermJet);
-              histos.fill(HIST("RzDiagnostics/p2dHelicityTermLeadJetVsDeltaPhiVsMass"), deltaPhiJet, v0LambdaLikeMass, helicityTermJet);
-              histos.fill(HIST("RzDiagnostics/pNzLeadJetVsEtaLambda"), v0eta, nzJet);
-              histos.fill(HIST("RzDiagnostics/pNzSqLeadJetVsEtaLambda"), v0eta, nzJet * nzJet);
+            if (leadJet.isValid) {
+              histos.fill(HIST("RzDiagnostics/pHelicityTermIntegrated"), 0.5, ringLeadJet.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/pHelicityTermLeadJetVsEtaLambda"), v0eta, ringLeadJet.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/p2dHelicityTermLeadJetVsDeltaPhiVsMass"), ringLeadJet.deltaPhi, v0LambdaLikeMass, ringLeadJet.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/pNzLeadJetVsEtaLambda"), v0eta, ringLeadJet.nz);
+              histos.fill(HIST("RzDiagnostics/pNzSqLeadJetVsEtaLambda"), v0eta, ringLeadJet.nz * ringLeadJet.nz);
               if (v0eta > 0.f)
-                histos.fill(HIST("RzDiagnostics/p2dRingLeadJetVsDeltaPhiVsMassEtaPos"), deltaPhiJet, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("RzDiagnostics/p2dRingLeadJetVsDeltaPhiVsMassEtaPos"), ringLeadJet.deltaPhi, v0LambdaLikeMass, ringLeadJet.ringObservable);
               else
-                histos.fill(HIST("RzDiagnostics/p2dRingLeadJetVsDeltaPhiVsMassEtaNeg"), deltaPhiJet, v0LambdaLikeMass, ringObservable);
-              histos.fill(HIST("RzDiagnostics/pRingVsChiLeadJet"), chiJet, ringObservable);
-              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassLeadJet"), chiJet, v0LambdaLikeMass, ringObservable);
-              histos.fill(HIST("RzDiagnostics/p2dRingVsDeltaPhiVsDeltaEtaLeadJet"), deltaPhiJet, deltaEtaJet, ringObservable);
-              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 0.5, ringPerpJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsMass"), v0LambdaLikeMass, ringPerpJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsPhiAEE"), deltaPhiLambdaProtonStar, ringPerpJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsDeltaPhi"), deltaPhiJet, ringPerpJet);
+                histos.fill(HIST("RzDiagnostics/p2dRingLeadJetVsDeltaPhiVsMassEtaNeg"), ringLeadJet.deltaPhi, v0LambdaLikeMass, ringLeadJet.ringObservable);
+              histos.fill(HIST("RzDiagnostics/pRingVsChiLeadJet"), ringLeadJet.chi, ringLeadJet.ringObservable);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassLeadJet"), ringLeadJet.chi, v0LambdaLikeMass, ringLeadJet.ringObservable);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsDeltaPhiVsDeltaEtaLeadJet"), ringLeadJet.deltaPhi, deltaEtaLeadJet, ringLeadJet.ringObservable);
+              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 0.5, ringLeadJet.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsMass"), v0LambdaLikeMass, ringLeadJet.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsPhiAEE"), deltaPhiLambdaProtonStar, ringLeadJet.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadJetVsDeltaPhi"), ringLeadJet.deltaPhi, ringLeadJet.ringPerp);
               histos.fill(HIST("RzDiagnostics/pCosSqThetaStarZLeadJetVsMass"), v0LambdaLikeMass, protonLikeStarUnit3Vec.Z() * protonLikeStarUnit3Vec.Z());
             }
-            if (hasValidLeadingP) {
-              histos.fill(HIST("RzDiagnostics/pHelicityTermIntegrated"), 1.5, helicityTermLeadP);
-              histos.fill(HIST("RzDiagnostics/pHelicityTermLeadPVsEtaLambda"), v0eta, helicityTermLeadP);
-              histos.fill(HIST("RzDiagnostics/pNzLeadPVsEtaLambda"), v0eta, nzLeadP);
-              histos.fill(HIST("RzDiagnostics/pNzSqLeadPVsEtaLambda"), v0eta, nzLeadP * nzLeadP);
-              histos.fill(HIST("RzDiagnostics/pRingVsChiLeadP"), chiLeadP, ringObservableLeadP);
-              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassLeadP"), chiLeadP, v0LambdaLikeMass, ringObservableLeadP);
-              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 1.5, ringPerpLeadP);
-              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsMass"), v0LambdaLikeMass, ringPerpLeadP);
-              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsPhiAEE"), deltaPhiLambdaProtonStar, ringPerpLeadP);
-              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsDeltaPhi"), deltaPhiLeadP, ringPerpLeadP);
+            if (leadP.isValid) {
+              histos.fill(HIST("RzDiagnostics/pHelicityTermIntegrated"), 1.5, ringLeadP.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/pHelicityTermLeadPVsEtaLambda"), v0eta, ringLeadP.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/pNzLeadPVsEtaLambda"), v0eta, ringLeadP.nz);
+              histos.fill(HIST("RzDiagnostics/pNzSqLeadPVsEtaLambda"), v0eta, ringLeadP.nz * ringLeadP.nz);
+              histos.fill(HIST("RzDiagnostics/pRingVsChiLeadP"), ringLeadP.chi, ringLeadP.ringObservable);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassLeadP"), ringLeadP.chi, v0LambdaLikeMass, ringLeadP.ringObservable);
+              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 1.5, ringLeadP.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsMass"), v0LambdaLikeMass, ringLeadP.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsPhiAEE"), deltaPhiLambdaProtonStar, ringLeadP.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpLeadPVsDeltaPhi"), ringLeadP.deltaPhi, ringLeadP.ringPerp);
             }
-            if (hasValidSubJet) {
-              histos.fill(HIST("RzDiagnostics/pHelicityTermIntegrated"), 2.5, helicityTerm2ndJet);
-              histos.fill(HIST("RzDiagnostics/pHelicityTermSubJetVsEtaLambda"), v0eta, helicityTerm2ndJet);
-              histos.fill(HIST("RzDiagnostics/pNzSubJetVsEtaLambda"), v0eta, nz2ndJet);
-              histos.fill(HIST("RzDiagnostics/pNzSqSubJetVsEtaLambda"), v0eta, nz2ndJet * nz2ndJet);
-              histos.fill(HIST("RzDiagnostics/pRingVsChiSubJet"), chi2ndJet, ringObservable2ndJet);
-              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassSubJet"), chi2ndJet, v0LambdaLikeMass, ringObservable2ndJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 2.5, ringPerp2ndJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsMass"), v0LambdaLikeMass, ringPerp2ndJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsPhiAEE"), deltaPhiLambdaProtonStar, ringPerp2ndJet);
-              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsDeltaPhi"), deltaPhi2ndJet, ringPerp2ndJet);
+            if (subJet.isValid) {
+              histos.fill(HIST("RzDiagnostics/pHelicityTermIntegrated"), 2.5, ringSubJet.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/pHelicityTermSubJetVsEtaLambda"), v0eta, ringSubJet.helicityTerm);
+              histos.fill(HIST("RzDiagnostics/pNzSubJetVsEtaLambda"), v0eta, ringSubJet.nz);
+              histos.fill(HIST("RzDiagnostics/pNzSqSubJetVsEtaLambda"), v0eta, ringSubJet.nz * ringSubJet.nz);
+              histos.fill(HIST("RzDiagnostics/pRingVsChiSubJet"), ringSubJet.chi, ringSubJet.ringObservable);
+              histos.fill(HIST("RzDiagnostics/p2dRingVsChiVsMassSubJet"), ringSubJet.chi, v0LambdaLikeMass, ringSubJet.ringObservable);
+              histos.fill(HIST("RzDiagnostics/pRingPerpIntegrated"), 2.5, ringSubJet.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsMass"), v0LambdaLikeMass, ringSubJet.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsPhiAEE"), deltaPhiLambdaProtonStar, ringSubJet.ringPerp);
+              histos.fill(HIST("RzDiagnostics/pRingPerpSubJetVsDeltaPhi"), ringSubJet.deltaPhi, ringSubJet.ringPerp);
             }
           }
 
           // Fill ring histograms: (1D, lambda 2D correlations and jet 2D correlations):
-          if (hasValidLeadingP) {
+          if (leadP.isValid) {
             if (familySwitches.doFamilyRing) {
               RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "Ring") // Notice the usage of macros! If you change the variable names, this WILL break the code!
                                                                         // No, there should NOT be any ";" here! Read the macro definition for an explanation
@@ -3472,13 +3306,13 @@ struct lambdajetpolarizationionsderived {
               // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("Ring", leadPEtaPos, lambdaEtaPos);
             }
-            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 0, ringObservableLeadP); // First bin of comparison
+            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 0, ringLeadP.ringObservable); // First bin of comparison
             if (doResamplingPassQA)
-              histos.fill(HIST("IntegratedCuts/pRingLeadingPVsResamplingPass"), idxResampling, ringObservableLeadP);
+              histos.fill(HIST("IntegratedCuts/pRingLeadingPVsResamplingPass"), idxResampling, ringLeadP.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, 1, ringObservableLeadP); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, 1, ringLeadP.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, 0, ringObservableLeadP); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 0, 0, ringLeadP.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 0);
 
           }
@@ -3490,97 +3324,97 @@ struct lambdajetpolarizationionsderived {
           int binPt = 0; // Dummy declarations
           int binMass = 0;
           int binDTheta = 0;
-          if (hasValidLeadingJet) {
+          if (leadJet.isValid) {
             if (familySwitches.doFamilyRing) {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "Ring")
             }
-            histos.fill(HIST("IntegratedCuts/pRingCuts"), 0, ringObservable);
+            histos.fill(HIST("IntegratedCuts/pRingCuts"), 0, ringLeadJet.ringObservable);
             if (doResamplingPassQA)
-              histos.fill(HIST("IntegratedCuts/pRingVsResamplingPass"), idxResampling, ringObservable);
+              histos.fill(HIST("IntegratedCuts/pRingVsResamplingPass"), idxResampling, ringLeadJet.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, 1, ringObservable); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, 1, ringLeadJet.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, 0, ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 0, 0, ringLeadJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 0);
-            histos.fill(HIST("IntegratedCuts/pRingVsNV0s"), nLambdaLikeV0s, ringObservable);
+            histos.fill(HIST("IntegratedCuts/pRingVsNV0s"), nLambdaLikeV0s, ringLeadJet.ringObservable);
             histos.fill(HIST("hNV0sVsCentrality"), nLambdaLikeV0s, centrality);
 
             // Properly fetching values as they are needed:
             binPt = mAxisPt->FindBin(v0pt);
             binMass = mAxisMass->FindBin(v0LambdaLikeMass);
-            binDTheta = mAxisDTheta->FindBin(deltaThetaJet);
+            binDTheta = mAxisDTheta->FindBin(ringLeadJet.deltaTheta);
             if (familySwitches.doFamilyRing) {
-              trackRing.addV0(ringObservable, binPt, binMass, binDTheta);
+              trackRing.addV0(ringLeadJet.ringObservable, binPt, binMass, binDTheta);
             }
 
             if (qaSwitches.doFakePolDiagnosticsQA) {
               // Measuring the AEE differentially (azimuthal efficiency effect, which causes different V0 topologies to be enhanced/suppressed)
               // AEE and HEE correlation:
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsJet_CosThetaVsPhiStar"), cosFakePol, phiStar);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignal_CosThetaVsPhiStar"), cosFakePol, phiStar, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignal_CosThetaVsPhiStar"), cosFakePol, phiStar, ringLeadJet.ringObservable);
 
               // AEE and DCA between daughters correlation:
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsJet_PhiStarVsDCAdau"), phiStar, dcaDau);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAdau"), phiStar, dcaDau, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAdauVsEtaJet"), phiStar, dcaDau, leadingJetEta, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAdauVsEtaLambda"), phiStar, dcaDau, v0eta, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAdau"), phiStar, dcaDau, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAdauVsEtaJet"), phiStar, dcaDau, leadJet.eta, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAdauVsEtaLambda"), phiStar, dcaDau, v0eta, ringLeadJet.ringObservable);
 
               // DCA dau to PV correlation:
               // For proton-like daughter:
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsJet_PhiStarVsDCAProLike"), phiStar, protonLikeDCADauToPV);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAProLike"), phiStar, protonLikeDCADauToPV, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAProLikeVsEtaJet"), phiStar, protonLikeDCADauToPV, leadingJetEta, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAProLikeVsEtaLambda"), phiStar, protonLikeDCADauToPV, v0eta, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAProLike"), phiStar, protonLikeDCADauToPV, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAProLikeVsEtaJet"), phiStar, protonLikeDCADauToPV, leadJet.eta, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAProLikeVsEtaLambda"), phiStar, protonLikeDCADauToPV, v0eta, ringLeadJet.ringObservable);
               // For pion-like daughter:
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsJet_PhiStarVsDCAPiLike"), phiStar, pionLikeDCADauToPV);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAPiLike"), phiStar, pionLikeDCADauToPV, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAPiLikeVsEtaJet"), phiStar, pionLikeDCADauToPV, leadingJetEta, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAPiLikeVsEtaLambda"), phiStar, pionLikeDCADauToPV, v0eta, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAPiLike"), phiStar, pionLikeDCADauToPV, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAPiLikeVsEtaJet"), phiStar, pionLikeDCADauToPV, leadJet.eta, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pFakePolSignalJet_PhiStarVsDCAPiLikeVsEtaLambda"), phiStar, pionLikeDCADauToPV, v0eta, ringLeadJet.ringObservable);
 
-              histos.fill(HIST("HelicityEfficiencyQA/pRingVsJetZcomponent"), jetZ, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEta"), leadingJetEta, ringObservableOverJetZ);
-              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsCosThetaHEE"), cosFakePol, ringObservableOverJetZ);
-              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsPhiStar"), phiStar, ringObservableOverJetZ);
-              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEtaVsCosThetaHEE"), leadingJetEta, cosFakePol, ringObservableOverJetZ);
-              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEtaVsPhiStar"), leadingJetEta, phiStar, ringObservableOverJetZ);
+              histos.fill(HIST("HelicityEfficiencyQA/pRingVsJetZcomponent"), leadJetZ, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEta"), leadJet.eta, ringObservableOverLeadJetZ);
+              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsCosThetaHEE"), cosFakePol, ringObservableOverLeadJetZ);
+              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsPhiStar"), phiStar, ringObservableOverLeadJetZ);
+              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEtaVsCosThetaHEE"), leadJet.eta, cosFakePol, ringObservableOverLeadJetZ);
+              histos.fill(HIST("HelicityEfficiencyQA/pRingOverJetZcomponent_VsJetEtaVsPhiStar"), leadJet.eta, phiStar, ringObservableOverLeadJetZ);
 
               // HEE resolved in three mass slices, so a peak-only structure can be told apart from a flat artifact:
               const bool isAEEPhiPos = deltaPhiLambdaProtonStar >= 0;
               histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/h2dCountsAllV0sCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass);
-              histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
               if (isAEEPhiPos)
-                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
               else
-                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAllV0sCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
               if (isLambda) {
-                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 if (isAEEPhiPos)
-                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 else
-                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingLambdaCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsFullMass"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMass"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 if (isAEEPhiPos)
-                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassPosDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 else
-                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/CosThetaHEEByMass/p2dRingAntiLambdaCosThetaHEEVsMassNegDeltaPhiAEE"), cosFakePol, v0LambdaLikeMass, ringLeadJet.ringObservable);
               }
             } // end doFakePolDiagnosticsQA (leading-jet AEE/HEE)
           }
-          if (hasValidSubJet) {
+          if (subJet.isValid) {
             if (familySwitches.doFamilyRing) {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "Ring")
             }
-            histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 0, ringObservable2ndJet);
+            histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 0, ringSubJet.ringObservable);
             if (doResamplingPassQA)
-              histos.fill(HIST("IntegratedCuts/pRingSubLeadingJetVsResamplingPass"), idxResampling, ringObservable2ndJet);
+              histos.fill(HIST("IntegratedCuts/pRingSubLeadingJetVsResamplingPass"), idxResampling, ringSubJet.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, 1, ringObservable2ndJet); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, 1, ringSubJet.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, 0, ringObservable2ndJet); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 0, 0, ringSubJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 0);
           }
 
@@ -3588,20 +3422,20 @@ struct lambdajetpolarizationionsderived {
             // Filling eta dependence QAs of the result (both for V0 and jet proxy):
             // Defining shared binning which depend on the V0 only:
             const int etaLambdaBin = lambdaEtaPos ? 3 : 4;
-            if (hasValidLeadingJet) {
-              histos.fill(HIST("EtaStudy/pRingEtaCuts"), 0, ringObservable);
-              histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaLambdaBin, ringObservable);
+            if (leadJet.isValid) {
+              histos.fill(HIST("EtaStudy/pRingEtaCuts"), 0, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaLambdaBin, ringLeadJet.ringObservable);
 
               // Bin indices for this proxy:
               // Bin 0: all, 1/2: proxy #eta sign, 3/4: #Lambda #eta sign, 5-8: joint,
               // 9/10: |#eta_{proxy}| >= R, 11-14: strict joint.
-              const int etaProxyBin = jetEtaPos ? 1 : 2;
-              const int etaProxyLambdaBin = (jetEtaPos ? 5 : 7) + (lambdaEtaPos ? 0 : 1);
-              const int etaProxyStrictBin = jetEtaPos ? 9 : 10;
-              const int etaProxyStrictLambdaBin = (jetEtaPos ? 11 : 13) + (lambdaEtaPos ? 0 : 1);
+              const int etaProxyBin = leadJetEtaPos ? 1 : 2;
+              const int etaProxyLambdaBin = (leadJetEtaPos ? 5 : 7) + (lambdaEtaPos ? 0 : 1);
+              const int etaProxyStrictBin = leadJetEtaPos ? 9 : 10;
+              const int etaProxyStrictLambdaBin = (leadJetEtaPos ? 11 : 13) + (lambdaEtaPos ? 0 : 1);
 
-              histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyLambdaBin, ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyLambdaBin, ringLeadJet.ringObservable);
 
               // HEE study (helicity efficiency effect):
               histos.fill(HIST("EtaStudy/hFakePolCounts"), cosFakePol, 0);
@@ -3609,96 +3443,96 @@ struct lambdajetpolarizationionsderived {
               histos.fill(HIST("EtaStudy/hFakePolCounts"), cosFakePol, etaProxyBin);
               histos.fill(HIST("EtaStudy/hFakePolCounts"), cosFakePol, etaProxyLambdaBin);
               // Same for signal:
-              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, 0, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, etaLambdaBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, etaProxyBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, etaProxyLambdaBin, ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, 0, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, etaLambdaBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, etaProxyBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalVsCosTheta"), cosFakePol, etaProxyLambdaBin, ringLeadJet.ringObservable);
               // Counter and ring accumulators for AEE study:
               histos.fill(HIST("EtaStudy/hCountsVsPhiStar"), phiStar, 0);
               histos.fill(HIST("EtaStudy/hCountsVsPhiStar"), phiStar, etaLambdaBin);
               histos.fill(HIST("EtaStudy/hCountsVsPhiStar"), phiStar, etaProxyBin);
               histos.fill(HIST("EtaStudy/hCountsVsPhiStar"), phiStar, etaProxyLambdaBin);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, 0, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, etaLambdaBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, etaProxyBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, etaProxyLambdaBin, ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, 0, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, etaLambdaBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, etaProxyBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiStar"), phiStar, etaProxyLambdaBin, ringLeadJet.ringObservable);
 
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, 0, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaLambdaBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaProxyBin, ringObservable);
-              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaProxyLambdaBin, ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, 0, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaLambdaBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaProxyBin, ringLeadJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pFakePolSignalvsPhiLambdaMinusPhiProtonStar"), deltaPhiLambdaProtonStar, etaProxyLambdaBin, ringLeadJet.ringObservable);
 
               // Inclusive and split-by-species dependencies for signal extraction:
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadingJetEta, ringObservable);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadingJetEta, v0LambdaLikeMass, ringObservable);
-              if (jetEtaPos) {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadJet.eta, ringLeadJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadJet.eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
+              if (leadJetEtaPos) {
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringLeadJet.ringObservable);
                 // Background stabilization using etaLambda differentially:
                 if (deltaPhiLambdaProtonStar >= 0) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPos"), v0eta, v0LambdaLikeMass, ringObservable);
-                  if (deltaPhiJet >= 0)
-                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPosDeltaPhiJetPos"), v0eta, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPos"), v0eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                  if (ringLeadJet.deltaPhi >= 0)
+                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPosDeltaPhiJetPos"), v0eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
                   else
-                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPosDeltaPhiJetNeg"), v0eta, v0LambdaLikeMass, ringObservable);
+                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPosDeltaPhiJetNeg"), v0eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 }
                 // Background stabilization attempt with etaLambda sign only, PhiAEE differentially:
                 if (v0eta >= 0) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyPosPhiEtaLambdaPos"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                  if (deltaPhiJet >= 0)
-                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyPosPhiEtaLambdaPosDeltaPhiJetPos"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyPosPhiEtaLambdaPos"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                  if (ringLeadJet.deltaPhi >= 0)
+                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyPosPhiEtaLambdaPosDeltaPhiJetPos"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
                   else
-                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyPosPhiEtaLambdaPosDeltaPhiJetNeg"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                    histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyPosPhiEtaLambdaPosDeltaPhiJetNeg"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 }
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringLeadJet.ringObservable);
                 // Background stabilization using etaLambda differentially:
                 if (deltaPhiLambdaProtonStar >= 0)
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyNegPhiAEEPos"), v0eta, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyNegPhiAEEPos"), v0eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
                 // Background stabilization attempt with etaLambda sign only, PhiAEE differentially:
                 if (v0eta >= 0)
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyNegPhiEtaLambdaPos"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/BkgStabilizationAttempt/p2dRingObservablePhiLambdaPhiProtonStarVsMassEtaProxyNegPhiEtaLambdaPos"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
               }
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
               if (isLambda) {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadingJetEta, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadingJetEta, v0LambdaLikeMass, ringObservable);
-                if (jetEtaPos) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadJet.eta, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadJet.eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                if (leadJetEtaPos) {
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringLeadJet.ringObservable);
                 } else {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringLeadJet.ringObservable);
                 }
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadingJetEta, ringObservable);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadingJetEta, v0LambdaLikeMass, ringObservable);
-                if (jetEtaPos) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadJet.eta, ringLeadJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadJet.eta, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                if (leadJetEtaPos) {
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringLeadJet.ringObservable);
                 } else {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringLeadJet.ringObservable);
                 }
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadJetVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadJet.ringObservable);
               }
 
               // Extra correlations test:
-              histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJet"), cosFakePol, deltaThetaJet);
+              histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJet"), cosFakePol, ringLeadJet.deltaTheta);
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsCosThetaVsPtForJets"), cosFakePol, v0pt);
               // Split by proxy #eta sign:
-              if (jetEtaPos)
-                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJetPosEta"), cosFakePol, deltaThetaJet);
+              if (leadJetEtaPos)
+                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJetPosEta"), cosFakePol, ringLeadJet.deltaTheta);
               else
-                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJetNegEta"), cosFakePol, deltaThetaJet);
+                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaJetNegEta"), cosFakePol, ringLeadJet.deltaTheta);
 
               if (pTLambdaCheck) {
                 histos.fill(HIST("EtaStudy/hFakePolCountsLambdaPtCut"), cosFakePol, 0);
@@ -3712,87 +3546,87 @@ struct lambdajetpolarizationionsderived {
                   histos.fill(HIST("EtaStudy/hFakePolCountsLambdaPtYCuts"), cosFakePol, etaProxyLambdaBin);
                 }
               }
-              if (jetEtaStrict) { // |eta_{Jet}| >= R
-                histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyStrictBin, ringObservable);
-                histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyStrictLambdaBin, ringObservable);
+              if (leadJetEtaStrict) { // |eta_{Jet}| >= R
+                histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyStrictBin, ringLeadJet.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCuts"), etaProxyStrictLambdaBin, ringLeadJet.ringObservable);
               }
             }
-            if (hasValidSubJet) {
+            if (subJet.isValid) {
               // Same bin scheme as the leading jet above:
               const int etaProxyBin = subJetEtaPos ? 1 : 2;
               const int etaProxyLambdaBin = (subJetEtaPos ? 5 : 7) + (lambdaEtaPos ? 0 : 1);
               const int etaProxyStrictBin = subJetEtaPos ? 9 : 10;
               const int etaProxyStrictLambdaBin = (subJetEtaPos ? 11 : 13) + (lambdaEtaPos ? 0 : 1);
 
-              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), 0, ringObservable2ndJet);
-              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaLambdaBin, ringObservable2ndJet);
-              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyBin, ringObservable2ndJet);
-              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyLambdaBin, ringObservable2ndJet);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), 0, ringSubJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaLambdaBin, ringSubJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyBin, ringSubJet.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyLambdaBin, ringSubJet.ringObservable);
               if (subJetEtaStrict) { // |eta_{SubJet}| >= R
-                histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyStrictBin, ringObservable2ndJet);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyStrictLambdaBin, ringObservable2ndJet);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyStrictBin, ringSubJet.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsSubLeadingJet"), etaProxyStrictLambdaBin, ringSubJet.ringObservable);
               }
 
               // Inclusive and split-by-species dependencies for signal extraction (AEE):
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, subleadingJetEta, ringObservable2ndJet);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, subleadingJetEta, v0LambdaLikeMass, ringObservable2ndJet);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringSubJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, subJet.eta, ringSubJet.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, subJet.eta, v0LambdaLikeMass, ringSubJet.ringObservable);
               if (subJetEtaPos) {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringSubJet.ringObservable);
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringSubJet.ringObservable);
               }
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
               if (isLambda) {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, subleadingJetEta, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, subleadingJetEta, v0LambdaLikeMass, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, subJet.eta, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, subJet.eta, v0LambdaLikeMass, ringSubJet.ringObservable);
                 if (subJetEtaPos) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservable2ndJet);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringSubJet.ringObservable);
                 } else {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservable2ndJet);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringSubJet.ringObservable);
                 }
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, subleadingJetEta, ringObservable2ndJet);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, subleadingJetEta, v0LambdaLikeMass, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservable2ndJetVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, subJet.eta, ringSubJet.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, subJet.eta, v0LambdaLikeMass, ringSubJet.ringObservable);
                 if (subJetEtaPos) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservable2ndJet);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringSubJet.ringObservable);
                 } else {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservable2ndJet);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringSubJet.ringObservable);
                 }
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservable2ndJet);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservable2ndJetVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringSubJet.ringObservable);
               }
             }
-            if (hasValidLeadingP) {
+            if (leadP.isValid) {
               // Same bin scheme, without the strict variant (this axis stops at 9 bins):
               const int etaProxyBin = leadPEtaPos ? 1 : 2;
               const int etaProxyLambdaBin = (leadPEtaPos ? 5 : 7) + (lambdaEtaPos ? 0 : 1);
 
-              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), 0, ringObservableLeadP);
-              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), etaLambdaBin, ringObservableLeadP);
-              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), etaProxyBin, ringObservableLeadP);
-              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), etaProxyLambdaBin, ringObservableLeadP);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), 0, ringLeadP.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), etaLambdaBin, ringLeadP.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), etaProxyBin, ringLeadP.ringObservable);
+              histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP"), etaProxyLambdaBin, ringLeadP.ringObservable);
               if (v0InMassPeak) {
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), 0, 1, ringObservableLeadP);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaLambdaBin, 1, ringObservableLeadP);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyBin, 1, ringObservableLeadP);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyLambdaBin, 1, ringObservableLeadP);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), 0, 1, ringLeadP.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaLambdaBin, 1, ringLeadP.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyBin, 1, ringLeadP.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyLambdaBin, 1, ringLeadP.ringObservable);
               } else if (v0InMassWindow) {
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), 0, 0, ringObservableLeadP);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaLambdaBin, 0, ringObservableLeadP);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyBin, 0, ringObservableLeadP);
-                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyLambdaBin, 0, ringObservableLeadP);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), 0, 0, ringLeadP.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaLambdaBin, 0, ringLeadP.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyBin, 0, ringLeadP.ringObservable);
+                histos.fill(HIST("EtaStudy/pRingEtaCutsLeadingP_MassSignalVsBackground"), etaProxyLambdaBin, 0, ringLeadP.ringObservable);
               }
               histos.fill(HIST("EtaStudy/hFakePolCountsLeadP"), cosFakePol, 0);
               histos.fill(HIST("EtaStudy/hFakePolCountsLeadP"), cosFakePol, etaLambdaBin);
@@ -3800,138 +3634,138 @@ struct lambdajetpolarizationionsderived {
               histos.fill(HIST("EtaStudy/hFakePolCountsLeadP"), cosFakePol, etaProxyLambdaBin);
 
               histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsCosThetaVsPtForLeadP"), cosFakePol, v0pt); // Understanding the population of events that has a leading particle (even though this does not need one to be calculated!)
-              histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadP"), cosFakePol, deltaThetaLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadP"), cosFakePol, ringLeadP.deltaTheta);
               if (leadPEtaPos)
-                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadPPosEta"), cosFakePol, deltaThetaLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadPPosEta"), cosFakePol, ringLeadP.deltaTheta);
               else
-                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadPNegEta"), cosFakePol, deltaThetaLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/hFakePolCountsVsDeltaThetaLeadPNegEta"), cosFakePol, ringLeadP.deltaTheta);
 
               // Inclusive and split-by-species dependencies for signal extraction (AEE):
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadPEta, ringObservableLeadP);
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadPEta, v0LambdaLikeMass, ringObservableLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaLikePhiProtonStar"), deltaPhiLambdaProtonStar, ringLeadP.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadP.eta, ringLeadP.ringObservable);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadP.eta, v0LambdaLikeMass, ringLeadP.ringObservable);
               if (leadPEtaPos) {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringLeadP.ringObservable);
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringLeadP.ringObservable);
               }
-              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+              histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaLikePhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
               if (isLambda) {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadPEta, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadPEta, v0LambdaLikeMass, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadP.eta, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadP.eta, v0LambdaLikeMass, ringLeadP.ringObservable);
                 if (leadPEtaPos) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservableLeadP);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringLeadP.ringObservable);
                 } else {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservableLeadP);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringLeadP.ringObservable);
                 }
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
               } else {
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadPEta, ringObservableLeadP);
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadPEta, v0LambdaLikeMass, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/pRingObservableLeadPVsPhiAntiLambdaPhiProtonStar"), deltaPhiLambdaProtonStar, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEta"), deltaPhiLambdaProtonStar, leadP.eta, ringLeadP.ringObservable);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p3dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, leadP.eta, v0LambdaLikeMass, ringLeadP.ringObservable);
                 if (leadPEtaPos) {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringObservableLeadP);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringLeadP.ringObservable);
                 } else {
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
-                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringObservableLeadP);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsMassNegProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
+                  histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVsProxyEtaSign"), deltaPhiLambdaProtonStar, -0.5, ringLeadP.ringObservable);
                 }
-                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringObservableLeadP);
+                histos.fill(HIST("HelicityEfficiencyQA/PhiLambdaPhiProtonStar/ThreeBinMass/p2dRingObservableLeadPVsPhiAntiLambdaPhiProtonStarVs3BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringLeadP.ringObservable);
               }
             }
           } // end doFakePolDiagnosticsQA (eta-dependence block)
 
           // Extra kinematic criteria for Lambda candidates (removes polarization background):
           if (kinematicLambdaCheck) {
-            if (hasValidLeadingP) {
+            if (leadP.isValid) {
               if (familySwitches.doFamilyRingKinematicCuts) {
                 RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
 
                 // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
                 RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("RingKinematicCuts", leadPEtaPos, lambdaEtaPos);
               }
-              histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 1, ringObservableLeadP);
+              histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 1, ringLeadP.ringObservable);
               if (v0InMassPeak)
-                histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, 1, ringObservableLeadP); // Fills the inPeak bin
+                histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, 1, ringLeadP.ringObservable); // Fills the inPeak bin
               else if (v0InMassWindow)
-                histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, 0, ringObservableLeadP); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+                histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 1, 0, ringLeadP.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
               histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 1);
             }
             if (familySwitches.doFamilyRingKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
             }
-            if (hasValidLeadingJet) {
+            if (leadJet.isValid) {
               if (familySwitches.doFamilyRingKinematicCuts) {
                 RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
               }
-              histos.fill(HIST("IntegratedCuts/pRingCuts"), 1, ringObservable);
+              histos.fill(HIST("IntegratedCuts/pRingCuts"), 1, ringLeadJet.ringObservable);
               if (v0InMassPeak)
-                histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, 1, ringObservable); // Fills the inPeak bin
+                histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, 1, ringLeadJet.ringObservable); // Fills the inPeak bin
               else if (v0InMassWindow)
-                histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, 0, ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+                histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 1, 0, ringLeadJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
               histos.fill(HIST("IntegratedCuts/hCountCuts"), 1);
               if (familySwitches.doFamilyRingKinematicCuts) {
-                trackRingKinCuts.addV0(ringObservable, binPt, binMass, binDTheta);
+                trackRingKinCuts.addV0(ringLeadJet.ringObservable, binPt, binMass, binDTheta);
               }
             }
-            if (hasValidSubJet) {
+            if (subJet.isValid) {
               if (familySwitches.doFamilyRingKinematicCuts) {
                 RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "RingKinematicCuts")
               }
-              histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 1, ringObservable2ndJet);
+              histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 1, ringSubJet.ringObservable);
               if (v0InMassPeak)
-                histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, 1, ringObservable2ndJet); // Fills the inPeak bin
+                histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, 1, ringSubJet.ringObservable); // Fills the inPeak bin
               else if (v0InMassWindow)
-                histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, 0, ringObservable2ndJet); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+                histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 1, 0, ringSubJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
               histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 1);
             }
           }
 
           // Extra selection criteria on jet candidates:
           // (redundant for jets with R=0.4, but for jets with R<0.4 the leading jet may be farther in eta)
-          if (kinematicJetCheck) { // Already includes hasValidLeadingJet in the bool! (no need to check again)
+          if (kinematicLeadJetCheck) { // Already includes leadJet.isValid in the bool! (no need to check again)
             if (familySwitches.doFamilyJetKinematicCuts) {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
             }
-            histos.fill(HIST("IntegratedCuts/pRingCuts"), 2, ringObservable);
+            histos.fill(HIST("IntegratedCuts/pRingCuts"), 2, ringLeadJet.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, 1, ringObservable); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, 1, ringLeadJet.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, 0, ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 2, 0, ringLeadJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 2);
             if (familySwitches.doFamilyJetKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
-              trackJetKinCuts.addV0(ringObservable, binPt, binMass, binDTheta);
+              trackJetKinCuts.addV0(ringLeadJet.ringObservable, binPt, binMass, binDTheta);
             }
           }
 
           // Extra selection criteria on both Lambda and jet candidates:
-          if (kinematicLambdaCheck && kinematicJetCheck) {
+          if (kinematicLambdaCheck && kinematicLeadJetCheck) {
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               RING_OBSERVABLE_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
             }
-            histos.fill(HIST("IntegratedCuts/pRingCuts"), 3, ringObservable);
+            histos.fill(HIST("IntegratedCuts/pRingCuts"), 3, ringLeadJet.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, 1, ringObservable); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, 1, ringLeadJet.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, 0, ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsV0MassPeak"), 3, 0, ringLeadJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCuts"), 3);
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               POLARIZATION_PROFILE_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
-              trackJetLambdaKinCuts.addV0(ringObservable, binPt, binMass, binDTheta);
+              trackJetLambdaKinCuts.addV0(ringLeadJet.ringObservable, binPt, binMass, binDTheta);
             }
           }
 
           // Same variations for the leading particle and for the subleading jet:
-          // (kinematicLeadPCheck already encodes hasValidLeadingP, so no extra gate needed here)
+          // (kinematicLeadPCheck already encodes leadP.isValid, so no extra gate needed here)
           if (kinematicLeadPCheck) {
             if (familySwitches.doFamilyJetKinematicCuts) {
               RING_OBSERVABLE_LEADP_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
@@ -3939,22 +3773,22 @@ struct lambdajetpolarizationionsderived {
               // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetKinematicCuts", leadPEtaPos, lambdaEtaPos);
             }
-            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 2, ringObservableLeadP);
+            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 2, ringLeadP.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, 1, ringObservableLeadP); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, 1, ringLeadP.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, 0, ringObservableLeadP); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 2, 0, ringLeadP.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 2);
           }
-          if (kinematic2ndJetCheck) {
+          if (kinematicSubJetCheck) {
             if (familySwitches.doFamilyJetKinematicCuts) {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetKinematicCuts")
             }
-            histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 2, ringObservable2ndJet);
+            histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 2, ringSubJet.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, 1, ringObservable2ndJet); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, 1, ringSubJet.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, 0, ringObservable2ndJet); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 2, 0, ringSubJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 2);
           }
           if (kinematicLambdaCheck && kinematicLeadPCheck) {
@@ -3964,22 +3798,22 @@ struct lambdajetpolarizationionsderived {
               // Filling checks that rely on Eta>0 or Eta<0 checks for V0 and LeadingP eta:
               RING_OBSERVABLE_LEADP_ETA_SPLIT_FILL_LIST("JetAndLambdaKinematicCuts", leadPEtaPos, lambdaEtaPos);
             }
-            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 3, ringObservableLeadP);
+            histos.fill(HIST("IntegratedCuts/pRingCutsLeadingP"), 3, ringLeadP.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, 1, ringObservableLeadP); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, 1, ringLeadP.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, 0, ringObservableLeadP); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsLeadingPV0MassPeak"), 3, 0, ringLeadP.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCutsLeadingP"), 3);
           }
-          if (kinematicLambdaCheck && kinematic2ndJetCheck) {
+          if (kinematicLambdaCheck && kinematicSubJetCheck) {
             if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
               RING_OBSERVABLE_2NDJET_FILL_LIST(APPLY_HISTO_FILL, "JetAndLambdaKinematicCuts")
             }
-            histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 3, ringObservable2ndJet);
+            histos.fill(HIST("IntegratedCuts/pRingCutsSubLeadingJet"), 3, ringSubJet.ringObservable);
             if (v0InMassPeak)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, 1, ringObservable2ndJet); // Fills the inPeak bin
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, 1, ringSubJet.ringObservable); // Fills the inPeak bin
             else if (v0InMassWindow)
-              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, 0, ringObservable2ndJet); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(HIST("IntegratedCuts/p2dRingCutsSubLeadingJetV0MassPeak"), 3, 0, ringSubJet.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
             histos.fill(HIST("IntegratedCuts/hCountCutsSubLeadingJet"), 3);
           }
         } // end v0s loop
