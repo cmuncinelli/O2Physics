@@ -69,7 +69,7 @@
 #include <random>
 #include <string>
 #include <string_view>
-#include <type_traits> // std::integral_constant, for the FamilyTag and ProxyTypeTag of the fill lambdas
+#include <type_traits> // std::integral_constant, for the ProxyTypeTag of the fill lambdas
 #include <unordered_map>
 #include <vector>
 
@@ -95,17 +95,9 @@ enum CentEstimator {
   kCentFV0A
 };
 
-// Defining some enums for the Ring Families and different Jet Proxies;
-// (these will be used to get some compile-time indices via integral_constant below, for using HIST()'s compile-time capabilities)
-// (the values also double as bin indices: FamilyIndex for the IntegratedCuts/ bins, ProxyTypeIndex for the RzDiagnostics/*Integrated ones)
-enum FamilyIndex {
-  kRing = 0,
-  kRingKinematicCuts,
-  kJetKinematicCuts,
-  kJetAndLambdaKinematicCuts,
-  kNFamilies
-};
-
+// Defining an enum for the different jet proxy types:
+// (this will be used to get some compile-time indices via integral_constant below, for using HIST()'s compile-time capabilities)
+// (the values also double as bin indices for the RzDiagnostics/*Integrated profiles)
 enum ProxyTypeIndex {
   kLeadJet = 0,
   kLeadP,
@@ -113,15 +105,12 @@ enum ProxyTypeIndex {
   kNProxyTypes
 };
 
-// Folder names, indexed by the enums above (HIST() accepts a constexpr string_view, and HIST() names concatenate with "+"):
-// (last entry also corresponds to the total number of entries in each array, so we use that to avoid magic numbers)
-constexpr std::array<std::string_view, kNFamilies> FamilyNames = {"Ring", "RingKinematicCuts", "JetKinematicCuts", "JetAndLambdaKinematicCuts"};
+// Folder names, indexed by the enum above (HIST() accepts a constexpr string_view, and HIST() names concatenate with "+"):
+// (last entry also corresponds to the total number of entries in the array, so we use that to avoid magic numbers)
 constexpr std::array<std::string_view, kNProxyTypes> ProxyNames = {"LeadJet", "LeadP", "SubJet"};
 
-// Transforming the enums into actual compile-time tags for the fill lambdas in the main loop:
+// Transforming the enum into actual compile-time tags for the fill lambdas in the main loop:
 // (a lambda receiving these reads the index with decltype(tag)::value)
-template <int idxFamily>
-constexpr std::integral_constant<int, idxFamily> FamilyTag{};
 template <int idxProxy>
 constexpr std::integral_constant<int, idxProxy> ProxyTypeTag{};
 
@@ -157,16 +146,6 @@ struct lambdajetpolarizationionsderived {
   Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 1.5f, "Size for peak window, centered in LambdaMass from the PDG."};
   Configurable<float> SidebandInnerNSigma{"SidebandInnerNSigma", 5.5f, "Absolute value for lower end of sideband window."};
   Configurable<float> SidebandOuterNSigma{"SidebandOuterNSigma", 7.0f, "Absolute value for upper end of sideband window."};
-
-  // Per-family histogram switches:
-  // (Each family books >100 histograms, so it is necessary to keep some of these switches off to avoid the HistogramRegistry limit)
-  struct : ConfigurableGroup {
-    std::string prefix = "familySwitches"; // JSON group name
-    Configurable<bool> doFamilyRing{"doFamilyRing", true, "Book and fill the 'Ring' family (no additional cuts). Keep this on for most passes."};
-    Configurable<bool> doFamilyRingKinematicCuts{"doFamilyRingKinematicCuts", false, "Book and fill the 'RingKinematicCuts' family (Lambda kinematic cuts applied)."};
-    Configurable<bool> doFamilyJetKinematicCuts{"doFamilyJetKinematicCuts", true, "Book and fill the 'JetKinematicCuts' family (jet kinematic cuts applied)."};
-    Configurable<bool> doFamilyJetAndLambdaKinematicCuts{"doFamilyJetAndLambdaKinematicCuts", false, "Book and fill the 'JetAndLambdaKinematicCuts' family (both cuts applied)."};
-  } familySwitches;
 
   // QA switches:
   struct : ConfigurableGroup {
@@ -227,8 +206,6 @@ struct lambdajetpolarizationionsderived {
     Configurable<float> v0MaxRadius{"v0MaxRadius", 999.f, "Max V0 decay radius (cm). TableProducer default is 1E5."};
     Configurable<float> v0MinDcaPrLikeToPV{"v0MinDcaPrLikeToPV", -1.f, "Min |DCA|_{xy} of the proton-like daughter to the PV (cm)."}; // 0.05 is builder's minimum
     Configurable<float> v0MinDcaPiLikeToPV{"v0MinDcaPiLikeToPV", -1.f, "Min |DCA|_{xy} of the pion-like daughter to the PV (cm)."};
-    // Jets-related (kinematic, quenching, etc.):
-    // (TODO)
     // An additional V0-level cut on lab phi (currently for testing only):
     Configurable<std::vector<float>> v0PhiLimits{"v0PhiLimits", {0.f, constants::math::TwoPI}, "Limits on the V0 phi, in [0,2pi]. Testing only."};
 
@@ -236,6 +213,20 @@ struct lambdajetpolarizationionsderived {
     Configurable<float> v0MassMin{"v0MassMin", 1.09f, "V0 mass min cut. Removes V0s from combinatoric background, for QA"}; // Inert cut is -999.f
     Configurable<float> v0MassMax{"v0MassMax", 1.14f, "V0 mass max cut. Removes V0s from combinatoric background, for QA"}; // Inert cut is +999.f
   } analysisLevelCuts;
+
+  // Jet-proxy acceptance, applied together with the minimum-pT selections, before any V0 processing (see isProxyAccepted):
+  // (the defaults match the FastJet outputs and the table producer, so these only matter for stricter cuts or for jets with R < 0.4)
+  struct : ConfigurableGroup {
+    std::string prefix = "analysisLevelCutsJets"; // JSON group name
+    Configurable<bool> doAnalysisLevelCutsJets{"doAnalysisLevelCutsJets", false, "Apply the |eta| acceptance cuts below to the jet proxies (leading jet, subleading jet and leading particle)."};
+    // Kinematics:
+    Configurable<float> maxLeadJetEta{"maxLeadJetEta", 0.5f, "|eta| ceiling for the leading jet. Default is the FastJet output's (0.9 - R for R = 0.4)."};
+    Configurable<float> maxSubJetEta{"maxSubJetEta", 0.5f, "|eta| ceiling for the subleading jet. Default is the FastJet output's (0.9 - R for R = 0.4)."};
+    Configurable<float> maxLeadPEta{"maxLeadPEta", 0.9f, "|eta| ceiling for the leading particle. Same default as the table producer."};
+    // TODO: move minLeadJetPt, minSubLeadJetPt and minLeadParticlePt into this group (requires changing the JSONs in use)
+    
+    // Quenching, etc.:
+  } analysisLevelCutsJets;
 
   /////////////////////////
   // Configurable blocks:
@@ -469,8 +460,8 @@ struct lambdajetpolarizationionsderived {
     float nz = 0.;
   };
 
-  // Allocating one tracker per family so the accumulators are allocated only once:
-  EventDeltaTracker trackRing, trackRingKinCuts, trackJetKinCuts, trackJetLambdaKinCuts;
+  // Declaring the tracker here, so its accumulators are allocated only once (reset per collision):
+  EventDeltaTracker deltaTracker;
 
   // Axis pointers for Delta Method binning (fetched once in init, declared once here)
   TAxis* mAxisPt = nullptr;
@@ -486,10 +477,10 @@ struct lambdajetpolarizationionsderived {
   bool transverseBeamAxisMode = false;
 
   // QA guards, set once in init and shared by the bookings and the fills:
-  bool doMixingQA = false; // Caches doEventMixingQA's configurable
+  bool doMixingQA = false;         // doMixedEventProxies && doEventMixingQA
   bool doResamplingPassQA = false; // Bool for nProxyResamples > 1
 
-  // CheapSigExtract mass-region edges, based on the NSigma configurables, and caclulated with a small helper:
+  // CheapSigExtract mass-region edges, based on the NSigma configurables, and calculated with a small helper:
   std::array<double, 6> massRegionEdges{};
 
   // Helper functions:
@@ -505,7 +496,7 @@ struct lambdajetpolarizationionsderived {
     return phi;
   }
 
-  /// \brief Small helper for the CheapSigExtract region of a Lambda-like mass. Follow the bin convention of aregular TAxis::FindBin on the five-bin mass axis:
+  /// \brief Small helper for the CheapSigExtract region of a Lambda-like mass. Follows the bin convention of a regular TAxis::FindBin on the five-bin mass axis:
   ///        lower edges inclusive, upper edges exclusive, kOutsideLow below the first edge and kOutsideHigh from the last one on.
   MassRegion massRegionOf(float mass) const
   {
@@ -530,8 +521,6 @@ struct lambdajetpolarizationionsderived {
       LOG(fatal) << "excludeOutOfPeakQA and excludeInPeakQA are complementary: enabling both rejects every V0.";
     if (!analyseLambda && !analyseAntiLambda)
       LOG(fatal) << "analyseLambda and analyseAntiLambda are both false: no V0 would ever be analysed.";
-    if (!familySwitches.doFamilyRing) // TODO: think of a smarter way of handling the axis getters for the DeltaMethod
-      LOG(fatal) << "doFamilyRing must be on: the Delta Method accumulators take their binning from the Ring/ histograms.";
     if (std::abs((SidebandOuterNSigma - SidebandInnerNSigma) - PeakWindowNSigma) >= 1e-9)
       LOG(fatal) << "Sideband and peak windows must have the same width for the histograms here.";
 
@@ -561,379 +550,369 @@ struct lambdajetpolarizationionsderived {
     v0PhiLimitsVec = (std::vector<float>)analysisLevelCuts.v0PhiLimits;
 
     // Ring observable histograms:
-    // Helper to register one full histogram family (kinematic cut variation of ring observable)
-    auto addRingObservableFamily = [&](const std::string& familyFolderPath) {
-      // ===============================
-      // QA histograms: angle and pT distributions
-      // (No mass dependency -- useful to check kinematic sculpting from cuts)
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hDeltaPhi").c_str(), "#Delta#varphi_{jet};#Delta#varphi_{jet};Counts", kTH1D, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/h2dDeltaPhiVsDeltaEta").c_str(), "#Delta#varphi_{jet};#Delta#varphi_{jet}; #eta_{#Lambda}-#eta_{Jet};Counts", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisDeltaEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/h2dDeltaPhiVsProxyPhi").c_str(), "#Delta#varphi_{jet} vs #varphi_{Jet};#Delta#varphi_{jet};#varphi_{Jet};Counts", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hDeltaTheta").c_str(), "#Delta#theta_{jet};#Delta#theta_{jet};Counts", kTH1D, {axisConfigurations.axisDeltaTheta});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hCosDeltaTheta").c_str(), "cos(#Delta#theta_{jet});cos(#Delta#theta_{jet});Counts", kTH1D, {axisConfigurations.axisCosTheta}); // Should actually be flat due to the geometry
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hIntegrated").c_str(), "Integrated counts; ;Counts", kTH1D, {{1, -0.5, 0.5}});
+    // ===============================
+    // QA histograms: angle and pT distributions
+    // (No mass dependency -- useful to check kinematic sculpting from cuts)
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/QA/hDeltaPhi", "#Delta#varphi_{jet};#Delta#varphi_{jet};Counts", kTH1D, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/LeadJet/QA/h2dDeltaPhiVsDeltaEta", "#Delta#varphi_{jet};#Delta#varphi_{jet}; #eta_{#Lambda}-#eta_{Jet};Counts", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisDeltaEtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/QA/h2dDeltaPhiVsProxyPhi", "#Delta#varphi_{jet} vs #varphi_{Jet};#Delta#varphi_{jet};#varphi_{Jet};Counts", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPhi});
+    histosRingFamily.add("Ring/LeadJet/QA/hDeltaTheta", "#Delta#theta_{jet};#Delta#theta_{jet};Counts", kTH1D, {axisConfigurations.axisDeltaTheta});
+    histosRingFamily.add("Ring/LeadJet/QA/hCosDeltaTheta", "cos(#Delta#theta_{jet});cos(#Delta#theta_{jet});Counts", kTH1D, {axisConfigurations.axisCosTheta}); // Should actually be flat due to the geometry
+    histosRingFamily.add("Ring/LeadJet/QA/hIntegrated", "Integrated counts; ;Counts", kTH1D, {{1, -0.5, 0.5}});
 
-      histosRingFamily.add((familyFolderPath + "/LeadP/QA/hDeltaPhi").c_str(), "#Delta#varphi_{LeadP};#Delta#varphi_{LeadP};Counts", kTH1D, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadP/QA/hDeltaTheta").c_str(), "#Delta#theta_{LeadP};#Delta#theta_{LeadP};Counts", kTH1D, {axisConfigurations.axisDeltaTheta});
-      histosRingFamily.add((familyFolderPath + "/LeadP/QA/hCosDeltaTheta").c_str(), "cos(#Delta#theta_{LeadP});cos(#Delta#theta_{LeadP});Counts", kTH1D, {axisConfigurations.axisCosTheta}); // Should actually be flat due to the geometry
-      histosRingFamily.add((familyFolderPath + "/SubJet/QA/hDeltaPhi").c_str(), "#Delta#varphi_{SubJet};#Delta#varphi_{SubJet};Counts", kTH1D, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/SubJet/QA/hDeltaTheta").c_str(), "#Delta#theta_{SubJet};#Delta#theta_{SubJet};Counts", kTH1D, {axisConfigurations.axisDeltaTheta});
-      histosRingFamily.add((familyFolderPath + "/SubJet/QA/hCosDeltaTheta").c_str(), "cos(#Delta#theta_{SubJet});cos(#Delta#theta_{SubJet});Counts", kTH1D, {axisConfigurations.axisCosTheta}); // Should actually be flat due to the geometry
+    histosRingFamily.add("Ring/LeadP/QA/hDeltaPhi", "#Delta#varphi_{LeadP};#Delta#varphi_{LeadP};Counts", kTH1D, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/LeadP/QA/hDeltaTheta", "#Delta#theta_{LeadP};#Delta#theta_{LeadP};Counts", kTH1D, {axisConfigurations.axisDeltaTheta});
+    histosRingFamily.add("Ring/LeadP/QA/hCosDeltaTheta", "cos(#Delta#theta_{LeadP});cos(#Delta#theta_{LeadP});Counts", kTH1D, {axisConfigurations.axisCosTheta}); // Should actually be flat due to the geometry
+    histosRingFamily.add("Ring/SubJet/QA/hDeltaPhi", "#Delta#varphi_{SubJet};#Delta#varphi_{SubJet};Counts", kTH1D, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/SubJet/QA/hDeltaTheta", "#Delta#theta_{SubJet};#Delta#theta_{SubJet};Counts", kTH1D, {axisConfigurations.axisDeltaTheta});
+    histosRingFamily.add("Ring/SubJet/QA/hCosDeltaTheta", "cos(#Delta#theta_{SubJet});cos(#Delta#theta_{SubJet});Counts", kTH1D, {axisConfigurations.axisCosTheta}); // Should actually be flat due to the geometry
 
-      // ===============================
-      // Lambda pT dependence
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hLambdaPt").c_str(), "#Lambda #it{p}_{T};#it{p}_{T}^{#Lambda} (GeV/c);Counts", kTH1D, {axisConfigurations.axisPt});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/h2dDeltaPhiVsLambdaPt").c_str(), "#Delta#varphi_{jet} vs #Lambda #it{p}_{T};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c)", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPt});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/h2dDeltaThetaVsLambdaPt").c_str(), "#Delta#theta_{jet} vs #Lambda #it{p}_{T};#Delta#theta_{jet};#it{p}_{T}^{#Lambda} (GeV/c)", kTH2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisPt});
-      // ===============================
-      //   Polarization observable QAs
-      // (not Ring: actual polarization!)
-      // ===============================
-      // Will implement these as TProfiles, as polarization is also a measure like P_Lambda = (3/\alpha_Lambda) * <p_{proton}>, so the error is similar
-      // ===============================
-      // 1D TProfiles
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/QA/pPxStarPhi").c_str(), "<P_{#Lambda}^{*}>_{x} vs #varphi_{#Lambda};#varphi_{#Lambda};<P_{#Lambda}^{*}>_{x}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/QA/pPyStarPhi").c_str(), "<P_{#Lambda}^{*}>_{y} vs #varphi_{#Lambda};#varphi_{#Lambda};<P_{#Lambda}^{*}>_{y}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/QA/pPzStarPhi").c_str(), "<P_{#Lambda}^{*}>_{z} vs #varphi_{#Lambda};#varphi_{#Lambda};<P_{#Lambda}^{*}>_{z}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/pPxStarDeltaPhi").c_str(), "<P_{#Lambda}^{*}>_{x} vs #Delta#varphi_{jet};#Delta#varphi_{jet};<P_{#Lambda}^{*}>_{x}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/pPyStarDeltaPhi").c_str(), "<P_{#Lambda}^{*}>_{y} vs #Delta#varphi_{jet};#Delta#varphi_{jet};<P_{#Lambda}^{*}>_{y}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/pPzStarDeltaPhi").c_str(), "<P_{#Lambda}^{*}>_{z} vs #Delta#varphi_{jet};#Delta#varphi_{jet};<P_{#Lambda}^{*}>_{z}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      // Profiles of polarization Vs AEE angle:
-      // (there should be NO dependence on the AEE angle for the Z-axis polarization)
-      histosRingFamily.add((familyFolderPath + "/QA/pPxStarPhiAEE").c_str(), "<P_{#Lambda}^{*}>_{x} vs AEE angle;#phi_{#Lambda}-#phi_{p}^{*};<P_{#Lambda}^{*}>_{x}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/QA/pPyStarPhiAEE").c_str(), "<P_{#Lambda}^{*}>_{y} vs AEE angle;#phi_{#Lambda}-#phi_{p}^{*};<P_{#Lambda}^{*}>_{y}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/QA/pPzStarPhiAEE").c_str(), "<P_{#Lambda}^{*}>_{z} vs AEE angle;#phi_{#Lambda}-#phi_{p}^{*};<P_{#Lambda}^{*}>_{z}", kTProfile, {axisConfigurations.axisDeltaPhi});
-      // ===============================
-      // 2D TProfiles (Lambda correlations)
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/p2dPxStarDeltaPhiVsLambdaPt").c_str(), "<P_{#Lambda}^{*}>_{x} vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPtSigExtract});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/p2dPyStarDeltaPhiVsLambdaPt").c_str(), "<P_{#Lambda}^{*}>_{y} vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPtSigExtract});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/p2dPzStarDeltaPhiVsLambdaPt").c_str(), "<P_{#Lambda}^{*}>_{z} vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPtSigExtract});
+    // ===============================
+    // Lambda pT dependence
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/QA/hLambdaPt", "#Lambda #it{p}_{T};#it{p}_{T}^{#Lambda} (GeV/c);Counts", kTH1D, {axisConfigurations.axisPt});
+    histosRingFamily.add("Ring/LeadJet/QA/h2dDeltaPhiVsLambdaPt", "#Delta#varphi_{jet} vs #Lambda #it{p}_{T};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c)", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPt});
+    histosRingFamily.add("Ring/LeadJet/QA/h2dDeltaThetaVsLambdaPt", "#Delta#theta_{jet} vs #Lambda #it{p}_{T};#Delta#theta_{jet};#it{p}_{T}^{#Lambda} (GeV/c)", kTH2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisPt});
+    // ===============================
+    //   Polarization observable QAs
+    // (not Ring: actual polarization!)
+    // ===============================
+    // Will implement these as TProfiles, as polarization is also a measure like P_Lambda = (3/\alpha_Lambda) * <p_{proton}>, so the error is similar
+    // ===============================
+    // 1D TProfiles
+    // ===============================
+    histosRingFamily.add("Ring/QA/pPxStarPhi", "<P_{#Lambda}^{*}>_{x} vs #varphi_{#Lambda};#varphi_{#Lambda};<P_{#Lambda}^{*}>_{x}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/QA/pPyStarPhi", "<P_{#Lambda}^{*}>_{y} vs #varphi_{#Lambda};#varphi_{#Lambda};<P_{#Lambda}^{*}>_{y}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/QA/pPzStarPhi", "<P_{#Lambda}^{*}>_{z} vs #varphi_{#Lambda};#varphi_{#Lambda};<P_{#Lambda}^{*}>_{z}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/LeadJet/QA/pPxStarDeltaPhi", "<P_{#Lambda}^{*}>_{x} vs #Delta#varphi_{jet};#Delta#varphi_{jet};<P_{#Lambda}^{*}>_{x}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/LeadJet/QA/pPyStarDeltaPhi", "<P_{#Lambda}^{*}>_{y} vs #Delta#varphi_{jet};#Delta#varphi_{jet};<P_{#Lambda}^{*}>_{y}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/LeadJet/QA/pPzStarDeltaPhi", "<P_{#Lambda}^{*}>_{z} vs #Delta#varphi_{jet};#Delta#varphi_{jet};<P_{#Lambda}^{*}>_{z}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    // Profiles of polarization Vs AEE angle:
+    // (there should be NO dependence on the AEE angle for the Z-axis polarization)
+    histosRingFamily.add("Ring/QA/pPxStarPhiAEE", "<P_{#Lambda}^{*}>_{x} vs AEE angle;#phi_{#Lambda}-#phi_{p}^{*};<P_{#Lambda}^{*}>_{x}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/QA/pPyStarPhiAEE", "<P_{#Lambda}^{*}>_{y} vs AEE angle;#phi_{#Lambda}-#phi_{p}^{*};<P_{#Lambda}^{*}>_{y}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/QA/pPzStarPhiAEE", "<P_{#Lambda}^{*}>_{z} vs AEE angle;#phi_{#Lambda}-#phi_{p}^{*};<P_{#Lambda}^{*}>_{z}", kTProfile, {axisConfigurations.axisDeltaPhi});
+    // ===============================
+    // 2D TProfiles (Lambda correlations)
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/QA/p2dPxStarDeltaPhiVsLambdaPt", "<P_{#Lambda}^{*}>_{x} vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPtSigExtract});
+    histosRingFamily.add("Ring/LeadJet/QA/p2dPyStarDeltaPhiVsLambdaPt", "<P_{#Lambda}^{*}>_{y} vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPtSigExtract});
+    histosRingFamily.add("Ring/LeadJet/QA/p2dPzStarDeltaPhiVsLambdaPt", "<P_{#Lambda}^{*}>_{z} vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPtSigExtract});
 
-      // =========================================================================================
-      // 2D vector-field profiles (+QA TH2D counters) of the polarization, in four coordinate systems:
-      // (a companion code plots these as a vector field)
-      // Frames are:
-      // - Lab - the detector frame's PxPyPz
-      // - Aee - XY rotated about \hat z so that \hat x_Aee = \hat p_{proton, Transverse}^*
-      // - PrimeV0 - XY rotated about \hat z so that \hat x_V0 = \hat p_{Lambda, Transverse}
-      // - PrimeJet - \hat z_PrimeJet = \hat JetDirection and \hat x_PrimeJet is built based on the lab's \hat z direction
-      // =========================================================================================
-      // Lab frame:
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPxStar_vsPxPy").c_str(), "<P_{#Lambda}^{*}>_{x} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPyStar_vsPxPy").c_str(), "<P_{#Lambda}^{*}>_{y} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPzStar_vsPxPy").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/h2dCountsVsPxPy").c_str(), "V0 Counts vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    // =========================================================================================
+    // 2D vector-field profiles (+QA TH2D counters) of the polarization, in four coordinate systems:
+    // (a companion code plots these as a vector field)
+    // Frames are:
+    // - Lab - the detector frame's PxPyPz
+    // - Aee - XY rotated about \hat z so that \hat x_Aee = \hat p_{proton, Transverse}^*
+    // - PrimeV0 - XY rotated about \hat z so that \hat x_V0 = \hat p_{Lambda, Transverse}
+    // - PrimeJet - \hat z_PrimeJet = \hat JetDirection and \hat x_PrimeJet is built based on the lab's \hat z direction
+    // TODO: move PolMaps/ out of Ring/ (into RawPolarization/PolMaps/) in the folder reorganization:
+    // (with the kinematic-cut families gone there are no competing jet-direction definitions anymore, e.g. for the PrimeJet plane)
+    // =========================================================================================
+    // Lab frame:
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPxStar_vsPxPy", "<P_{#Lambda}^{*}>_{x} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPyStar_vsPxPy", "<P_{#Lambda}^{*}>_{y} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPzStar_vsPxPy", "<P_{#Lambda}^{*}>_{z} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/h2dCountsVsPxPy", "V0 Counts vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
 
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPxStar_vsPzPx").c_str(), "<P_{#Lambda}^{*}>_{x} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPyStar_vsPzPx").c_str(), "<P_{#Lambda}^{*}>_{y} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPzStar_vsPzPx").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/h2dCountsVsPzPx").c_str(), "V0 Counts vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPxStar_vsPzPx", "<P_{#Lambda}^{*}>_{x} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPyStar_vsPzPx", "<P_{#Lambda}^{*}>_{y} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPzStar_vsPzPx", "<P_{#Lambda}^{*}>_{z} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Lab/h2dCountsVsPzPx", "V0 Counts vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
 
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPxStar_vsPyPz").c_str(), "<P_{#Lambda}^{*}>_{x} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPyStar_vsPyPz").c_str(), "<P_{#Lambda}^{*}>_{y} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/p2dPzStar_vsPyPz").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Lab/h2dCountsVsPyPz").c_str(), "V0 Counts vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPxStar_vsPyPz", "<P_{#Lambda}^{*}>_{x} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPyStar_vsPyPz", "<P_{#Lambda}^{*}>_{y} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Lab/p2dPzStar_vsPyPz", "<P_{#Lambda}^{*}>_{z} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Lab/h2dCountsVsPyPz", "V0 Counts vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
 
-      // Aee frame (coordinates where PhiAEE = 0 in direction \hat x'):
-      // In this frame the transverse polarization is (|P*_T|, 0) by construction, so <P*_x> and <P*_y> are redundant and replaced by a transverse polarization:
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/p2dPtStar_vsPxAeePyAee").c_str(), "<P_{#Lambda}^{*}>_{T} vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{T}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/p2dPzStar_vsPxAeePyAee").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/h2dCountsVsPxAeePyAee").c_str(), "V0 Counts vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    // Aee frame (coordinates where PhiAEE = 0 in direction \hat x'):
+    // In this frame the transverse polarization is (|P*_T|, 0) by construction, so <P*_x> and <P*_y> are redundant and replaced by a transverse polarization:
+    histosRingFamily.add("Ring/PolMaps/Aee/p2dPtStar_vsPxAeePyAee", "<P_{#Lambda}^{*}>_{T} vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{T}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Aee/p2dPzStar_vsPxAeePyAee", "<P_{#Lambda}^{*}>_{z} vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Aee/h2dCountsVsPxAeePyAee", "V0 Counts vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
 
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/p2dPtStar_vsPzPxAee").c_str(), "<P_{#Lambda}^{*}>_{T} vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{T}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/p2dPzStar_vsPzPxAee").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/h2dCountsVsPzPxAee").c_str(), "V0 Counts vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Aee/p2dPtStar_vsPzPxAee", "<P_{#Lambda}^{*}>_{T} vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{T}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Aee/p2dPzStar_vsPzPxAee", "<P_{#Lambda}^{*}>_{z} vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/Aee/h2dCountsVsPzPxAee", "V0 Counts vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
 
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/p2dPtStar_vsPyAeePz").c_str(), "<P_{#Lambda}^{*}>_{T} vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{T}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/p2dPzStar_vsPyAeePz").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/Aee/h2dCountsVsPyAeePz").c_str(), "V0 Counts vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Aee/p2dPtStar_vsPyAeePz", "<P_{#Lambda}^{*}>_{T} vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{T}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Aee/p2dPzStar_vsPyAeePz", "<P_{#Lambda}^{*}>_{z} vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    histosRingFamily.add("Ring/PolMaps/Aee/h2dCountsVsPyAeePz", "V0 Counts vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
 
-      // PrimeV0 frame (\hat x'_V0 along the Lambda's transverse direction):
-      // (<P*_y'V0> is the ring observable computed with the beam as the jet proxy)
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeV0/p2dPxStarPrimeV0_vsPzPt").c_str(), "<P_{#Lambda}^{*}>_{x'V0} vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'V0}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeV0/p2dPyStarPrimeV0_vsPzPt").c_str(), "<P_{#Lambda}^{*}>_{y'V0} vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'V0}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeV0/p2dPzStar_vsPzPt").c_str(), "<P_{#Lambda}^{*}>_{z} vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeV0/h2dCountsVsPzPt").c_str(), "V0 Counts vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
+    // PrimeV0 frame (\hat x'_V0 along the Lambda's transverse direction):
+    // (<P*_y'V0> is the ring observable computed with the beam as the jet proxy)
+    histosRingFamily.add("Ring/PolMaps/PrimeV0/p2dPxStarPrimeV0_vsPzPt", "<P_{#Lambda}^{*}>_{x'V0} vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'V0}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeV0/p2dPyStarPrimeV0_vsPzPt", "<P_{#Lambda}^{*}>_{y'V0} vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'V0}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeV0/p2dPzStar_vsPzPt", "<P_{#Lambda}^{*}>_{z} vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z}", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeV0/h2dCountsVsPzPt", "V0 Counts vs (p_{z}^{#Lambda},p_{T}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{T}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPtRot});
 
-      // PrimeJet frame (\hat z_Jet = jet, \hat x_Jet = beam direction, orthogonalised against the jet)
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPxPyPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{x'Jet} vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPxPyPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{y'Jet} vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPxPyPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{z'Jet} vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/h2dCountsVsPxPyPrimeJet").c_str(), "V0 Counts vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    // PrimeJet frame (\hat z_Jet = jet, \hat x_Jet = beam direction, orthogonalised against the jet)
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPxPyPrimeJet", "<P_{#Lambda}^{*}>_{x'Jet} vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPxPyPrimeJet", "<P_{#Lambda}^{*}>_{y'Jet} vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPxPyPrimeJet", "<P_{#Lambda}^{*}>_{z'Jet} vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/h2dCountsVsPxPyPrimeJet", "V0 Counts vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
 
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPzPxPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{x'Jet} vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPzPxPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{y'Jet} vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPzPxPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{z'Jet} vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/h2dCountsVsPzPxPrimeJet").c_str(), "V0 Counts vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPzPxPrimeJet", "<P_{#Lambda}^{*}>_{x'Jet} vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPzPxPrimeJet", "<P_{#Lambda}^{*}>_{y'Jet} vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPzPxPrimeJet", "<P_{#Lambda}^{*}>_{z'Jet} vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/h2dCountsVsPzPxPrimeJet", "V0 Counts vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
 
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPyPzPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{x'Jet} vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPyPzPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{y'Jet} vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPyPzPrimeJet").c_str(), "<P_{#Lambda}^{*}>_{z'Jet} vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/PolMaps/PrimeJet/h2dCountsVsPyPzPrimeJet").c_str(), "V0 Counts vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPyPzPrimeJet", "<P_{#Lambda}^{*}>_{x'Jet} vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{x'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPyPzPrimeJet", "<P_{#Lambda}^{*}>_{y'Jet} vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{y'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPyPzPrimeJet", "<P_{#Lambda}^{*}>_{z'Jet} vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<P_{#Lambda}^{*}>_{z'Jet}", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/PolMaps/PrimeJet/h2dCountsVsPyPzPrimeJet", "V0 Counts vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);Counts", kTH2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
 
-      // ===============================
-      // Ring observable, single scalar 2D profile:
-      // (no need to rotate before calculating <R>, as it is invariant by rotation)
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPxPy").c_str(), "<#it{R}> vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPzPx").c_str(), "<#it{R}> vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPyPz").c_str(), "<#it{R}> vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      // On the AEE planes:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPxAeePyAee").c_str(), "<#it{R}> vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPzPxAee").c_str(), "<#it{R}> vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPyAeePz").c_str(), "<#it{R}> vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
-      // On the jet-frame planes:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPxPyPrimeJet").c_str(), "<#it{R}> vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPzPxPrimeJet").c_str(), "<#it{R}> vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingMaps/p2dRingObservableVsPyPzPrimeJet").c_str(), "<#it{R}> vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      // For LeadP estimators:
-      histosRingFamily.add((familyFolderPath + "/LeadP/RingMaps/p2dRingObservableVsPxPy").c_str(), "<#it{R}>_{LeadP} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadP/RingMaps/p2dRingObservableVsPzPx").c_str(), "<#it{R}>_{LeadP} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
-      histosRingFamily.add((familyFolderPath + "/LeadP/RingMaps/p2dRingObservableVsPyPz").c_str(), "<#it{R}>_{LeadP} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    // ===============================
+    // Ring observable, single scalar 2D profile:
+    // (no need to rotate before calculating <R>, as it is invariant by rotation)
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPxPy", "<#it{R}> vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPzPx", "<#it{R}> vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPyPz", "<#it{R}> vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    // On the AEE planes:
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPxAeePyAee", "<#it{R}> vs (p_{x,AEE}^{#Lambda},p_{y,AEE}^{#Lambda});p_{x,AEE}^{#Lambda} (GeV/c);p_{y,AEE}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPzPxAee", "<#it{R}> vs (p_{z}^{#Lambda},p_{x,AEE}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x,AEE}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPyAeePz", "<#it{R}> vs (p_{y,AEE}^{#Lambda},p_{z}^{#Lambda});p_{y,AEE}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
+    // On the jet-frame planes:
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPxPyPrimeJet", "<#it{R}> vs (p_{x'Jet}^{#Lambda},p_{y'Jet}^{#Lambda});p_{x'Jet}^{#Lambda} (GeV/c);p_{y'Jet}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPzPxPrimeJet", "<#it{R}> vs (p_{z'Jet}^{#Lambda},p_{x'Jet}^{#Lambda});p_{z'Jet}^{#Lambda} (GeV/c);p_{x'Jet}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadJet/RingMaps/p2dRingObservableVsPyPzPrimeJet", "<#it{R}> vs (p_{y'Jet}^{#Lambda},p_{z'Jet}^{#Lambda});p_{y'Jet}^{#Lambda} (GeV/c);p_{z'Jet}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    // For LeadP estimators:
+    histosRingFamily.add("Ring/LeadP/RingMaps/p2dRingObservableVsPxPy", "<#it{R}>_{LeadP} vs (p_{x}^{#Lambda},p_{y}^{#Lambda});p_{x}^{#Lambda} (GeV/c);p_{y}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadP/RingMaps/p2dRingObservableVsPzPx", "<#it{R}>_{LeadP} vs (p_{z}^{#Lambda},p_{x}^{#Lambda});p_{z}^{#Lambda} (GeV/c);p_{x}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPz, axisConfigurations.axisLambdaPRot});
+    histosRingFamily.add("Ring/LeadP/RingMaps/p2dRingObservableVsPyPz", "<#it{R}>_{LeadP} vs (p_{y}^{#Lambda},p_{z}^{#Lambda});p_{y}^{#Lambda} (GeV/c);p_{z}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaPRot, axisConfigurations.axisLambdaPz});
 
-      // TProfiles with correct error bars::
-      // -- TProfiles will handle the error estimate of the Ring Observable via the variance, even though
-      // they still lack the proper signal extraction and possible efficiency corrections in the current state
-      // -- If any efficiency corrections arise, you can fill with the kTH1D as (deltaPhiJet, ringObservable, weight)
-      // instead of the simple (deltaPhiJet, ringObservable) --> Notice TProfile knows how to accept 3 entries
-      // for a TH1D-like object!
-      // -- CAUTION! The TProfile does not utilize unbiased variance estimators with N-1 instead of N in the denominator,
-      // so you might get biased errors when counts are too low in higher-dimensional profiles (i.e., kTProfile2Ds)
-      // ===============================
-      // 1D TProfiles
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservableDeltaPhi").c_str(), "<#it{R}> vs #Delta#varphi_{jet};#Delta#varphi_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      // To see the actual distribution of counts in data (another differential-like shape of the distribution we are taking an average of):
-      histosRingFamily.add((familyFolderPath + "/LeadJet/hRingObservableCounts").c_str(), "Counts vs <#it{R}>_{jet};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservableProxyPhi").c_str(), "<#it{R}> vs #varphi_{jet};#varphi_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservablePhiLambda").c_str(), "<#it{R}> vs #varphi_{#Lambda};#varphi_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisPhi});
-      // ===============================
-      // Ring projection kernel
-      // The two variables <R> depends on analytically, plus the Lambda direction cosine in the 3D version,
-      // which is what lets the eta_Lambda sample be symmetrised downstream instead of at fill time.
-      // ===============================
-      // Binned in the two variables the projection is analytically linear in -- cos(DeltaTheta) and the
-      // proxy direction cosine t_z -- rather than in DeltaTheta and eta. Any fitting of the resulting
-      // surface belongs downstream, in the post-processing macros.
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingKernel/p2dRingObservableCosDeltaThetaVsProxyZ").c_str(), "<#it{R}> vs (cos#Delta#theta_{jet},#hat{t}_{z});cos#Delta#theta_{jet};#hat{t}_{z};<#it{R}>", kTProfile2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisJetZ});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingKernel/h2dCountsCosDeltaThetaVsProxyZ").c_str(), "Counts vs (cos#Delta#theta_{jet},#hat{t}_{z});cos#Delta#theta_{jet};#hat{t}_{z};Counts", kTH2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisJetZ});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/RingKernel/p3dRingObservableCosDeltaThetaVsProxyZVsLambdaZ").c_str(), "<#it{R}> vs (cos#Delta#theta_{jet},#hat{t}_{z},cos#theta_{#Lambda});cos#Delta#theta_{jet};#hat{t}_{z};cos#theta_{#Lambda}", kTProfile3D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisJetZ, axisConfigurations.axisLambdaZ});
+    // TProfiles with correct error bars::
+    // -- TProfiles will handle the error estimate of the Ring Observable via the variance, even though
+    // they still lack the proper signal extraction and possible efficiency corrections in the current state
+    // -- If any efficiency corrections arise, you can fill with the kTH1D as (deltaPhiJet, ringObservable, weight)
+    // instead of the simple (deltaPhiJet, ringObservable) --> Notice TProfile knows how to accept 3 entries
+    // for a TH1D-like object!
+    // -- CAUTION! The TProfile does not utilize unbiased variance estimators with N-1 instead of N in the denominator,
+    // so you might get biased errors when counts are too low in higher-dimensional profiles (i.e., kTProfile2Ds)
+    // ===============================
+    // 1D TProfiles
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/pRingObservableDeltaPhi", "<#it{R}> vs #Delta#varphi_{jet};#Delta#varphi_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+    // To see the actual distribution of counts in data (another differential-like shape of the distribution we are taking an average of):
+    histosRingFamily.add("Ring/LeadJet/hRingObservableCounts", "Counts vs <#it{R}>_{jet};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
+    histosRingFamily.add("Ring/LeadJet/pRingObservableProxyPhi", "<#it{R}> vs #varphi_{jet};#varphi_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisPhi});
+    histosRingFamily.add("Ring/LeadJet/pRingObservablePhiLambda", "<#it{R}> vs #varphi_{#Lambda};#varphi_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisPhi});
+    // ===============================
+    // Ring projection kernel
+    // The two variables <R> depends on analytically, plus the Lambda direction cosine in the 3D version,
+    // which is what lets the eta_Lambda sample be symmetrised downstream instead of at fill time.
+    // ===============================
+    // Binned in the two variables the projection is analytically linear in -- cos(DeltaTheta) and the
+    // proxy direction cosine t_z -- rather than in DeltaTheta and eta. Any fitting of the resulting
+    // surface belongs downstream, in the post-processing macros.
+    histosRingFamily.add("Ring/LeadJet/RingKernel/p2dRingObservableCosDeltaThetaVsProxyZ", "<#it{R}> vs (cos#Delta#theta_{jet},#hat{t}_{z});cos#Delta#theta_{jet};#hat{t}_{z};<#it{R}>", kTProfile2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisJetZ});
+    histosRingFamily.add("Ring/LeadJet/RingKernel/h2dCountsCosDeltaThetaVsProxyZ", "Counts vs (cos#Delta#theta_{jet},#hat{t}_{z});cos#Delta#theta_{jet};#hat{t}_{z};Counts", kTH2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisJetZ});
+    histosRingFamily.add("Ring/LeadJet/RingKernel/p3dRingObservableCosDeltaThetaVsProxyZVsLambdaZ", "<#it{R}> vs (cos#Delta#theta_{jet},#hat{t}_{z},cos#theta_{#Lambda});cos#Delta#theta_{jet};#hat{t}_{z};cos#theta_{#Lambda}", kTProfile3D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisJetZ, axisConfigurations.axisLambdaZ});
 
-      // LeadP proxy. B_phi knows nothing about the reference axis, so this must return the same kernel as the jet version -- with a wider t_z lever.
-      histosRingFamily.add((familyFolderPath + "/LeadP/RingKernel/p2dRingObservableCosDeltaThetaVsProxyZ").c_str(), "<#it{R}>_{LeadP} vs (cos#Delta#theta_{LeadP},#hat{t}_{z}^{LeadP});cos#Delta#theta_{LeadP};#hat{t}_{z}^{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisLeadPZ});
-      histosRingFamily.add((familyFolderPath + "/LeadP/RingKernel/h2dCountsCosDeltaThetaVsProxyZ").c_str(), "Counts vs (cos#Delta#theta_{LeadP},#hat{t}_{z}^{LeadP});cos#Delta#theta_{LeadP};#hat{t}_{z}^{LeadP};Counts", kTH2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisLeadPZ});
-      histosRingFamily.add((familyFolderPath + "/LeadP/RingKernel/p3dRingObservableCosDeltaThetaVsProxyZVsLambdaZ").c_str(), "<#it{R}>_{LeadP} vs (cos#Delta#theta_{LeadP},#hat{t}_{z}^{LeadP},cos#theta_{#Lambda});cos#Delta#theta_{LeadP};#hat{t}_{z}^{LeadP};cos#theta_{#Lambda}", kTProfile3D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLeadPZ, axisConfigurations.axisLambdaZ});
+    // LeadP proxy. B_phi knows nothing about the reference axis, so this must return the same kernel as the jet version -- with a wider t_z lever.
+    histosRingFamily.add("Ring/LeadP/RingKernel/p2dRingObservableCosDeltaThetaVsProxyZ", "<#it{R}>_{LeadP} vs (cos#Delta#theta_{LeadP},#hat{t}_{z}^{LeadP});cos#Delta#theta_{LeadP};#hat{t}_{z}^{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisLeadPZ});
+    histosRingFamily.add("Ring/LeadP/RingKernel/h2dCountsCosDeltaThetaVsProxyZ", "Counts vs (cos#Delta#theta_{LeadP},#hat{t}_{z}^{LeadP});cos#Delta#theta_{LeadP};#hat{t}_{z}^{LeadP};Counts", kTH2D, {axisConfigurations.axisCosTheta, axisConfigurations.axisLeadPZ});
+    histosRingFamily.add("Ring/LeadP/RingKernel/p3dRingObservableCosDeltaThetaVsProxyZVsLambdaZ", "<#it{R}>_{LeadP} vs (cos#Delta#theta_{LeadP},#hat{t}_{z}^{LeadP},cos#theta_{#Lambda});cos#Delta#theta_{LeadP};#hat{t}_{z}^{LeadP};cos#theta_{#Lambda}", kTProfile3D, {axisConfigurations.axisCosThetaCoarse, axisConfigurations.axisLeadPZ, axisConfigurations.axisLambdaZ});
 
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservableDeltaTheta").c_str(), "<#it{R}> vs #Delta#theta_{jet};#Delta#theta_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservableIntegrated").c_str(), "Integrated <#it{R}>; ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservableLambdaPt").c_str(), "<#it{R}> vs #it{p}_{T}^{#Lambda};#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
+    histosRingFamily.add("Ring/LeadJet/pRingObservableDeltaTheta", "<#it{R}> vs #Delta#theta_{jet};#Delta#theta_{jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
+    histosRingFamily.add("Ring/LeadJet/pRingObservableIntegrated", "Integrated <#it{R}>; ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
+    histosRingFamily.add("Ring/LeadJet/pRingObservableLambdaPt", "<#it{R}> vs #it{p}_{T}^{#Lambda};#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
 
-      // Ring vs Jet proxy pT:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/ProxyPtDependence/pRingVsProxyPt").c_str(), "<#it{R}> vs Jet #it{p}_{T};#it{p}_{T}^{Jet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt").c_str(), "<#it{R}> vs LeadP #it{p}_{T};#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/SubJet/ProxyPtDependence/pRingVsProxyPt").c_str(), "<#it{R}> vs SubJet #it{p}_{T};#it{p}_{T}^{SubJet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      // And some counters to be aware of the amount of Lambdas (and jets) in each pT interval:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hProxyPt").c_str(), "Jet #it{p}_{T};#it{p}_{T}^{Jet} (GeV/c);Counts", kTH1D, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/QA/hProxyPt").c_str(), "LeadP #it{p}_{T};#it{p}_{T}^{LeadP} (GeV/c);Counts", kTH1D, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/SubJet/QA/hProxyPt").c_str(), "SubJet #it{p}_{T};#it{p}_{T}^{SubJet} (GeV/c);Counts", kTH1D, {axisConfigurations.axisJetPt});
+    // Ring vs Jet proxy pT:
+    histosRingFamily.add("Ring/LeadJet/ProxyPtDependence/pRingVsProxyPt", "<#it{R}> vs Jet #it{p}_{T};#it{p}_{T}^{Jet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt", "<#it{R}> vs LeadP #it{p}_{T};#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/SubJet/ProxyPtDependence/pRingVsProxyPt", "<#it{R}> vs SubJet #it{p}_{T};#it{p}_{T}^{SubJet} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    // And some counters to be aware of the amount of Lambdas (and jets) in each pT interval:
+    histosRingFamily.add("Ring/LeadJet/QA/hProxyPt", "Jet #it{p}_{T};#it{p}_{T}^{Jet} (GeV/c);Counts", kTH1D, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/QA/hProxyPt", "LeadP #it{p}_{T};#it{p}_{T}^{LeadP} (GeV/c);Counts", kTH1D, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/SubJet/QA/hProxyPt", "SubJet #it{p}_{T};#it{p}_{T}^{SubJet} (GeV/c);Counts", kTH1D, {axisConfigurations.axisJetPt});
 
-      // Splitting into positive and negative eta contributions:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/ProxyPtDependence/p2dRingVsProxyPtVsProxyEta").c_str(), "<#it{R}> vs Jet #it{p}_{T} vs #eta_{Jet};#it{p}_{T}^{Jet} (GeV/c);#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/p2dRingVsProxyPtVsProxyEta").c_str(), "<#it{R}> vs LeadP #it{p}_{T} vs #eta_{LeadP};#it{p}_{T}^{LeadP} (GeV/c);#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histosRingFamily.add((familyFolderPath + "/SubJet/ProxyPtDependence/p2dRingVsProxyPtVsProxyEta").c_str(), "<#it{R}> vs SubJet #it{p}_{T} vs #eta_{SubJet};#it{p}_{T}^{SubJet} (GeV/c);#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      // For each Lambda's eta:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/ProxyPtDependence/p2dRingVsProxyPtVsEtaV0").c_str(), "<#it{R}> vs Jet #it{p}_{T} vs #eta_{V0};#it{p}_{T}^{Jet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/p2dRingVsProxyPtVsEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} vs #eta_{V0};#it{p}_{T}^{LeadP} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
-      histosRingFamily.add((familyFolderPath + "/SubJet/ProxyPtDependence/p2dRingVsProxyPtVsEtaV0").c_str(), "<#it{R}> vs SubJet #it{p}_{T} vs #eta_{V0};#it{p}_{T}^{SubJet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+    // Splitting into positive and negative eta contributions:
+    histosRingFamily.add("Ring/LeadJet/ProxyPtDependence/p2dRingVsProxyPtVsProxyEta", "<#it{R}> vs Jet #it{p}_{T} vs #eta_{Jet};#it{p}_{T}^{Jet} (GeV/c);#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/p2dRingVsProxyPtVsProxyEta", "<#it{R}> vs LeadP #it{p}_{T} vs #eta_{LeadP};#it{p}_{T}^{LeadP} (GeV/c);#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+    histosRingFamily.add("Ring/SubJet/ProxyPtDependence/p2dRingVsProxyPtVsProxyEta", "<#it{R}> vs SubJet #it{p}_{T} vs #eta_{SubJet};#it{p}_{T}^{SubJet} (GeV/c);#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+    // For each Lambda's eta:
+    histosRingFamily.add("Ring/LeadJet/ProxyPtDependence/p2dRingVsProxyPtVsEtaV0", "<#it{R}> vs Jet #it{p}_{T} vs #eta_{V0};#it{p}_{T}^{Jet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/p2dRingVsProxyPtVsEtaV0", "<#it{R}> vs LeadP #it{p}_{T} vs #eta_{V0};#it{p}_{T}^{LeadP} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
+    histosRingFamily.add("Ring/SubJet/ProxyPtDependence/p2dRingVsProxyPtVsEtaV0", "<#it{R}> vs SubJet #it{p}_{T} vs #eta_{V0};#it{p}_{T}^{SubJet} (GeV/c);#eta_{V0};<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, {2, -0.9, 0.9}});
 
-      // Rasterizing, only for LeadP the TProfile2D into two TProfile 1Ds (easier to draw with "same")
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_PosProxyEta").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_NegProxyEta").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      // V0 eta:
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_PosEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{V0}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_NegEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    // Rasterizing, only for LeadP the TProfile2D into two TProfile 1Ds (easier to draw with "same")
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_PosProxyEta", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_NegProxyEta", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    // V0 eta:
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_PosEtaV0", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{V0}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_NegEtaV0", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
 
-      // Looking at V0Eta and JetEta combinations (only for LeadP):
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_PosProxyEta_PosEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0, #eta_{V0}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_NegProxyEta_PosEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0, #eta_{V0}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_PosProxyEta_NegEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0, #eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/pRingVsProxyPt_NegProxyEta_NegEtaV0").c_str(), "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0, #eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    // Looking at V0Eta and JetEta combinations (only for LeadP):
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_PosProxyEta_PosEtaV0", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0, #eta_{V0}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_NegProxyEta_PosEtaV0", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0, #eta_{V0}>0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_PosProxyEta_NegEtaV0", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}>0, #eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/pRingVsProxyPt_NegProxyEta_NegEtaV0", "<#it{R}> vs LeadP #it{p}_{T} (#eta_{LeadP}<0, #eta_{V0}<0);#it{p}_{T}^{LeadP} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisJetPt});
 
-      // Integrated <R> Vs ProxyPt Vs Centrality:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/ProxyPtDependence/p2dRingVsProxyPtVsCentrality").c_str(), "<#it{R}> vs Jet #it{p}_{T} vs Centrality;#it{p}_{T}^{Jet} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
-      histosRingFamily.add((familyFolderPath + "/LeadP/ProxyPtDependence/p2dRingVsProxyPtVsCentrality").c_str(), "<#it{R}> vs LeadP #it{p}_{T} vs Centrality;#it{p}_{T}^{LeadP} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
-      histosRingFamily.add((familyFolderPath + "/SubJet/ProxyPtDependence/p2dRingVsProxyPtVsCentrality").c_str(), "<#it{R}> vs SubJet #it{p}_{T} vs Centrality;#it{p}_{T}^{SubJet} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
+    // Integrated <R> Vs ProxyPt Vs Centrality:
+    histosRingFamily.add("Ring/LeadJet/ProxyPtDependence/p2dRingVsProxyPtVsCentrality", "<#it{R}> vs Jet #it{p}_{T} vs Centrality;#it{p}_{T}^{Jet} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
+    histosRingFamily.add("Ring/LeadP/ProxyPtDependence/p2dRingVsProxyPtVsCentrality", "<#it{R}> vs LeadP #it{p}_{T} vs Centrality;#it{p}_{T}^{LeadP} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
+    histosRingFamily.add("Ring/SubJet/ProxyPtDependence/p2dRingVsProxyPtVsCentrality", "<#it{R}> vs SubJet #it{p}_{T} vs Centrality;#it{p}_{T}^{SubJet} (GeV/c);Centrality(%);<#it{R}>", kTProfile2D, {axisConfigurations.axisJetPt, axisConfigurations.axisCentrality});
 
-      // Understanding eta dependence seen in pRingEtaCuts:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/pRingObservableEtaLambda").c_str(), "<#it{R}> vs #eta_{#Lambda};#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/pRingObservableProxyEta").c_str(), "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/pRingObservableProxyEtaHighEtaRes").c_str(), "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
+    // Understanding eta dependence seen in pRingEtaCuts:
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/pRingObservableEtaLambda", "<#it{R}> vs #eta_{#Lambda};#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/pRingObservableProxyEta", "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/pRingObservableProxyEtaHighEtaRes", "<#it{R}> vs #eta_{Jet};#eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
 
-      histosRingFamily.add((familyFolderPath + "/SubJet/EtaDependence/pRingObservableEtaLambda").c_str(), "<#it{R}> vs #eta_{#Lambda} (SubJet);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/SubJet/EtaDependence/pRingObservableProxyEta").c_str(), "<#it{R}> vs #eta_{SubJet};#eta_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/SubJet/EtaDependence/pRingObservableEtaLambda", "<#it{R}> vs #eta_{#Lambda} (SubJet);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
+    histosRingFamily.add("Ring/SubJet/EtaDependence/pRingObservableProxyEta", "<#it{R}> vs #eta_{SubJet};#eta_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
 
-      histosRingFamily.add((familyFolderPath + "/LeadP/EtaDependence/pRingObservableEtaLambda").c_str(), "<#it{R}> vs #eta_{#Lambda} (LeadP);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadP/EtaDependence/pRingObservableProxyEta").c_str(), "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadP/EtaDependence/pRingObservableProxyEtaHighEtaRes").c_str(), "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
-      // For the leading particle:
-      histosRingFamily.add((familyFolderPath + "/LeadP/hRingObservableCounts").c_str(), "Counts vs <#it{R}>_{LeadP};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
-      histosRingFamily.add((familyFolderPath + "/LeadP/pRingObservableDeltaPhi").c_str(), "<#it{R}> vs #Delta#varphi_{LeadP};#Delta#varphi_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/LeadP/pRingObservableDeltaTheta").c_str(), "<#it{R}> vs #Delta#theta_{LeadP};#Delta#theta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
-      histosRingFamily.add((familyFolderPath + "/LeadP/pRingObservableIntegrated").c_str(), "Integrated <#it{R}> (LeadP); ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
-      histosRingFamily.add((familyFolderPath + "/LeadP/pRingObservableLambdaPt").c_str(), "<#it{R}> vs #it{p}_{T}^{#Lambda} (LeadP);#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
-      // For the second-to-leading jet:
-      histosRingFamily.add((familyFolderPath + "/SubJet/hRingObservableCounts").c_str(), "Counts vs <#it{R}>_{SubJet};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
-      histosRingFamily.add((familyFolderPath + "/SubJet/pRingObservableDeltaPhi").c_str(), "<#it{R}> vs #Delta#varphi_{SubJet};#Delta#varphi_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
-      histosRingFamily.add((familyFolderPath + "/SubJet/pRingObservableDeltaTheta").c_str(), "<#it{R}> vs #Delta#theta_{SubJet};#Delta#theta_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
-      histosRingFamily.add((familyFolderPath + "/SubJet/pRingObservableIntegrated").c_str(), "Integrated <#it{R}> (SubJet); ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
-      histosRingFamily.add((familyFolderPath + "/SubJet/pRingObservableLambdaPt").c_str(), "<#it{R}> vs #it{p}_{T}^{#Lambda} (SubJet);#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
+    histosRingFamily.add("Ring/LeadP/EtaDependence/pRingObservableEtaLambda", "<#it{R}> vs #eta_{#Lambda} (LeadP);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
+    histosRingFamily.add("Ring/LeadP/EtaDependence/pRingObservableProxyEta", "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/LeadP/EtaDependence/pRingObservableProxyEtaHighEtaRes", "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
+    // For the leading particle:
+    histosRingFamily.add("Ring/LeadP/hRingObservableCounts", "Counts vs <#it{R}>_{LeadP};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
+    histosRingFamily.add("Ring/LeadP/pRingObservableDeltaPhi", "<#it{R}> vs #Delta#varphi_{LeadP};#Delta#varphi_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/LeadP/pRingObservableDeltaTheta", "<#it{R}> vs #Delta#theta_{LeadP};#Delta#theta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
+    histosRingFamily.add("Ring/LeadP/pRingObservableIntegrated", "Integrated <#it{R}> (LeadP); ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
+    histosRingFamily.add("Ring/LeadP/pRingObservableLambdaPt", "<#it{R}> vs #it{p}_{T}^{#Lambda} (LeadP);#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
+    // For the second-to-leading jet:
+    histosRingFamily.add("Ring/SubJet/hRingObservableCounts", "Counts vs <#it{R}>_{SubJet};<#it{R}>; Counts", kTH1D, {axisConfigurations.axisRingCounts});
+    histosRingFamily.add("Ring/SubJet/pRingObservableDeltaPhi", "<#it{R}> vs #Delta#varphi_{SubJet};#Delta#varphi_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaPhi});
+    histosRingFamily.add("Ring/SubJet/pRingObservableDeltaTheta", "<#it{R}> vs #Delta#theta_{SubJet};#Delta#theta_{SubJet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaTheta});
+    histosRingFamily.add("Ring/SubJet/pRingObservableIntegrated", "Integrated <#it{R}> (SubJet); ;<#it{R}>", kTProfile, {{1, -0.5, 0.5}});
+    histosRingFamily.add("Ring/SubJet/pRingObservableLambdaPt", "<#it{R}> vs #it{p}_{T}^{#Lambda} (SubJet);#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile, {axisConfigurations.axisPt});
 
-      // For the Zvtx dependence:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservablePVz").c_str(), "<#it{R}>_{LeadJet} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
-      histosRingFamily.add((familyFolderPath + "/SubJet/pRingObservablePVz").c_str(), "<#it{R}>_{SubLead} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadP/pRingObservablePVz").c_str(), "<#it{R}>_{LeadP} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
-      // ===============================
-      // 2D TProfiles (Lambda correlations)
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableDeltaPhiVsLambdaPt").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPt});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableDeltaThetaVsLambdaPt").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs #it{p}_{T}^{#Lambda};#Delta#theta_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisPt});
-      // ===============================
-      // 2D TProfiles (Jet correlations)
-      // ===============================
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableDeltaPhiVsProxyPt").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Lead Jet #it{p}_{T};#Delta#varphi_{jet};#it{p}_{T}^{LeadJet} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisJetPt});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableDeltaThetaVsProxyPt").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs Lead Jet #it{p}_{T};#Delta#theta_{jet};#it{p}_{T}^{LeadJet} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisJetPt});
+    // For the Zvtx dependence:
+    histosRingFamily.add("Ring/LeadJet/pRingObservablePVz", "<#it{R}>_{LeadJet} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+    histosRingFamily.add("Ring/SubJet/pRingObservablePVz", "<#it{R}>_{SubLead} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+    histosRingFamily.add("Ring/LeadP/pRingObservablePVz", "<#it{R}>_{LeadP} vs PVz;PVz (cm);<#it{R}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+    // ===============================
+    // 2D TProfiles (Lambda correlations)
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableDeltaPhiVsLambdaPt", "<#it{R}> vs #Delta#varphi_{jet} vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisPt});
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableDeltaThetaVsLambdaPt", "<#it{R}> vs #Delta#theta_{jet} vs #it{p}_{T}^{#Lambda};#Delta#theta_{jet};#it{p}_{T}^{#Lambda} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisPt});
+    // ===============================
+    // 2D TProfiles (Jet correlations)
+    // ===============================
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableDeltaPhiVsProxyPt", "<#it{R}> vs #Delta#varphi_{jet} vs Lead Jet #it{p}_{T};#Delta#varphi_{jet};#it{p}_{T}^{LeadJet} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisJetPt});
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableDeltaThetaVsProxyPt", "<#it{R}> vs #Delta#theta_{jet} vs Lead Jet #it{p}_{T};#Delta#theta_{jet};#it{p}_{T}^{LeadJet} (GeV/c);<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisJetPt});
 
-      // ===============================
-      // Multi-dimensional histograms for signal extraction
-      // (Mass-dependent polarization extraction)
-      // ===============================
-      // Simple invariant mass plot for QA:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/hMass").c_str(), "#Lambda Mass;m_{p#pi} (GeV/c^{2});Counts", kTH1D, {axisConfigurations.axisLambdaMass});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/hMassSigExtract").c_str(), "#Lambda Mass (Sig Extract);m_{p#pi} (GeV/c^{2});Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
-      // --- 2D counters: Angle vs Mass vs ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/h2dDeltaPhiVsMass").c_str(), "#Delta#varphi_{jet} vs Mass;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2})", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/QA/h2dDeltaThetaVsMass").c_str(), "#Delta#theta_{jet} vs Mass;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2})", kTH2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract});
-      // (No 3D counters here: the bin entries of the p3d profiles below already count the same V0s)
+    // ===============================
+    // Multi-dimensional histograms for signal extraction
+    // (Mass-dependent polarization extraction)
+    // ===============================
+    // Simple invariant mass plot for QA:
+    histosRingFamily.add("Ring/LeadJet/QA/hMass", "#Lambda Mass;m_{p#pi} (GeV/c^{2});Counts", kTH1D, {axisConfigurations.axisLambdaMass});
+    histosRingFamily.add("Ring/LeadJet/hMassSigExtract", "#Lambda Mass (Sig Extract);m_{p#pi} (GeV/c^{2});Counts", kTH1D, {axisConfigurations.axisLambdaMassSigExtract});
+    // --- 2D counters: Angle vs Mass vs ---
+    histosRingFamily.add("Ring/LeadJet/QA/h2dDeltaPhiVsMass", "#Delta#varphi_{jet} vs Mass;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2})", kTH2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/LeadJet/QA/h2dDeltaThetaVsMass", "#Delta#theta_{jet} vs Mass;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2})", kTH2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract});
+    // (No 3D counters here: the bin entries of the p3d profiles below already count the same V0s)
 
-      // ===============================
-      // TProfiles vs Mass: quick glancing and signal extraction
-      // ===============================
-      // TProfile of ring vs mass (integrated in all phi, and properly normalized by N_Lambda):
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingObservableMass").c_str(), "<#it{R}> vs Mass;m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/LeadP/pRingObservableMass").c_str(), "<#it{R}> vs Mass (LeadP);m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/SubJet/pRingObservableMass").c_str(), "<#it{R}> vs Mass (SubJet);m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+    // ===============================
+    // TProfiles vs Mass: quick glancing and signal extraction
+    // ===============================
+    // TProfile of ring vs mass (integrated in all phi, and properly normalized by N_Lambda):
+    histosRingFamily.add("Ring/LeadJet/pRingObservableMass", "<#it{R}> vs Mass;m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/LeadP/pRingObservableMass", "<#it{R}> vs Mass (LeadP);m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/SubJet/pRingObservableMass", "<#it{R}> vs Mass (SubJet);m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
 
-      // KappaEff moments, per proxy and vs mass for signal extraction:
-      // With u the unitless ring (R without its prefactor), v the unitless full ring and w = e \cdot n the projection weight,
-      // kappa = 3 <u v>/<w> -- the cross moment, exact for any projection. Full ring: u = v and w = 1. R_z and R_z^T: w = n_z^2.
-      for (const std::string& proxy : {std::string("LeadJet"), std::string("LeadP"), std::string("SubJet")}) {
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pKappaNumVsMass").c_str(), ("<u v> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<u v>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pKappaDenVsMass").c_str(), ("<w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pKappaNumTimesDenVsMass").c_str(), ("<u v w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<u v w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pRingTimesDenVsMass").c_str(), ("<#it{R} w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<#it{R} w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
-        // The same moments per CheapSigExtract region, from v0InMassWindow and v0InMassPeak: bin 1 sideband, bin 2 peak, underflow otherwise
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pRingVsMassRegion").c_str(), ("<#it{R}> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<#it{R}>").c_str(), kTProfile, {{2, 0., 2.}});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pKappaNumVsMassRegion").c_str(), ("<u v> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<u v>").c_str(), kTProfile, {{2, 0., 2.}});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pKappaDenVsMassRegion").c_str(), ("<w> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<w>").c_str(), kTProfile, {{2, 0., 2.}});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pKappaNumTimesDenVsMassRegion").c_str(), ("<u v w> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<u v w>").c_str(), kTProfile, {{2, 0., 2.}});
-        histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/pRingTimesDenVsMassRegion").c_str(), ("<#it{R} w> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<#it{R} w>").c_str(), kTProfile, {{2, 0., 2.}});
+    // KappaEff moments, per proxy and vs mass for signal extraction:
+    // With u the unitless ring (R without its prefactor), v the unitless full ring and w = e \cdot n the projection weight,
+    // kappa = 3 <u v>/<w> -- the cross moment, exact for any projection. Full ring: u = v and w = 1. R_z and R_z^T: w = n_z^2.
+    for (const std::string& proxy : {std::string("LeadJet"), std::string("LeadP"), std::string("SubJet")}) {
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pKappaNumVsMass").c_str(), ("<u v> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<u v>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pKappaDenVsMass").c_str(), ("<w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pKappaNumTimesDenVsMass").c_str(), ("<u v w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<u v w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pRingTimesDenVsMass").c_str(), ("<#it{R} w> vs Mass (" + proxy + ");m_{p#pi} (GeV/c^{2});<#it{R} w>").c_str(), kTProfile, {axisConfigurations.axisLambdaMassSigExtract});
+      // The same moments per CheapSigExtract region, from v0InMassWindow and v0InMassPeak: bin 1 sideband, bin 2 peak, underflow otherwise
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pRingVsMassRegion").c_str(), ("<#it{R}> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<#it{R}>").c_str(), kTProfile, {{2, 0., 2.}});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pKappaNumVsMassRegion").c_str(), ("<u v> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<u v>").c_str(), kTProfile, {{2, 0., 2.}});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pKappaDenVsMassRegion").c_str(), ("<w> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<w>").c_str(), kTProfile, {{2, 0., 2.}});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pKappaNumTimesDenVsMassRegion").c_str(), ("<u v w> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<u v w>").c_str(), kTProfile, {{2, 0., 2.}});
+      histosRingFamily.add(("Ring/" + proxy + "/KappaEff/pRingTimesDenVsMassRegion").c_str(), ("<#it{R} w> per mass region (" + proxy + ");mass region (1 sideband, 2 peak);<#it{R} w>").c_str(), kTProfile, {{2, 0., 2.}});
 
-        // Differential KappaEff -- The same moments per proxy pT and per centrality, still per mass region:
-        // Axes are kept the same as the event mixing axes. Otherwise, a borrowed proxy could land in another bin than its target,
-        // so Data and MixedEv would no longer share their Lambdas bin by bin, and the subtraction of the mixed-event fake from Data would be off in post-processing.
-        // (the pT is the proxy the event mixing source's, which sits in the target's own pT bin by construction)
-        struct DiffMoment { std::string name, title; };
-        struct DiffVariable { std::string name, title; AxisSpec axis; };
-        const std::vector<DiffMoment> diffMoments = {{"Ring", "<#it{R}>"}, {"KappaNum", "<u v>"}, {"KappaDen", "<w>"}, {"KappaNumTimesDen", "<u v w>"}, {"RingTimesDen", "<#it{R} w>"}};
-        const std::vector<DiffVariable> diffVariables = {{"ProxyPt", "#it{p}_{T}^{" + proxy + "} (GeV/c)", axisConfigurations.axisJetPt}, {"Centrality", "Centrality (%)", axisConfigurations.axisCentrality}};
-        for (const auto& mom : diffMoments) {
-          for (const auto& var : diffVariables) {
-            histosRingFamily.add((familyFolderPath + "/" + proxy + "/KappaEff/Differential/p2d" + mom.name + "Vs" + var.name + "VsMassRegion").c_str(),
-                                 (mom.title + " vs " + var.name + " per mass region (" + proxy + ");" + var.title + ";mass region (1 sideband, 2 peak);" + mom.title).c_str(),
-                                 kTProfile2D, {var.axis, {2, 0., 2.}});
-          }
+      // Differential KappaEff -- The same moments per proxy pT and per centrality, still per mass region:
+      // Axes are kept the same as the event mixing axes. Otherwise, a borrowed proxy could land in another bin than its target,
+      // so Data and MixedEv would no longer share their Lambdas bin by bin, and the subtraction of the mixed-event fake from Data would be off in post-processing.
+      // (the pT is the proxy the event mixing source's, which sits in the target's own pT bin by construction)
+      struct DiffMoment { std::string name, title; };
+      struct DiffVariable { std::string name, title; AxisSpec axis; };
+      const std::vector<DiffMoment> diffMoments = {{"Ring", "<#it{R}>"}, {"KappaNum", "<u v>"}, {"KappaDen", "<w>"}, {"KappaNumTimesDen", "<u v w>"}, {"RingTimesDen", "<#it{R} w>"}};
+      const std::vector<DiffVariable> diffVariables = {{"ProxyPt", "#it{p}_{T}^{" + proxy + "} (GeV/c)", axisConfigurations.axisJetPt}, {"Centrality", "Centrality (%)", axisConfigurations.axisCentrality}};
+      for (const auto& mom : diffMoments) {
+        for (const auto& var : diffVariables) {
+          histosRingFamily.add(("Ring/" + proxy + "/KappaEff/Differential/p2d" + mom.name + "Vs" + var.name + "VsMassRegion").c_str(),
+                               (mom.title + " vs " + var.name + " per mass region (" + proxy + ");" + var.title + ";mass region (1 sideband, 2 peak);" + mom.title).c_str(),
+                               kTProfile2D, {var.axis, {2, 0., 2.}});
         }
       }
-      // TProfile2D: <R> vs Mass (DeltaPhi)
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableDeltaPhiVsMass").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Mass;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract});
-      // TProfile2D: <R> vs Mass (DeltaTheta)
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableDeltaThetaVsMass").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs Mass;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract});
-      // TProfile2D: <R> vs Mass (EtaLambda):
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableEtaLambdaVsMass").c_str(), "<#it{R}> vs #eta_{#Lambda} vs Mass;#eta_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisLambdaMassSigExtract});
-      // TProfile2D: <R> vs EtaProxy Vs Mass
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableProxyEtaVsMass").c_str(), "<#it{R}> vs #eta_{jet} vs Mass;#eta_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/LeadP/p2dRingObservableProxyEtaVsMass").c_str(), "<#it{R}> vs #eta_{LeadP} vs Mass;#eta_{LeadP};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/SubJet/p2dRingObservableProxyEtaVsMass").c_str(), "<#it{R}> vs #eta_{SubJet} vs Mass;#eta_{SubJet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
-      // Auxiliary counters for EtaProxy Vs Mass:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/h2dCounterProxyEtaVsMass").c_str(), "V0 Counter vs #eta_{jet} vs Mass;#eta_{jet};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/LeadP/h2dCounterProxyEtaVsMass").c_str(), "V0 Counter vs #eta_{LeadP} vs Mass;#eta_{LeadP};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
-      histosRingFamily.add((familyFolderPath + "/SubJet/h2dCounterProxyEtaVsMass").c_str(), "V0 Counter vs #eta_{SubJet} vs Mass;#eta_{SubJet};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+    }
+    // TProfile2D: <R> vs Mass (DeltaPhi)
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableDeltaPhiVsMass", "<#it{R}> vs #Delta#varphi_{jet} vs Mass;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract});
+    // TProfile2D: <R> vs Mass (DeltaTheta)
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableDeltaThetaVsMass", "<#it{R}> vs #Delta#theta_{jet} vs Mass;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract});
+    // TProfile2D: <R> vs Mass (EtaLambda):
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableEtaLambdaVsMass", "<#it{R}> vs #eta_{#Lambda} vs Mass;#eta_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisLambdaMassSigExtract});
+    // TProfile2D: <R> vs EtaProxy Vs Mass
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableProxyEtaVsMass", "<#it{R}> vs #eta_{jet} vs Mass;#eta_{jet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/LeadP/p2dRingObservableProxyEtaVsMass", "<#it{R}> vs #eta_{LeadP} vs Mass;#eta_{LeadP};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/SubJet/p2dRingObservableProxyEtaVsMass", "<#it{R}> vs #eta_{SubJet} vs Mass;#eta_{SubJet};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+    // Auxiliary counters for EtaProxy Vs Mass:
+    histosRingFamily.add("Ring/LeadJet/h2dCounterProxyEtaVsMass", "V0 Counter vs #eta_{jet} vs Mass;#eta_{jet};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/LeadP/h2dCounterProxyEtaVsMass", "V0 Counter vs #eta_{LeadP} vs Mass;#eta_{LeadP};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+    histosRingFamily.add("Ring/SubJet/h2dCounterProxyEtaVsMass", "V0 Counter vs #eta_{SubJet} vs Mass;#eta_{SubJet};m_{p#pi} (GeV/c^{2});Counter", kTH2D, {axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
 
-      // TProfile2D: <R> vs Eta Lambda vs Eta Jet (Understanding eta dependence seen in pRingEtaCuts)
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/hCounterEtaLambdaMinusProxyEta").c_str(), "N_{V0s} vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet}; N_{V0s}", kTH1D, {axisConfigurations.axisDeltaEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/pRingObservableEtaLambdaMinusProxyEta").c_str(), "<#it{R}> vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta").c_str(), "<#it{R}> vs #eta_{#Lambda} vs #eta_{Jet};#eta_{#Lambda};#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta_FineBins").c_str(), "<#it{R}> vs #eta_{#Lambda} vs #eta_{Jet} (fine bins);#eta_{#Lambda};#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0Eta, axisConfigurations.axisEta});
-      histosRingFamily.add((familyFolderPath + "/LeadP/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta").c_str(), "<#it{R}> vs #eta_{#Lambda} vs #eta_{LeadP};#eta_{#Lambda};#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/SubJet/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta").c_str(), "<#it{R}> vs #eta_{#Lambda} vs #eta_{SubJet};#eta_{#Lambda};#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
-      // Counters for these histograms, instead of only TProfile2Ds:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/h2dCounterEtaLambdaVsProxyEta").c_str(), "Counts, #eta_{#Lambda} vs #eta_{Jet};#eta_{#Lambda};#eta_{Jet};Counts", kTH2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/LeadJet/EtaDependence/h2dCounterEtaLambdaVsProxyEta_FineBins").c_str(), "Counts (fine bins), #eta_{#Lambda} vs #eta_{Jet};#eta_{#Lambda};#eta_{Jet};Counts", kTH2D, {axisConfigurations.axisV0Eta, axisConfigurations.axisEta});
-      histosRingFamily.add((familyFolderPath + "/LeadP/EtaDependence/h2dCounterEtaLambdaVsProxyEta").c_str(), "Counts, #eta_{#Lambda} vs #eta_{LeadP};#eta_{#Lambda};#eta_{LeadP};Counts", kTH2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
-      histosRingFamily.add((familyFolderPath + "/SubJet/EtaDependence/h2dCounterEtaLambdaVsProxyEta").c_str(), "Counts, #eta_{#Lambda} vs #eta_{SubJet};#eta_{#Lambda};#eta_{SubJet};Counts", kTH2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
-      // --- TProfile3D: <R> vs DeltaPhi vs Mass vs LambdaPt ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p3dRingObservableDeltaPhiVsMassVsLambdaPt").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Mass vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{#Lambda} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisPtSigExtract});
-      // --- TProfile3D: <R> vs DeltaTheta vs Mass vs LambdaPt ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p3dRingObservableDeltaThetaVsMassVsLambdaPt").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs Mass vs #it{p}_{T}^{#Lambda};#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{#Lambda} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisPtSigExtract});
-      // --- TProfile3D: <R> vs DeltaPhi vs Mass vs LeadJetPt ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p3dRingObservableDeltaPhiVsMassVsProxyPt").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Mass vs Lead Jet #it{p}_{T};#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{LeadJet} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisJetPtSigExtract});
-      // --- TProfile3D: <R> vs DeltaTheta vs Mass vs LeadJetPt ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p3dRingObservableDeltaThetaVsMassVsProxyPt").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs Mass vs Lead Jet #it{p}_{T};#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{LeadJet} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisJetPtSigExtract});
+    // TProfile2D: <R> vs Eta Lambda vs Eta Jet (Understanding eta dependence seen in pRingEtaCuts)
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/hCounterEtaLambdaMinusProxyEta", "N_{V0s} vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet}; N_{V0s}", kTH1D, {axisConfigurations.axisDeltaEtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/pRingObservableEtaLambdaMinusProxyEta", "<#it{R}> vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaEtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta", "<#it{R}> vs #eta_{#Lambda} vs #eta_{Jet};#eta_{#Lambda};#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta_FineBins", "<#it{R}> vs #eta_{#Lambda} vs #eta_{Jet} (fine bins);#eta_{#Lambda};#eta_{Jet};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0Eta, axisConfigurations.axisEta});
+    histosRingFamily.add("Ring/LeadP/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta", "<#it{R}> vs #eta_{#Lambda} vs #eta_{LeadP};#eta_{#Lambda};#eta_{LeadP};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/SubJet/EtaDependence/p2dRingObservableEtaLambdaVsProxyEta", "<#it{R}> vs #eta_{#Lambda} vs #eta_{SubJet};#eta_{#Lambda};#eta_{SubJet};<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
+    // Counters for these histograms, instead of only TProfile2Ds:
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/h2dCounterEtaLambdaVsProxyEta", "Counts, #eta_{#Lambda} vs #eta_{Jet};#eta_{#Lambda};#eta_{Jet};Counts", kTH2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/LeadJet/EtaDependence/h2dCounterEtaLambdaVsProxyEta_FineBins", "Counts (fine bins), #eta_{#Lambda} vs #eta_{Jet};#eta_{#Lambda};#eta_{Jet};Counts", kTH2D, {axisConfigurations.axisV0Eta, axisConfigurations.axisEta});
+    histosRingFamily.add("Ring/LeadP/EtaDependence/h2dCounterEtaLambdaVsProxyEta", "Counts, #eta_{#Lambda} vs #eta_{LeadP};#eta_{#Lambda};#eta_{LeadP};Counts", kTH2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
+    histosRingFamily.add("Ring/SubJet/EtaDependence/h2dCounterEtaLambdaVsProxyEta", "Counts, #eta_{#Lambda} vs #eta_{SubJet};#eta_{#Lambda};#eta_{SubJet};Counts", kTH2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisEtaCoarse});
+    // --- TProfile3D: <R> vs DeltaPhi vs Mass vs LambdaPt ---
+    histosRingFamily.add("Ring/LeadJet/p3dRingObservableDeltaPhiVsMassVsLambdaPt", "<#it{R}> vs #Delta#varphi_{jet} vs Mass vs #it{p}_{T}^{#Lambda};#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{#Lambda} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisPtSigExtract});
+    // --- TProfile3D: <R> vs DeltaTheta vs Mass vs LambdaPt ---
+    histosRingFamily.add("Ring/LeadJet/p3dRingObservableDeltaThetaVsMassVsLambdaPt", "<#it{R}> vs #Delta#theta_{jet} vs Mass vs #it{p}_{T}^{#Lambda};#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{#Lambda} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisPtSigExtract});
+    // --- TProfile3D: <R> vs DeltaPhi vs Mass vs LeadJetPt ---
+    histosRingFamily.add("Ring/LeadJet/p3dRingObservableDeltaPhiVsMassVsProxyPt", "<#it{R}> vs #Delta#varphi_{jet} vs Mass vs Lead Jet #it{p}_{T};#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{LeadJet} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisJetPtSigExtract});
+    // --- TProfile3D: <R> vs DeltaTheta vs Mass vs LeadJetPt ---
+    histosRingFamily.add("Ring/LeadJet/p3dRingObservableDeltaThetaVsMassVsProxyPt", "<#it{R}> vs #Delta#theta_{jet} vs Mass vs Lead Jet #it{p}_{T};#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});#it{p}_{T}^{LeadJet} (GeV/c)", kTProfile3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisJetPtSigExtract});
 
-      // ===============================
-      // Mass histograms with centrality
-      // ===============================
-      // Useful TProfiles:
-      // --- TProfile1D: Integrated <R> vs Centrality:
-      histosRingFamily.add((familyFolderPath + "/LeadJet/pRingVsCentrality").c_str(), "<#it{R}> vs Centrality;Centrality (%);<#it{R}>", kTProfile, {axisConfigurations.axisCentrality});
-      // --- TProfile2D: <R> vs Mass vs Centrality ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p2dRingObservableMassVsCent").c_str(), "<#it{R}> vs Mass vs Centrality;m_{p#pi} (GeV/c^{2});Centrality (%);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
-      // --- TProfile3D: <R> vs DeltaPhi vs Mass vs Centrality ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p3dRingObservableDeltaPhiVsMassVsCent").c_str(), "<#it{R}> vs #Delta#varphi_{jet} vs Mass vs Centrality;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});Centrality (%)", kTProfile3D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
-      // --- TProfile3D: <R> vs DeltaTheta vs Mass vs Centrality ---
-      histosRingFamily.add((familyFolderPath + "/LeadJet/p3dRingObservableDeltaThetaVsMassVsCent").c_str(), "<#it{R}> vs #Delta#theta_{jet} vs Mass vs Centrality;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});Centrality (%)", kTProfile3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
+    // ===============================
+    // Mass histograms with centrality
+    // ===============================
+    // Useful TProfiles:
+    // --- TProfile1D: Integrated <R> vs Centrality:
+    histosRingFamily.add("Ring/LeadJet/pRingVsCentrality", "<#it{R}> vs Centrality;Centrality (%);<#it{R}>", kTProfile, {axisConfigurations.axisCentrality});
+    // --- TProfile2D: <R> vs Mass vs Centrality ---
+    histosRingFamily.add("Ring/LeadJet/p2dRingObservableMassVsCent", "<#it{R}> vs Mass vs Centrality;m_{p#pi} (GeV/c^{2});Centrality (%);<#it{R}>", kTProfile2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
+    // --- TProfile3D: <R> vs DeltaPhi vs Mass vs Centrality ---
+    histosRingFamily.add("Ring/LeadJet/p3dRingObservableDeltaPhiVsMassVsCent", "<#it{R}> vs #Delta#varphi_{jet} vs Mass vs Centrality;#Delta#varphi_{jet};m_{p#pi} (GeV/c^{2});Centrality (%)", kTProfile3D, {axisConfigurations.axisDeltaPhi, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
+    // --- TProfile3D: <R> vs DeltaTheta vs Mass vs Centrality ---
+    histosRingFamily.add("Ring/LeadJet/p3dRingObservableDeltaThetaVsMassVsCent", "<#it{R}> vs #Delta#theta_{jet} vs Mass vs Centrality;#Delta#theta_{jet};m_{p#pi} (GeV/c^{2});Centrality (%)", kTProfile3D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisCentrality});
 
-      // ===============================
-      // QA histograms - Useful numbers
-      // ===============================
-      // (TODO: implement these!)
-      // (TODO: implement momentum imbalance checks for jets!)
-      // Added to a separate folder for further control (changed the usage of the "familyFolderPath" string):
-      // histosRingFamily.add(("QA_Numbers/" + familyFolderPath + "/hValidLeadJets").c_str(), "hValidLeadJets", kTH1D, {{1,0,1}});
-      // TODO: Add "frequency of jets per pT" histograms either here or in the TableProducer
+    // ===============================
+    // QA histograms - Useful numbers
+    // ===============================
+    // (TODO: implement these!)
+    // (TODO: implement momentum imbalance checks for jets!)
+    // Added to a separate folder for further control:
+    // histosRingFamily.add("QA_Numbers/Ring/hValidLeadJets", "hValidLeadJets", kTH1D, {{1,0,1}});
+    // TODO: Add "frequency of jets per pT" histograms either here or in the TableProducer
 
-      // Estimating error bars with the Delta Method for <R> = A/B:
-      // 1D Delta Method for Integrated observable:
-      histosRingFamily.add((familyFolderPath + "/DeltaMethod/hIntegrated").c_str(), "Delta Method Accumulators Integrated;Component;Counts", kTH1D, {axisConfigurations.axisDeltaComponents});
+    // Estimating error bars with the Delta Method for <R> = A/B:
+    // 1D Delta Method for Integrated observable:
+    histosRingFamily.add("Ring/DeltaMethod/hIntegrated", "Delta Method Accumulators Integrated;Component;Counts", kTH1D, {axisConfigurations.axisDeltaComponents});
 
-      // 2D Delta Method for Differentials
-      histosRingFamily.add((familyFolderPath + "/DeltaMethod/h2dDeltaThetaVsDeltaComp").c_str(), "Delta Method vs #Delta#theta_{jet};#Delta#theta_{jet};Component", kTH2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisDeltaComponents});
-      histosRingFamily.add((familyFolderPath + "/DeltaMethod/h2dLambdaPtVsDeltaComp").c_str(), "Delta Method vs #Lambda #it{p}_{T};#it{p}_{T}^{#Lambda} (GeV/c);Component", kTH2D, {axisConfigurations.axisPt, axisConfigurations.axisDeltaComponents});
-      histosRingFamily.add((familyFolderPath + "/DeltaMethod/h2dMassVsDeltaComp").c_str(), "Delta Method vs Mass;m_{p#pi} (GeV/c^{2});Component", kTH2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisDeltaComponents});
-    };
-    // Execute local lambda to register histogram families:
-    if (familySwitches.doFamilyRing)
-      addRingObservableFamily(std::string(FamilyNames[kRing]));
-    if (familySwitches.doFamilyRingKinematicCuts)
-      addRingObservableFamily(std::string(FamilyNames[kRingKinematicCuts]));
-    if (familySwitches.doFamilyJetKinematicCuts)
-      addRingObservableFamily(std::string(FamilyNames[kJetKinematicCuts]));
-    if (familySwitches.doFamilyJetAndLambdaKinematicCuts)
-      addRingObservableFamily(std::string(FamilyNames[kJetAndLambdaKinematicCuts]));
+    // 2D Delta Method for Differentials
+    histosRingFamily.add("Ring/DeltaMethod/h2dDeltaThetaVsDeltaComp", "Delta Method vs #Delta#theta_{jet};#Delta#theta_{jet};Component", kTH2D, {axisConfigurations.axisDeltaTheta, axisConfigurations.axisDeltaComponents});
+    histosRingFamily.add("Ring/DeltaMethod/h2dLambdaPtVsDeltaComp", "Delta Method vs #Lambda #it{p}_{T};#it{p}_{T}^{#Lambda} (GeV/c);Component", kTH2D, {axisConfigurations.axisPt, axisConfigurations.axisDeltaComponents});
+    histosRingFamily.add("Ring/DeltaMethod/h2dMassVsDeltaComp", "Delta Method vs Mass;m_{p#pi} (GeV/c^{2});Component", kTH2D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisDeltaComponents});
 
     // R_z-only diagnostics -- Compares the 3D ring, the projected ring and other useful diagnostics:
     if (useRingZ || useRingZT) {
@@ -1025,7 +1004,7 @@ struct lambdajetpolarizationionsderived {
     // Same for subleading jet and leading particle:
     histos.add("IntegratedCuts/SubJet/pRingCuts", "pRingCuts; ;<#it{R}>", kTProfile, {{4, 0, 4}});
     histos.get<TProfile>(HIST("IntegratedCuts/SubJet/pRingCuts"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
-    histos.get<TProfile>(HIST("IntegratedCuts/SubJet/pRingCuts"))->GetXaxis()->SetBinLabel(2, "p_{T,#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TProfile>(HIST("IntegratedCuts/SubJet/pRingCuts"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
     histos.get<TProfile>(HIST("IntegratedCuts/SubJet/pRingCuts"))->GetXaxis()->SetBinLabel(3, "|SubJet_{#eta}|<0.5");
     histos.get<TProfile>(HIST("IntegratedCuts/SubJet/pRingCuts"))->GetXaxis()->SetBinLabel(4, "#Lambda + SubJet cuts");
 
@@ -1055,7 +1034,7 @@ struct lambdajetpolarizationionsderived {
     // Same for subleading jet and leading particle:
     histos.add("IntegratedCuts/SubJet/p2dRingCutsV0MassPeak", "p2dRingCutsSubLeadingJet V0MassPeak; ; SidebandWindow (0) or InPeak (1);<#it{R}>", kTProfile2D, {{4, 0, 4}, {2, 0, 2}});
     histos.get<TProfile2D>(HIST("IntegratedCuts/SubJet/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
-    histos.get<TProfile2D>(HIST("IntegratedCuts/SubJet/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T,#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TProfile2D>(HIST("IntegratedCuts/SubJet/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
     histos.get<TProfile2D>(HIST("IntegratedCuts/SubJet/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(3, "|SubJet_{#eta}|<0.5");
     histos.get<TProfile2D>(HIST("IntegratedCuts/SubJet/p2dRingCutsV0MassPeak"))->GetXaxis()->SetBinLabel(4, "#Lambda + SubJet cuts");
 
@@ -1075,7 +1054,7 @@ struct lambdajetpolarizationionsderived {
     // Same for subleading jet and leading particle:
     histos.add("IntegratedCuts/SubJet/hCountCuts", "hCountCuts; ;N V0s", kTH1D, {{4, 0, 4}});
     histos.get<TH1>(HIST("IntegratedCuts/SubJet/hCountCuts"))->GetXaxis()->SetBinLabel(1, "All #Lambda");
-    histos.get<TH1>(HIST("IntegratedCuts/SubJet/hCountCuts"))->GetXaxis()->SetBinLabel(2, "p_{T,#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
+    histos.get<TH1>(HIST("IntegratedCuts/SubJet/hCountCuts"))->GetXaxis()->SetBinLabel(2, "p_{T}^{#Lambda}@[0.5,1.5],|y_{#Lambda}|<0.5");
     histos.get<TH1>(HIST("IntegratedCuts/SubJet/hCountCuts"))->GetXaxis()->SetBinLabel(3, "|SubJet_{#eta}|<0.5");
     histos.get<TH1>(HIST("IntegratedCuts/SubJet/hCountCuts"))->GetXaxis()->SetBinLabel(4, "#Lambda + SubJet cuts");
 
@@ -1358,7 +1337,7 @@ struct lambdajetpolarizationionsderived {
       histos.add("HelicityEfficiencyQA/PhiAEE/FiveBinMass/LeadP/p2dRingObservableVsPhiAEEVs5BinMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs mass slice;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisMassRegions});
       histos.add("HelicityEfficiencyQA/PhiAEE/FiveBinMass/SubJet/p2dRingObservableVsPhiAEEVs5BinMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs mass slice;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisMassRegions});
 
-      // Picking a representative split in eta and PhiAEE just to see if we manage to stabilize the background (based off p2dRingObservableEtaLambdaVsMass, but booked outside the addRingObservableFamily lambda):
+      // Picking a representative split in eta and PhiAEE just to see if we manage to stabilize the background (based off p2dRingObservableEtaLambdaVsMass, but booked outside the Ring/ folder):
       histos.add("HelicityEfficiencyQA/PhiAEE/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPos", "<#it{R}> vs #eta_{#Lambda} vs Mass, #eta_{Proxy}>0, #phi_{AEE}>0;#eta_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisLambdaMassSigExtract});
       histos.add("HelicityEfficiencyQA/PhiAEE/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyNegPhiAEEPos", "<#it{R}> vs #eta_{#Lambda} vs Mass, #eta_{Proxy}<0, #phi_{AEE}>0;#eta_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisLambdaMassSigExtract});
       histos.add("HelicityEfficiencyQA/PhiAEE/BkgStabilizationAttempt/p2dRingObservableEtaLambdaVsMassEtaProxyPosPhiAEEPosDeltaPhiLeadJetPos", "<#it{R}> vs #eta_{#Lambda} vs Mass, #eta_{Proxy}>0, #phi_{AEE}>0, #Delta#phi_{Jet}>0;#eta_{#Lambda};m_{p#pi} (GeV/c^{2});<#it{R}>", kTProfile2D, {axisConfigurations.axisV0EtaCoarse, axisConfigurations.axisLambdaMassSigExtract});
@@ -1568,12 +1547,11 @@ struct lambdajetpolarizationionsderived {
       }
     }
 
-    // Fetch the X-axes from one of the families (since they all share the same ConfigurableAxis binning)
+    // Fetch the X-axes of the Delta Method histograms booked above:
     mAxisPt = histosRingFamily.get<TH2>(HIST("Ring/DeltaMethod/h2dLambdaPtVsDeltaComp"))->GetXaxis();
     mAxisMass = histosRingFamily.get<TH2>(HIST("Ring/DeltaMethod/h2dMassVsDeltaComp"))->GetXaxis();
     mAxisDTheta = histosRingFamily.get<TH2>(HIST("Ring/DeltaMethod/h2dDeltaThetaVsDeltaComp"))->GetXaxis();
-    for (auto const& tracker : {&trackRing, &trackRingKinCuts, &trackJetKinCuts, &trackJetLambdaKinCuts})
-      tracker->resize(mAxisPt->GetNbins(), mAxisMass->GetNbins(), mAxisDTheta->GetNbins());
+    deltaTracker.resize(mAxisPt->GetNbins(), mAxisMass->GetNbins(), mAxisDTheta->GetNbins());
   }
 
   // Helper to get centrality (same from TableProducer, thanks to templating!):
@@ -1688,9 +1666,6 @@ struct lambdajetpolarizationionsderived {
     if (dcaPiLikeToPV < analysisLevelCuts.v0MinDcaPiLikeToPV)
       return false;
     v0AnalysisCutCounter.fill();
- 
-    // Jets-related (kinematic, quenching, etc.):
-    // (TODO)
 
     if (v0.v0Phi() < v0PhiLimitsVec[0] || v0.v0Phi() > v0PhiLimitsVec[1])
       return false;
@@ -1707,6 +1682,18 @@ struct lambdajetpolarizationionsderived {
     v0AnalysisCutCounter.fill(); // Final accepted V0s. Redundant with the last cut's bin by construction, kept as a stable reference bin
     histos.fill(HIST("h2dArmenterosAnalysisCuts"), v0.alpha(), v0.qtArm());
     return true;
+  }
+
+  /// \brief A function that applies analysisLevelCutsJets' acceptance to one jet proxy (leading jet, subleading jet or leading particle).
+  /// \note  Called together with the minimum-pT selections, before any V0 processing. Always true when doAnalysisLevelCutsJets is off.
+  bool isProxyAccepted(float proxyEta, float maxAbsEta)
+  {
+    if (!analysisLevelCutsJets.doAnalysisLevelCutsJets)
+      return true;
+    return std::abs(proxyEta) < maxAbsEta;
+
+    // Quenching-related cuts
+    // (TODO)
   }
 
   // Initializing a random number generator for the worker (for perpendicular-to-jet direction QAs):
@@ -2024,7 +2011,7 @@ struct lambdajetpolarizationionsderived {
   }
 
   /// \brief Source-usage QA of one proxy's finished LUT, over every stored entry (one per borrowing/resampling pass).
-  /// \note The "entry / nResamples" value groups nResamples valid collisions as being sources to a same target collision, essentially, as we take only the integer part of the division.
+  /// \note Each target owns nResamples consecutive entries (filled from the first, -1 when empty), so "entry / nResamples" is always the target slot.
   template <int idxProxy>
   void fillMixingSourceQA(const ProxyByCollision& proxyByCollision)
   {
@@ -2043,23 +2030,6 @@ struct lambdajetpolarizationionsderived {
       histos.fill(folderPath + HIST("/pMixedEventSourceUsageVsEta"), source.eta, kv.second);
       histos.fill(folderPath + HIST("/pMixedEventSourceUsageVsPhi"), source.phi, kv.second);
     }
-  }
-
-  /// \brief Dumps one family's Delta Method accumulators into its DeltaMethod/ histograms (once per collision).
-  template <int idxFamily>
-  void flushDeltaTracker(const EventDeltaTracker& deltaTracker)
-  {
-    constexpr auto folderPath = HIST(FamilyNames[idxFamily]) + HIST("/DeltaMethod");
-    if (deltaTracker.nInt > 0) {
-      histosRingFamily.fill(folderPath + HIST("/hIntegrated"), 0.5, deltaTracker.rInt);
-      histosRingFamily.fill(folderPath + HIST("/hIntegrated"), 1.5, static_cast<double>(deltaTracker.nInt));
-      histosRingFamily.fill(folderPath + HIST("/hIntegrated"), 2.5, deltaTracker.rInt * deltaTracker.rInt);
-      histosRingFamily.fill(folderPath + HIST("/hIntegrated"), 3.5, static_cast<double>(deltaTracker.nInt * deltaTracker.nInt));
-      histosRingFamily.fill(folderPath + HIST("/hIntegrated"), 4.5, deltaTracker.rInt * deltaTracker.nInt);
-    }
-    fillDeltaMethodComponents(folderPath + HIST("/h2dLambdaPtVsDeltaComp"), deltaTracker.rPt, deltaTracker.nPt, mAxisPt);
-    fillDeltaMethodComponents(folderPath + HIST("/h2dMassVsDeltaComp"), deltaTracker.rMass, deltaTracker.nMass, mAxisMass);
-    fillDeltaMethodComponents(folderPath + HIST("/h2dDeltaThetaVsDeltaComp"), deltaTracker.rDtheta, deltaTracker.nDtheta, mAxisDTheta);
   }
 
   /// \brief The five Delta Method components (r_k, n_k, r_k^2, n_k^2, r_k*n_k) of every non-empty bin of one differential accumulator.
@@ -2088,7 +2058,7 @@ struct lambdajetpolarizationionsderived {
   Preslice<aod::RingJets> perColJets = o2::aod::lambdajetpol::ringCollisionId;
   Preslice<aod::RingLaV0s> perColV0s = o2::aod::lambdajetpol::ringCollisionId;
   Preslice<aod::RingLeadPs> perColLeadPs = o2::aod::lambdajetpol::ringCollisionId;
-  /// \brief Main analysis loop: for each collision, rebuilds the leading jet/particle proxies (with optional fakePolSwitches distortions), then loops over V0s computing the ring observable and polarization-vector profiles for every enabled kinematic-cut family.
+  /// \brief Main analysis loop: for each collision, rebuilds the leading jet/particle proxies (with optional fakePolSwitches distortions), then loops over V0s computing the ring observable and polarization-vector profiles.
   void processPolarizationData(soa::Filtered<o2::aod::RingCollisions> const& collisions, o2::aod::RingJets const& jets, o2::aod::RingLaV0s const& v0s,
                                o2::aod::RingLeadPs const& leadPs)
   {
@@ -2171,10 +2141,12 @@ struct lambdajetpolarizationionsderived {
       if (leadJet.isValid) {
         leadJet.eta = leadJetRow->jetEta();
         leadJet.phi = leadJetRow->jetPhi();
+        leadJet.isValid = isProxyAccepted(leadJet.eta, analysisLevelCutsJets.maxLeadJetEta); // Jet acceptance (analysisLevelCutsJets)
       }
       if (subJet.isValid) {
         subJet.eta = subJetRow->jetEta();
         subJet.phi = subJetRow->jetPhi();
+        subJet.isValid = isProxyAccepted(subJet.eta, analysisLevelCutsJets.maxSubJetEta);
       }
       leadJetByCollision.proxyKinematicsVec[slot] = leadJet;
       subJetByCollision.proxyKinematicsVec[slot] = subJet;
@@ -2182,7 +2154,8 @@ struct lambdajetpolarizationionsderived {
       // The leading particle is resolved here too, so the pooling reads a vector instead of slicing RingLeadPs.
       // A collision with no leadP simply keeps isValid = false, and its mixing axes are stored regardless
       for (auto const& lp : leadPs.sliceBy(perColLeadPs, collId)) {
-        leadPByCollision.proxyKinematicsVec[slot] = {lp.leadParticlePt() > minLeadParticlePt, lp.leadParticlePt(), lp.leadParticleEta(), lp.leadParticlePhi()};
+        const bool isValidLeadP = lp.leadParticlePt() > minLeadParticlePt && isProxyAccepted(lp.leadParticleEta(), analysisLevelCutsJets.maxLeadPEta); // Same selection as in the main loop
+        leadPByCollision.proxyKinematicsVec[slot] = {isValidLeadP, lp.leadParticlePt(), lp.leadParticleEta(), lp.leadParticlePhi()};
         break; // Table has at most one LeadP per collision, but we break nonetheless
       }
     }
@@ -2280,6 +2253,7 @@ struct lambdajetpolarizationionsderived {
 
         // doMixedEventProxies helper: returns the proxy this collision borrows in this resampling pass, rebuilt from the LUT above.
         // An empty entry gets "isValid = false" if there is no valid mixing target, or fewer distinct sources than resampling passes.
+        // (a target with k < nProxyResamples distinct sources is still used in its first k passes: dropping it would cost the sparse, high proxy pT bins)
         auto borrowMixedProxy = [&](auto proxyTypeTag, const ProxyKinematics& proxy, const ProxyByCollision& proxyByCollision) {
           // Gets the enum value at compile time (here only for the proxy name in the LOG below):
           constexpr int idxProxy = decltype(proxyTypeTag)::value;
@@ -2409,7 +2383,8 @@ struct lambdajetpolarizationionsderived {
           leadPPz = lp.leadParticlePz();
         }
         // Apply minimum pT selection for the leading particle (not necessarily the same as in derived data builder. Can be a stricter cut!):
-        leadP.isValid = leadP.pt > minLeadParticlePt;
+        // (and its acceptance, from analysisLevelCutsJets)
+        leadP.isValid = leadP.pt > minLeadParticlePt && isProxyAccepted(leadP.eta, analysisLevelCutsJets.maxLeadPEta);
 
         // Snapshot this collision's own leading particle before any distortion can overwrite it,
         // so forcePreviousJet can hand it to the next collision:
@@ -2509,6 +2484,7 @@ struct lambdajetpolarizationionsderived {
           prevJetCache = SetOfProxies{beforeDistLeadP, leadJetByCollision.proxyKinematicsVec[collSlot], subJetByCollision.proxyKinematicsVec[collSlot]};
         }
 
+        // Hardcoded proxy |eta| cuts for bins 2 and 3 of IntegratedCuts/ (the old kinematic-cut families), independent from the analysisLevelCutsJets acceptance:
         // (jet eta cuts only meaningful when the jet actually exists)
         const bool kinematicLeadJetCheck = leadJet.isValid && (std::abs(leadJet.eta) < 0.5);
         const bool kinematicSubJetCheck = subJet.isValid && (std::abs(subJet.eta) < 0.5);
@@ -2530,8 +2506,7 @@ struct lambdajetpolarizationionsderived {
         // const bool subJetEtaStrictNeg = !subJetEtaPos && subJetEtaStrict;
 
         // Initialize delta method accumulators (reset for new collision):
-        for (auto const& tracker : {&trackRing, &trackRingKinCuts, &trackJetKinCuts, &trackJetLambdaKinCuts})
-          tracker->reset();
+        deltaTracker.reset();
         for (auto const& v0 : v0sInColl) {
           const bool isLambda = v0.isLambda(); // true: is a Lambda. false: is an antiLambda.
           // For now, removing the ambiguous candidates from the analysis. New datamodel does NOT save ambiguous candidates.
@@ -2726,7 +2701,7 @@ struct lambdajetpolarizationionsderived {
           const bool lambdaEtaPos = v0eta >= 0.;
           const bool pTLambdaCheck = v0pt > 0.5 && v0pt < 1.5;
           const bool rapidityLambdaCheck = std::abs(lambdaRapidity) < 0.5;
-          const bool kinematicLambdaCheck = pTLambdaCheck && rapidityLambdaCheck;
+          const bool kinematicLambdaCheck = pTLambdaCheck && rapidityLambdaCheck; // Bins 1 and 3 of IntegratedCuts/ (hardcoded, may differ from analysisLevelCuts)
 
           // Filling ProtonStar kinematic QAs:
           histos.fill(HIST("KinematicsQA/ProtonStar/hPrStarPhi"), protonLikeStarPhiWrap);
@@ -2785,8 +2760,8 @@ struct lambdajetpolarizationionsderived {
 
           ////////////////////
           // Fill helpers for this V0 -- Declared as lambdas, so they read the V0 variables above directly:
-          // First, a helper for the ring observable histograms of one kinematic-cut family, for one proxy.
-          // -- One call per V0 and valid proxy that passed the family's cuts.
+          // First, a helper for the ring observable histograms of one proxy.
+          // -- One call per V0 and valid proxy.
           // -- Inputs:
           // proxy: the proxy actually used, after applyProxyDistortion.
           // proxyZ: \hat t_z of the proxy, for the RingKernel (LeadJet and LeadP only for now).
@@ -2794,12 +2769,10 @@ struct lambdajetpolarizationionsderived {
           // -- Note:
           // The common block is what every proxy fills. The LeadJet also fills the whole QA set, the LeadP adds the RingMaps,
           // the RingKernel and the eta split, and the SubJet stays with the common block.
-          auto fillRingObservable = [&](auto familyTag, auto proxyTypeTag, const ProxyKinematics& proxy, float proxyZ, bool proxyEtaPos, const ProxyRingCache& ringCache) {
+          auto fillRingObservable = [&](auto proxyTypeTag, const ProxyKinematics& proxy, float proxyZ, bool proxyEtaPos, const ProxyRingCache& ringCache) {
             // Gets the enum value at compile time via decltype's ::value, so HIST() can use it (a for loop over the enum would only give it at runtime):
-            constexpr int idxFamily = decltype(familyTag)::value;
             constexpr int idxProxy = decltype(proxyTypeTag)::value;
-            constexpr auto familyFolderPath = HIST(FamilyNames[idxFamily]);
-            constexpr auto folderPath = familyFolderPath + HIST("/") + HIST(ProxyNames[idxProxy]);
+            constexpr auto folderPath = HIST("Ring/") + HIST(ProxyNames[idxProxy]);
 
             // Counters
             histosRingFamily.fill(folderPath + HIST("/QA/hDeltaPhi"), ringCache.deltaPhi);
@@ -2950,18 +2923,18 @@ struct lambdajetpolarizationionsderived {
               histosRingFamily.fill(folderPath + HIST("/RingMaps/p2dRingObservableVsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, ringCache.ringObservable);
               histosRingFamily.fill(folderPath + HIST("/RingMaps/p2dRingObservableVsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, ringCache.ringObservable);
               // Jet-transverse coordinate system's polarization maps. Filled here to use existing leadJet.isValid check
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet, polStarXPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet, polStarYPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet, polStarZPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/h2dCountsVsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, polStarXPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, polStarYPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, polStarZPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/h2dCountsVsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, polStarXPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, polStarYPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, polStarZPrimeJet);
-              histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeJet/h2dCountsVsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet, polStarXPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet, polStarYPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet, polStarZPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/h2dCountsVsPxPyPrimeJet"), v0pxPrimeJet, v0pyPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, polStarXPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, polStarYPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet, polStarZPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/h2dCountsVsPzPxPrimeJet"), v0pzPrimeJet, v0pxPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPxStarPrimeJet_vsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, polStarXPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPyStarPrimeJet_vsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, polStarYPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/p2dPzStarPrimeJet_vsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet, polStarZPrimeJet);
+              histosRingFamily.fill(HIST("Ring/PolMaps/PrimeJet/h2dCountsVsPyPzPrimeJet"), v0pyPrimeJet, v0pzPrimeJet);
               // QAs on DeltaPhiJet -- Filled here, as the LeadJet ringCache.deltaPhi is only defined under leadJet.isValid
               histosRingFamily.fill(folderPath + HIST("/QA/pPxStarDeltaPhi"), ringCache.deltaPhi, polStarX);
               histosRingFamily.fill(folderPath + HIST("/QA/pPyStarDeltaPhi"), ringCache.deltaPhi, polStarY);
@@ -2972,64 +2945,26 @@ struct lambdajetpolarizationionsderived {
             }
           };
 
-          // The polarization profile filler of one kinematic-cut family (no proxy needed).
-          // One call per V0 that passed the family's cuts.
-          auto fillPolarizationProfiles = [&](auto familyTag) {
+          // The IntegratedCuts/<Proxy>/ histogram filler, by hand:
+          // -- Bins (as booked, i.e. the old kinematic-cut families): 0 all Lambdas, 1 Lambda pT and rapidity cuts, 2 proxy |eta| < 0.5, 3 both.
+          // -- Inputs:
+          // proxyKinematicCheck: |eta_proxy| < 0.5, for bins 2 and 3.
+          auto fillIntegratedCuts = [&](auto proxyTypeTag, bool proxyKinematicCheck, const ProxyRingCache& ringCache) {
             // Gets the enum value at compile time via decltype's ::value, so HIST() can use it (a for loop over the enum would only give it at runtime):
-            constexpr int idxFamily = decltype(familyTag)::value;
-            constexpr auto familyFolderPath = HIST(FamilyNames[idxFamily]);
-            // 1D TProfiles vs v0phi
-            histosRingFamily.fill(familyFolderPath + HIST("/QA/pPxStarPhi"), v0phiToFillHists, polStarX);
-            histosRingFamily.fill(familyFolderPath + HIST("/QA/pPyStarPhi"), v0phiToFillHists, polStarY);
-            histosRingFamily.fill(familyFolderPath + HIST("/QA/pPzStarPhi"), v0phiToFillHists, polStarZ);
-            // 1D TProfiles vs the AEE angle
-            histosRingFamily.fill(familyFolderPath + HIST("/QA/pPxStarPhiAEE"), deltaPhiLambdaProtonStar, polStarX);
-            histosRingFamily.fill(familyFolderPath + HIST("/QA/pPyStarPhiAEE"), deltaPhiLambdaProtonStar, polStarY);
-            histosRingFamily.fill(familyFolderPath + HIST("/QA/pPzStarPhiAEE"), deltaPhiLambdaProtonStar, polStarZ);
-            // Lab-frame momentum-plane maps
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPxStar_vsPxPy"), v0px, v0py, polStarX);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPyStar_vsPxPy"), v0px, v0py, polStarY);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPzStar_vsPxPy"), v0px, v0py, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/h2dCountsVsPxPy"), v0px, v0py);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPxStar_vsPzPx"), v0pz, v0px, polStarX);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPyStar_vsPzPx"), v0pz, v0px, polStarY);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPzStar_vsPzPx"), v0pz, v0px, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/h2dCountsVsPzPx"), v0pz, v0px);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPxStar_vsPyPz"), v0py, v0pz, polStarX);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPyStar_vsPyPz"), v0py, v0pz, polStarY);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/p2dPzStar_vsPyPz"), v0py, v0pz, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Lab/h2dCountsVsPyPz"), v0py, v0pz);
-            // Aee frame: acceptance maps (radius = pT^Lambda, azimuth = PhiAEE)
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/p2dPtStar_vsPxAeePyAee"), v0pxAee, v0pyAee, polStarTAee);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/p2dPzStar_vsPxAeePyAee"), v0pxAee, v0pyAee, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/h2dCountsVsPxAeePyAee"), v0pxAee, v0pyAee);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/p2dPtStar_vsPzPxAee"), v0pz, v0pxAee, polStarTAee);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/p2dPzStar_vsPzPxAee"), v0pz, v0pxAee, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/h2dCountsVsPzPxAee"), v0pz, v0pxAee);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/p2dPtStar_vsPyAeePz"), v0pyAee, v0pz, polStarTAee);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/p2dPzStar_vsPyAeePz"), v0pyAee, v0pz, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/Aee/h2dCountsVsPyAeePz"), v0pyAee, v0pz);
-            // PrimeV0 frame: the Lambda production plane (a null test)
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeV0/p2dPxStarPrimeV0_vsPzPt"), v0pz, v0pt, polStarXPrimeV0);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeV0/p2dPyStarPrimeV0_vsPzPt"), v0pz, v0pt, polStarYPrimeV0);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeV0/p2dPzStar_vsPzPt"), v0pz, v0pt, polStarZ);
-            histosRingFamily.fill(familyFolderPath + HIST("/PolMaps/PrimeV0/h2dCountsVsPzPt"), v0pz, v0pt);
-          };
-
-          // The IntegratedCuts/<Proxy>/ histogram filler:
-          // Each bin is the family whose cuts the V0 passed (as per "FamilyIndex").
-          // Filled regardless of the family switches: each of these objects holds every family in its bins.
-          auto fillIntegratedCuts = [&](auto familyTag, auto proxyTypeTag, const ProxyRingCache& ringCache) {
-            // Gets the enum value at compile time via decltype's ::value, so HIST() can use it (a for loop over the enum would only give it at runtime):
-            constexpr int idxFamily = decltype(familyTag)::value;
             constexpr int idxProxy = decltype(proxyTypeTag)::value;
             constexpr auto folderPath = HIST("IntegratedCuts/") + HIST(ProxyNames[idxProxy]);
-            histos.fill(folderPath + HIST("/pRingCuts"), idxFamily, ringCache.ringObservable);
-            if (v0InMassPeak)
-              histos.fill(folderPath + HIST("/p2dRingCutsV0MassPeak"), idxFamily, 1, ringCache.ringObservable); // Fills the inPeak bin
-            else if (v0InMassWindow)
-              histos.fill(folderPath + HIST("/p2dRingCutsV0MassPeak"), idxFamily, 0, ringCache.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
-            histos.fill(folderPath + HIST("/hCountCuts"), idxFamily);
+            // One entry per bin, true when the V0 (and this proxy) pass that bin's cuts:
+            const std::array<bool, 4> passedCuts = {true, kinematicLambdaCheck, proxyKinematicCheck, kinematicLambdaCheck && proxyKinematicCheck};
+            for (int cutsBin = 0; cutsBin < static_cast<int>(passedCuts.size()); cutsBin++) {
+              if (!passedCuts[cutsBin])
+                continue;
+              histos.fill(folderPath + HIST("/pRingCuts"), cutsBin, ringCache.ringObservable);
+              if (v0InMassPeak)
+                histos.fill(folderPath + HIST("/p2dRingCutsV0MassPeak"), cutsBin, 1, ringCache.ringObservable); // Fills the inPeak bin
+              else if (v0InMassWindow)
+                histos.fill(folderPath + HIST("/p2dRingCutsV0MassPeak"), cutsBin, 0, ringCache.ringObservable); // Fills the inWindow bin, which has a stricter interval than !v0InMassPeak
+              histos.fill(folderPath + HIST("/hCountCuts"), cutsBin);
+            }
           };
 
           // The helper for longitudinal-ring diagnostics of one proxy (R_z and R_z^T only).
@@ -3212,37 +3147,62 @@ struct lambdajetpolarizationionsderived {
 
           // Fill ring histograms: (1D, lambda 2D correlations and jet 2D correlations):
           if (leadP.isValid) {
-            if (familySwitches.doFamilyRing) {
-              fillRingObservable(FamilyTag<kRing>, ProxyTypeTag<kLeadP>, leadP, leadPZ, leadPEtaPos, ringCacheLeadP);
-            }
-            fillIntegratedCuts(FamilyTag<kRing>, ProxyTypeTag<kLeadP>, ringCacheLeadP); // First bin of comparison
+            fillRingObservable(ProxyTypeTag<kLeadP>, leadP, leadPZ, leadPEtaPos, ringCacheLeadP);
+            fillIntegratedCuts(ProxyTypeTag<kLeadP>, kinematicLeadPCheck, ringCacheLeadP);
             if (doResamplingPassQA)
               histos.fill(HIST("IntegratedCuts/LeadP/pRingVsResamplingPass"), idxResampling, ringCacheLeadP.ringObservable);
           }
-          if (familySwitches.doFamilyRing) {
-            fillPolarizationProfiles(FamilyTag<kRing>);
-          }
 
-          // Binary search using the pre-fetched axes for delta method of error bar estimation:
-          int binPt = 0; // Dummy declarations
-          int binMass = 0;
-          int binDTheta = 0;
+          // Polarization profiles (no proxy needed):
+          // 1D TProfiles vs v0phi
+          histosRingFamily.fill(HIST("Ring/QA/pPxStarPhi"), v0phiToFillHists, polStarX);
+          histosRingFamily.fill(HIST("Ring/QA/pPyStarPhi"), v0phiToFillHists, polStarY);
+          histosRingFamily.fill(HIST("Ring/QA/pPzStarPhi"), v0phiToFillHists, polStarZ);
+          // 1D TProfiles vs the AEE angle
+          histosRingFamily.fill(HIST("Ring/QA/pPxStarPhiAEE"), deltaPhiLambdaProtonStar, polStarX);
+          histosRingFamily.fill(HIST("Ring/QA/pPyStarPhiAEE"), deltaPhiLambdaProtonStar, polStarY);
+          histosRingFamily.fill(HIST("Ring/QA/pPzStarPhiAEE"), deltaPhiLambdaProtonStar, polStarZ);
+          // Lab-frame momentum-plane maps
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPxStar_vsPxPy"), v0px, v0py, polStarX);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPyStar_vsPxPy"), v0px, v0py, polStarY);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPzStar_vsPxPy"), v0px, v0py, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/h2dCountsVsPxPy"), v0px, v0py);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPxStar_vsPzPx"), v0pz, v0px, polStarX);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPyStar_vsPzPx"), v0pz, v0px, polStarY);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPzStar_vsPzPx"), v0pz, v0px, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/h2dCountsVsPzPx"), v0pz, v0px);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPxStar_vsPyPz"), v0py, v0pz, polStarX);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPyStar_vsPyPz"), v0py, v0pz, polStarY);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/p2dPzStar_vsPyPz"), v0py, v0pz, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Lab/h2dCountsVsPyPz"), v0py, v0pz);
+          // Aee frame: acceptance maps (radius = pT^Lambda, azimuth = PhiAEE)
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/p2dPtStar_vsPxAeePyAee"), v0pxAee, v0pyAee, polStarTAee);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/p2dPzStar_vsPxAeePyAee"), v0pxAee, v0pyAee, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/h2dCountsVsPxAeePyAee"), v0pxAee, v0pyAee);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/p2dPtStar_vsPzPxAee"), v0pz, v0pxAee, polStarTAee);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/p2dPzStar_vsPzPxAee"), v0pz, v0pxAee, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/h2dCountsVsPzPxAee"), v0pz, v0pxAee);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/p2dPtStar_vsPyAeePz"), v0pyAee, v0pz, polStarTAee);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/p2dPzStar_vsPyAeePz"), v0pyAee, v0pz, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/Aee/h2dCountsVsPyAeePz"), v0pyAee, v0pz);
+          // PrimeV0 frame: the Lambda production plane (a null test)
+          histosRingFamily.fill(HIST("Ring/PolMaps/PrimeV0/p2dPxStarPrimeV0_vsPzPt"), v0pz, v0pt, polStarXPrimeV0);
+          histosRingFamily.fill(HIST("Ring/PolMaps/PrimeV0/p2dPyStarPrimeV0_vsPzPt"), v0pz, v0pt, polStarYPrimeV0);
+          histosRingFamily.fill(HIST("Ring/PolMaps/PrimeV0/p2dPzStar_vsPzPt"), v0pz, v0pt, polStarZ);
+          histosRingFamily.fill(HIST("Ring/PolMaps/PrimeV0/h2dCountsVsPzPt"), v0pz, v0pt);
+
           if (leadJet.isValid) {
-            if (familySwitches.doFamilyRing) {
-              fillRingObservable(FamilyTag<kRing>, ProxyTypeTag<kLeadJet>, leadJet, leadJetZ, leadJetEtaPos, ringCacheLeadJet);
-            }
-            fillIntegratedCuts(FamilyTag<kRing>, ProxyTypeTag<kLeadJet>, ringCacheLeadJet);
+            fillRingObservable(ProxyTypeTag<kLeadJet>, leadJet, leadJetZ, leadJetEtaPos, ringCacheLeadJet);
+            fillIntegratedCuts(ProxyTypeTag<kLeadJet>, kinematicLeadJetCheck, ringCacheLeadJet);
             if (doResamplingPassQA)
               histos.fill(HIST("IntegratedCuts/LeadJet/pRingVsResamplingPass"), idxResampling, ringCacheLeadJet.ringObservable);
             histos.fill(HIST("IntegratedCuts/LeadJet/pRingVsNV0s"), nLambdaLikeV0s, ringCacheLeadJet.ringObservable);
 
-            // Properly fetching values as they are needed:
-            binPt = mAxisPt->FindBin(v0pt);
-            binMass = mAxisMass->FindBin(v0LambdaLikeMass);
-            binDTheta = mAxisDTheta->FindBin(ringCacheLeadJet.deltaTheta);
-            if (familySwitches.doFamilyRing) {
-              trackRing.addV0(ringCacheLeadJet.ringObservable, binPt, binMass, binDTheta);
-            }
+            // Binary search using the pre-fetched axes for delta method of error bar estimation:
+            const int binPt = mAxisPt->FindBin(v0pt);
+            const int binMass = mAxisMass->FindBin(v0LambdaLikeMass);
+            const int binDTheta = mAxisDTheta->FindBin(ringCacheLeadJet.deltaTheta);
+            deltaTracker.addV0(ringCacheLeadJet.ringObservable, binPt, binMass, binDTheta);
 
             if (qaSwitches.doFakePolDiagnosticsQA) {
               // Measuring the AEE differentially (azimuthal efficiency effect, which causes different V0 topologies to be enhanced/suppressed)
@@ -3287,10 +3247,8 @@ struct lambdajetpolarizationionsderived {
             } // end doFakePolDiagnosticsQA (leading-jet AEE/HEE)
           }
           if (subJet.isValid) {
-            if (familySwitches.doFamilyRing) {
-              fillRingObservable(FamilyTag<kRing>, ProxyTypeTag<kSubJet>, subJet, 0.f, subJetEtaPos, ringCacheSubJet); // (proxyZ unused: no SubJet RingKernel)
-            }
-            fillIntegratedCuts(FamilyTag<kRing>, ProxyTypeTag<kSubJet>, ringCacheSubJet);
+            fillRingObservable(ProxyTypeTag<kSubJet>, subJet, 0.f, subJetEtaPos, ringCacheSubJet); // (proxyZ unused: no SubJet RingKernel)
+            fillIntegratedCuts(ProxyTypeTag<kSubJet>, kinematicSubJetCheck, ringCacheSubJet);
             if (doResamplingPassQA)
               histos.fill(HIST("IntegratedCuts/SubJet/pRingVsResamplingPass"), idxResampling, ringCacheSubJet.ringObservable);
           }
@@ -3304,101 +3262,19 @@ struct lambdajetpolarizationionsderived {
             if (leadP.isValid)
               fillFakePolDiagnostics(ProxyTypeTag<kLeadP>, leadP, leadPEtaPos, false, ringCacheLeadP); // (no strict variant for the LeadP)
           } // end doFakePolDiagnosticsQA (eta-dependence block)
-
-          // Extra kinematic criteria for Lambda candidates (removes polarization background):
-          if (kinematicLambdaCheck) {
-            if (leadP.isValid) {
-              if (familySwitches.doFamilyRingKinematicCuts) {
-                fillRingObservable(FamilyTag<kRingKinematicCuts>, ProxyTypeTag<kLeadP>, leadP, leadPZ, leadPEtaPos, ringCacheLeadP);
-              }
-              fillIntegratedCuts(FamilyTag<kRingKinematicCuts>, ProxyTypeTag<kLeadP>, ringCacheLeadP);
-            }
-            if (familySwitches.doFamilyRingKinematicCuts) {
-              fillPolarizationProfiles(FamilyTag<kRingKinematicCuts>);
-            }
-            if (leadJet.isValid) {
-              if (familySwitches.doFamilyRingKinematicCuts) {
-                fillRingObservable(FamilyTag<kRingKinematicCuts>, ProxyTypeTag<kLeadJet>, leadJet, leadJetZ, leadJetEtaPos, ringCacheLeadJet);
-              }
-              fillIntegratedCuts(FamilyTag<kRingKinematicCuts>, ProxyTypeTag<kLeadJet>, ringCacheLeadJet);
-              if (familySwitches.doFamilyRingKinematicCuts) {
-                trackRingKinCuts.addV0(ringCacheLeadJet.ringObservable, binPt, binMass, binDTheta);
-              }
-            }
-            if (subJet.isValid) {
-              if (familySwitches.doFamilyRingKinematicCuts) {
-                fillRingObservable(FamilyTag<kRingKinematicCuts>, ProxyTypeTag<kSubJet>, subJet, 0.f, subJetEtaPos, ringCacheSubJet);
-              }
-              fillIntegratedCuts(FamilyTag<kRingKinematicCuts>, ProxyTypeTag<kSubJet>, ringCacheSubJet);
-            }
-          }
-
-          // Extra selection criteria on jet candidates:
-          // (redundant for jets with R=0.4, but for jets with R<0.4 the leading jet may be farther in eta)
-          if (kinematicLeadJetCheck) { // Already includes leadJet.isValid in the bool! (no need to check again)
-            if (familySwitches.doFamilyJetKinematicCuts) {
-              fillRingObservable(FamilyTag<kJetKinematicCuts>, ProxyTypeTag<kLeadJet>, leadJet, leadJetZ, leadJetEtaPos, ringCacheLeadJet);
-            }
-            fillIntegratedCuts(FamilyTag<kJetKinematicCuts>, ProxyTypeTag<kLeadJet>, ringCacheLeadJet);
-            if (familySwitches.doFamilyJetKinematicCuts) {
-              fillPolarizationProfiles(FamilyTag<kJetKinematicCuts>);
-              trackJetKinCuts.addV0(ringCacheLeadJet.ringObservable, binPt, binMass, binDTheta);
-            }
-          }
-
-          // Extra selection criteria on both Lambda and jet candidates:
-          if (kinematicLambdaCheck && kinematicLeadJetCheck) {
-            if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
-              fillRingObservable(FamilyTag<kJetAndLambdaKinematicCuts>, ProxyTypeTag<kLeadJet>, leadJet, leadJetZ, leadJetEtaPos, ringCacheLeadJet);
-            }
-            fillIntegratedCuts(FamilyTag<kJetAndLambdaKinematicCuts>, ProxyTypeTag<kLeadJet>, ringCacheLeadJet);
-            if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
-              fillPolarizationProfiles(FamilyTag<kJetAndLambdaKinematicCuts>);
-              trackJetLambdaKinCuts.addV0(ringCacheLeadJet.ringObservable, binPt, binMass, binDTheta);
-            }
-          }
-
-          // Same variations for the leading particle and for the subleading jet:
-          // (kinematicLeadPCheck already encodes leadP.isValid, so no extra gate needed here)
-          if (kinematicLeadPCheck) {
-            if (familySwitches.doFamilyJetKinematicCuts) {
-              fillRingObservable(FamilyTag<kJetKinematicCuts>, ProxyTypeTag<kLeadP>, leadP, leadPZ, leadPEtaPos, ringCacheLeadP);
-            }
-            fillIntegratedCuts(FamilyTag<kJetKinematicCuts>, ProxyTypeTag<kLeadP>, ringCacheLeadP);
-          }
-          if (kinematicSubJetCheck) {
-            if (familySwitches.doFamilyJetKinematicCuts) {
-              fillRingObservable(FamilyTag<kJetKinematicCuts>, ProxyTypeTag<kSubJet>, subJet, 0.f, subJetEtaPos, ringCacheSubJet);
-            }
-            fillIntegratedCuts(FamilyTag<kJetKinematicCuts>, ProxyTypeTag<kSubJet>, ringCacheSubJet);
-          }
-          if (kinematicLambdaCheck && kinematicLeadPCheck) {
-            if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
-              fillRingObservable(FamilyTag<kJetAndLambdaKinematicCuts>, ProxyTypeTag<kLeadP>, leadP, leadPZ, leadPEtaPos, ringCacheLeadP);
-            }
-            fillIntegratedCuts(FamilyTag<kJetAndLambdaKinematicCuts>, ProxyTypeTag<kLeadP>, ringCacheLeadP);
-          }
-          if (kinematicLambdaCheck && kinematicSubJetCheck) {
-            if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
-              fillRingObservable(FamilyTag<kJetAndLambdaKinematicCuts>, ProxyTypeTag<kSubJet>, subJet, 0.f, subJetEtaPos, ringCacheSubJet);
-            }
-            fillIntegratedCuts(FamilyTag<kJetAndLambdaKinematicCuts>, ProxyTypeTag<kSubJet>, ringCacheSubJet);
-          }
         } // end v0s loop
 
-        // Flush trackers to the actual O2 histograms (one call per family):
-        if (familySwitches.doFamilyRing) {
-          flushDeltaTracker<kRing>(trackRing);
+        // Flush the Delta Method accumulators to the actual O2 histograms (once per collision):
+        if (deltaTracker.nInt > 0) {
+          histosRingFamily.fill(HIST("Ring/DeltaMethod/hIntegrated"), 0.5, deltaTracker.rInt);
+          histosRingFamily.fill(HIST("Ring/DeltaMethod/hIntegrated"), 1.5, static_cast<double>(deltaTracker.nInt));
+          histosRingFamily.fill(HIST("Ring/DeltaMethod/hIntegrated"), 2.5, deltaTracker.rInt * deltaTracker.rInt);
+          histosRingFamily.fill(HIST("Ring/DeltaMethod/hIntegrated"), 3.5, static_cast<double>(deltaTracker.nInt * deltaTracker.nInt));
+          histosRingFamily.fill(HIST("Ring/DeltaMethod/hIntegrated"), 4.5, deltaTracker.rInt * deltaTracker.nInt);
         }
-        if (familySwitches.doFamilyRingKinematicCuts) {
-          flushDeltaTracker<kRingKinematicCuts>(trackRingKinCuts);
-        }
-        if (familySwitches.doFamilyJetKinematicCuts) {
-          flushDeltaTracker<kJetKinematicCuts>(trackJetKinCuts);
-        }
-        if (familySwitches.doFamilyJetAndLambdaKinematicCuts) {
-          flushDeltaTracker<kJetAndLambdaKinematicCuts>(trackJetLambdaKinCuts);
-        }
+        fillDeltaMethodComponents(HIST("Ring/DeltaMethod/h2dLambdaPtVsDeltaComp"), deltaTracker.rPt, deltaTracker.nPt, mAxisPt);
+        fillDeltaMethodComponents(HIST("Ring/DeltaMethod/h2dMassVsDeltaComp"), deltaTracker.rMass, deltaTracker.nMass, mAxisMass);
+        fillDeltaMethodComponents(HIST("Ring/DeltaMethod/h2dDeltaThetaVsDeltaComp"), deltaTracker.rDtheta, deltaTracker.nDtheta, mAxisDTheta);
       } // end collisions
     } // end of resampling loop for forceRandJet and forceDatalikeJet
   }
