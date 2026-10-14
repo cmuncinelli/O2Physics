@@ -174,14 +174,11 @@ struct lambdajetpolarizationionsderived {
     Configurable<bool> gatePtOnArtificialProxies{"gatePtOnArtificialProxies", false, "Apply the minimum-pT selection to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet) after their pT is recomputed."}; //  Off by default, but the Pt cut's biasing can be measured on demand. Borrowed physical proxies always pass it by construction.
     Configurable<bool> gateEtaOnArtificialProxies{"gateEtaOnArtificialProxies", true, "Apply an |eta| acceptance cut to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet)"}; // forceRandJet samples the full 4pi, so without this it produces proxies far outside acceptance.
     Configurable<float> maxLeadPProxyEta{"maxLeadPProxyEta", 0.9f, "|eta| ceiling for artificial leading-particle proxies."};
-    Configurable<float> maxJetProxyEta{"maxJetProxyEta", 0.5f, "|eta| ceiling for artificial lead jet sublead jet proxies."};
+    Configurable<float> maxJetProxyEta{"maxJetProxyEta", 0.5f, "|eta| ceiling for artificial leading and subleading jet proxies."};
     Configurable<int> nProxyResamples{"nProxyResamples", 1, "The amount of resamplings of jet direction per event. Use ONLY for forceRandJet, forceDatalikeJet and doMixedEventProxies"};
   } fakePolSwitches;
 
   Configurable<float> jetR{"jetR", 0.4f, "Radius of the jet"}; // Provide manually, please. Also used for forceJetDirectionSmudge
-  Configurable<float> minLeadParticlePt{"minLeadParticlePt", 4.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
-  Configurable<float> minLeadJetPt{"minLeadJetPt", 10.0f, "Minimum Pt for leading jet to be considered valid (may be more restrictive than TableProducer)"};
-  Configurable<float> minSubLeadJetPt{"minSubLeadJetPt", 8.0f, "Minimum Pt for subleading jet to be considered valid (may be more restrictive than TableProducer)"};
 
   struct : ConfigurableGroup {
     std::string prefix = "analysisLevelCuts"; // JSON group name
@@ -214,17 +211,20 @@ struct lambdajetpolarizationionsderived {
     Configurable<float> v0MassMax{"v0MassMax", 1.14f, "V0 mass max cut. Removes V0s from combinatoric background, for QA"}; // Inert cut is +999.f
   } analysisLevelCuts;
 
-  // Jet-proxy acceptance, applied together with the minimum-pT selections, before any V0 processing (see isProxyAccepted):
-  // (the defaults match the FastJet outputs and the table producer, so these only matter for stricter cuts or for jets with R < 0.4)
+  // Jet-proxy selections (minimum pT and |eta| acceptance), applied in the pre-pass, before any V0 processing (see isProxyAccepted):
+  // (the |eta| defaults match the FastJet outputs and the table producer, so they only matter for stricter cuts or for jets with R < 0.4)
   struct : ConfigurableGroup {
     std::string prefix = "analysisLevelCutsJets"; // JSON group name
-    Configurable<bool> doAnalysisLevelCutsJets{"doAnalysisLevelCutsJets", false, "Apply the |eta| acceptance cuts below to the jet proxies (leading jet, subleading jet and leading particle)."};
+    Configurable<bool> doAnalysisLevelCutsJets{"doAnalysisLevelCutsJets", false, "Apply the |eta| acceptance cuts below to the jet proxies (leading jet, subleading jet and leading particle). The minimum pT is always applied."};
     // Kinematics:
+    // (the minimum pT defines a valid proxy, so it is applied regardless of doAnalysisLevelCutsJets)
+    Configurable<float> minLeadJetPt{"minLeadJetPt", 10.0f, "Minimum Pt for leading jet to be considered valid (may be more restrictive than TableProducer)"};
+    Configurable<float> minSubJetPt{"minSubJetPt", 8.0f, "Minimum Pt for subleading jet to be considered valid (may be more restrictive than TableProducer)"};
+    Configurable<float> minLeadPPt{"minLeadPPt", 4.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
     Configurable<float> maxLeadJetEta{"maxLeadJetEta", 0.5f, "|eta| ceiling for the leading jet. Default is the FastJet output's (0.9 - R for R = 0.4)."};
     Configurable<float> maxSubJetEta{"maxSubJetEta", 0.5f, "|eta| ceiling for the subleading jet. Default is the FastJet output's (0.9 - R for R = 0.4)."};
     Configurable<float> maxLeadPEta{"maxLeadPEta", 0.9f, "|eta| ceiling for the leading particle. Same default as the table producer."};
-    // TODO: move minLeadJetPt, minSubLeadJetPt and minLeadParticlePt into this group (requires changing the JSONs in use)
-    
+
     // Quenching, etc.:
   } analysisLevelCutsJets;
 
@@ -1690,10 +1690,13 @@ struct lambdajetpolarizationionsderived {
   {
     if (!analysisLevelCutsJets.doAnalysisLevelCutsJets)
       return true;
-    return std::abs(proxyEta) < maxAbsEta;
+    if (!(std::abs(proxyEta) < maxAbsEta)) // Written as !(value < threshold) so a NaN eta is rejected
+      return false;
 
     // Quenching-related cuts
     // (TODO)
+
+    return true;
   }
 
   // Initializing a random number generator for the worker (for perpendicular-to-jet direction QAs):
@@ -2136,8 +2139,8 @@ struct lambdajetpolarizationionsderived {
         }
       }
       // Finer control on jet momentum, further than TableProducer pre-selection:
-      leadJet.isValid = leadJet.pt > minLeadJetPt;
-      subJet.isValid = subJet.pt > minSubLeadJetPt;
+      leadJet.isValid = leadJet.pt > analysisLevelCutsJets.minLeadJetPt;
+      subJet.isValid = subJet.pt > analysisLevelCutsJets.minSubJetPt;
       if (leadJet.isValid) {
         leadJet.eta = leadJetRow->jetEta();
         leadJet.phi = leadJetRow->jetPhi();
@@ -2151,10 +2154,10 @@ struct lambdajetpolarizationionsderived {
       leadJetByCollision.proxyKinematicsVec[slot] = leadJet;
       subJetByCollision.proxyKinematicsVec[slot] = subJet;
 
-      // The leading particle is resolved here too, so the pooling reads a vector instead of slicing RingLeadPs.
+      // The leading particle is resolved here too, so the pooling and the main loop read a vector instead of slicing RingLeadPs.
       // A collision with no leadP simply keeps isValid = false, and its mixing axes are stored regardless
       for (auto const& lp : leadPs.sliceBy(perColLeadPs, collId)) {
-        const bool isValidLeadP = lp.leadParticlePt() > minLeadParticlePt && isProxyAccepted(lp.leadParticleEta(), analysisLevelCutsJets.maxLeadPEta); // Same selection as in the main loop
+        const bool isValidLeadP = lp.leadParticlePt() > analysisLevelCutsJets.minLeadPPt && isProxyAccepted(lp.leadParticleEta(), analysisLevelCutsJets.maxLeadPEta); // Minimum pT (not necessarily the same as in derived data builder. Can be a stricter cut!) and acceptance
         leadPByCollision.proxyKinematicsVec[slot] = {isValidLeadP, lp.leadParticlePt(), lp.leadParticleEta(), lp.leadParticlePhi()};
         break; // Table has at most one LeadP per collision, but we break nonetheless
       }
@@ -2229,10 +2232,9 @@ struct lambdajetpolarizationionsderived {
         // (it is not worth it to fetch and store the magnetic field in the datamodel)
         const float magField = 1.f; // Purely geometric.
 
-        // Slice jets, V0s and leading particle belonging to this collision:
+        // Slice the V0s belonging to this collision (jets and leading particle were resolved once, in the pre-pass):
         // (global collision indices repeat a lot, but they are unique to a same TimeFrame (TF) subfolder in the derived data)
         auto v0sInColl = v0s.sliceBy(perColV0s, collId);
-        auto leadPsInColl = leadPs.sliceBy(perColLeadPs, collId);
 
         // Check if there is at least one V0 and one jet in the collision:
         // (in the way I fill the table, there is always at least one V0 in
@@ -2369,22 +2371,10 @@ struct lambdajetpolarizationionsderived {
         // Events that have a leading jet always have a leading particle too, but
         // the converse is not true: events can have a leading particle with no jet
         // if no jet survives the pT threshold/the background subtraction)
-        // (At least that is the case when minLeadParticlePt = 0)
-        ProxyKinematics leadP; // Initialized with the default guard values (see ProxyKinematics)
-        float leadPPx = 0., leadPPy = 0., leadPPz = 0.;
-        for (auto const& lp : leadPsInColl) {
-          // Table should contain exactly one entry per collision, but we break immediately to be safe:
-          leadP.pt = lp.leadParticlePt();
-          leadP.eta = lp.leadParticleEta();
-          leadP.phi = lp.leadParticlePhi();
-          // Using dynamic columns to make code cleaner:
-          leadPPx = lp.leadParticlePx();
-          leadPPy = lp.leadParticlePy();
-          leadPPz = lp.leadParticlePz();
-        }
-        // Apply minimum pT selection for the leading particle (not necessarily the same as in derived data builder. Can be a stricter cut!):
-        // (and its acceptance, from analysisLevelCutsJets)
-        leadP.isValid = leadP.pt > minLeadParticlePt && isProxyAccepted(leadP.eta, analysisLevelCutsJets.maxLeadPEta);
+        // (At least that is the case when minLeadPPt = 0)
+        // Fetching the leading particle -- Resolved once per collision in the leadPByCollision pre-pass (minimum pT and acceptance included):
+        // (Local copy, as applyProxyDistortion may change it for this collision only)
+        ProxyKinematics leadP = leadPByCollision.proxyKinematicsVec[collSlot];
 
         // Snapshot this collision's own leading particle before any distortion can overwrite it,
         // so forcePreviousJet can hand it to the next collision:
@@ -2394,7 +2384,9 @@ struct lambdajetpolarizationionsderived {
         XYZVector leadPUnitVec(1., 0., 0.); // dummy (overwritten below when leadP.isValid)
         float leadPZ = 0.;                  // \hat t_z of the leading-particle proxy actually used (see axisLeadPZ)
         if (leadP.isValid) {
-          leadPUnitVec = XYZVector(leadPPx, leadPPy, leadPPz).Unit();
+          // Rebuild the direction from the cached eta/phi, as for the jets and the borrowed proxies (cheaper than going through px/py/pz and normalizing with .Unit()):
+          const double inverseCoshEta = 1.0 / std::cosh(leadP.eta);
+          leadPUnitVec = XYZVector(std::cos(leadP.phi) * inverseCoshEta, std::sin(leadP.phi) * inverseCoshEta, std::tanh(leadP.eta));
 
           // doMixedEventProxies: get this collision's mixing partner (if any) from the LUT built above:
           // (this check is performed only if leadP.isValid is true for performance, as the LeadPPt matching for the event mixing would also demand a minimum jet pT)
@@ -2408,7 +2400,7 @@ struct lambdajetpolarizationionsderived {
 
           // Apply distortion logic:
           // (modifies (leadP, leadPUnitVec) as if the modified proxy was the actual proxy of this event)
-          applyProxyDistortion(leadP, leadPUnitVec, minLeadParticlePt, fakePolSwitches.maxLeadPProxyEta, proxyCache.leadP, etaLeadPDist, phiLeadPDist);
+          applyProxyDistortion(leadP, leadPUnitVec, analysisLevelCutsJets.minLeadPPt, fakePolSwitches.maxLeadPProxyEta, proxyCache.leadP, etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms (i.e., the actually used proxy).
           // A borrowed-proxy miss and a failed pT gate will skip the fill.
@@ -2442,7 +2434,7 @@ struct lambdajetpolarizationionsderived {
             if (doMixingQA)
               fillMixingOutcomeQA(ProxyTypeTag<kLeadJet>, leadJet, mixedLeadJetInfo, leadJetByCollision);
           }
-          applyProxyDistortion(leadJet, leadJetUnitVec, minLeadJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.leadJet, etaLeadPDist, phiLeadPDist);
+          applyProxyDistortion(leadJet, leadJetUnitVec, analysisLevelCutsJets.minLeadJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.leadJet, etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
           if (leadJet.isValid) {
@@ -2471,7 +2463,7 @@ struct lambdajetpolarizationionsderived {
             if (doMixingQA)
               fillMixingOutcomeQA(ProxyTypeTag<kSubJet>, subJet, mixedSubJetInfo, subJetByCollision);
           }
-          applyProxyDistortion(subJet, subJetUnitVec, minSubLeadJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.subJet, etaLeadPDist, phiLeadPDist);
+          applyProxyDistortion(subJet, subJetUnitVec, analysisLevelCutsJets.minSubJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.subJet, etaLeadPDist, phiLeadPDist);
 
           // Fill distorted-proxy QA histograms:
           if (subJet.isValid) {
