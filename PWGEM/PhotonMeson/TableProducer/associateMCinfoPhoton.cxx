@@ -13,6 +13,7 @@
 /// \brief This code produces EmMc tables were the McParticleIds get reshuffled due to not storing all McParticles
 /// \author Daiki Sekihata (daiki.sekihata@cern.ch), Marvin Hemmer (marvin.hemmer@cern.ch), Nicolas Strangmann (nicolas.strangmann@cern.ch)
 
+#include "PWGEM/PhotonMeson/DataModel/EventTables.h"
 #include "PWGEM/PhotonMeson/DataModel/GammaTablesRedux.h"
 #include "PWGEM/PhotonMeson/DataModel/gammaTables.h"
 #include "PWGEM/PhotonMeson/Utils/MCUtilities.h"
@@ -56,7 +57,7 @@ using namespace o2::soa;
 using namespace o2::aod::pwgem::photonmeson::utils::mcutil;
 using namespace o2::constants::physics;
 
-using MyCollisionsMC = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::EMEvSels>;
+using MyCollisionsMC = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::PMEvSels, aod::EMEoIs>;
 using TracksMC = soa::Join<aod::TracksIU, aod::McTrackLabels>;
 using FwdTracksMC = soa::Join<aod::FwdTracks, aod::McFwdTrackLabels>;
 using MyEMCClusters = soa::Join<aod::MinClusters, aod::EMCClusterMCLabels_001>;
@@ -94,6 +95,7 @@ struct AssociateMCInfoPhoton {
   Configurable<float> maxY{"maxY", 0.9f, "max |rapidity| for BinnedGenPts table"};
   Configurable<bool> doStoreAllDaughters{"doStoreAllDaughters", false, "flag to enable storing of all photon, pi0, eta, eta' and omega daughters. This will increase the dervied data size!"};
   Configurable<bool> useIsSelected{"useIsSelected", true, "flag to enable the usage of isSelected from our EM event selection. Disabling this will increase the derived data size!"};
+  Configurable<bool> useIsEOI{"useIsEOI", true, "flag to enable the usage of the EOI table"};
 
   HistogramRegistry registry{"EMMCEvent"};
 
@@ -171,10 +173,14 @@ struct AssociateMCInfoPhoton {
   template <soa::is_iterator TCollision>
   bool passesCollisionGate(TCollision const& collisionIter)
   {
+    // event selection same as in createEMEventPhoton
     if (!collisionIter.has_mcCollision()) {
       return false;
     }
     if (useIsSelected.value && !collisionIter.isSelected()) {
+      return false;
+    }
+    if (useIsEOI.value && !collisionIter.isEoI()) {
       return false;
     }
     return true;

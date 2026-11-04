@@ -2192,7 +2192,7 @@ struct lambdajetpolarizationionsderived {
 
       // All three proxies bin on the same (Zvtx, proxy pT, centrality) axes, so a single policy object serves them, even though proxy pT varies:
       // We implement using methods straight from BinningPolicy.h, such as getBin() and getAllBinsCount()
-      BinningPolicyBase<3> mixBinning{{axisConfigurations.axisPVz, axisConfigurations.axisJetPt, axisConfigurations.axisCentrality}, true}; // Ignore overflows (pT guards overflow to -999.f by construction)
+      BinningPolicyBase<3> mixBinning{{axisConfigurations.axisPVz, axisConfigurations.axisJetPt, axisConfigurations.axisCentrality}};
 
       // Counting what actually enters the mixing (not what enters the dataframe), before any pooling starts:
       int64_t nValidLeadP = 0, nValidLeadJet = 0, nValidSubJet = 0;

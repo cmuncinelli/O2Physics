@@ -49,6 +49,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <math.h>
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -112,8 +114,8 @@ DECLARE_SOA_COLUMN(TrackTPCNCls, tracktpcncls, float);                 //! The t
 DECLARE_SOA_COLUMN(TrackTPCNCrossedRows, tracktpcncrossedrows, float); //! The track TPC NCrossedRows
 // DECLARE_SOA_COLUMN(TrackTPCNSigmaPi, tracktpcnsigmapi, float);                 //! The track TPC nSigma Pi
 // DECLARE_SOA_COLUMN(TrackTOFNSigmaPi, tracktofnsigmapi, float);                 //! The track TOF nSigma Pi
-DECLARE_SOA_COLUMN(TrackOrigin, trk_origin, int);                      //! The track origin label for GNN track origin predictions
-DECLARE_SOA_COLUMN(TrackVtxIndex, trk_vtx_index, int);                 //! The track vertex index for GNN vertex predictions
+DECLARE_SOA_COLUMN(TrackOrigin, trk_origin, int);      //! The track origin label for GNN track origin predictions
+DECLARE_SOA_COLUMN(TrackVtxIndex, trk_vtx_index, int); //! The track vertex index for GNN vertex predictions
 // DECLARE_SOA_COLUMN(DCATrackJet, dcatrackjet, float);                              //! The distance between track and jet, unfortunately it cannot be calculated in O2
 } // namespace trackInfo
 
@@ -292,11 +294,11 @@ struct BJetTreeCreator {
     // Seed the random number generator using current time
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
-    jetRadiiValues = (std::vector<double>)jetRadii;
-    jetPtBinsReduction = (std::vector<double>)jetPtBins;
-    jetReductionFactorsPt = (std::vector<double>)jetReductionFactors;
+    jetRadiiValues = jetRadii;
+    jetPtBinsReduction = jetPtBins;
+    jetReductionFactorsPt = jetReductionFactors;
 
-    eventSelectionBits = jetderiveddatautilities::initialiseEventSelectionBits(static_cast<std::string>(eventSelections));
+    eventSelectionBits = jetderiveddatautilities::initialiseEventSelectionBits(eventSelections);
 
     registry.add("h_vertexZ", "Vertex Z;#it{Z} (cm)", {HistType::kTH1F, {{40, -20.0, 20.0}}});
 
