@@ -105,6 +105,13 @@ enum ProxyTypeIndex {
   kNProxyTypes
 };
 
+// List of possible reference directions for the ring calculation:
+enum RingReference {
+  kJetProxy = 0,
+  kEventPlane,
+  kFixedX
+};
+
 // Folder names, indexed by the enum above (HIST() accepts a constexpr string_view, and HIST() names concatenate with "+"):
 // (last entry also corresponds to the total number of entries in the array, so we use that to avoid magic numbers)
 constexpr std::array<std::string_view, kNProxyTypes> ProxyNames = {"LeadJet", "LeadP", "SubJet"};
@@ -132,19 +139,28 @@ struct lambdajetpolarizationionsderived {
   HistogramRegistry histosRing{"HistosRing", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   // Master analysis switches:
-  Configurable<bool> analyseLambda{"analyseLambda", true, "process Lambda-like candidates"};
-  Configurable<bool> analyseAntiLambda{"analyseAntiLambda", false, "process AntiLambda-like candidates"};
-  Configurable<bool> analyseMagField{"analyseMagField", true, "analyse efficiency effects wrt magnetic field"}; // DerivedData lacks actual magField, so this is only useful for runs with only one field polarity
-  Configurable<bool> useRingZ{"useRingZ", false, "redefine the ring as the projection R_z = P_z cdot n_z for every proxy"};
-  Configurable<bool> useRingZT{"useRingZT", false, "redefine the ring as R_z^T = R_z - 'helicity term'"}; // Exclusive with useRingZ (they cannot both be active!)
+  Configurable<bool> analyseLambda{"analyseLambda", true, "Process Lambda-like candidates"};
+  Configurable<bool> analyseAntiLambda{"analyseAntiLambda", false, "Process AntiLambda-like candidates"};
+  Configurable<bool> analyseMagField{"analyseMagField", true, "Analyse efficiency effects wrt magnetic field"}; // DerivedData lacks actual magField, so this is only useful for runs with only one field polarity
   // Configurable<bool> doPPAnalysis{"doPPAnalysis", false, "if in pp, set to true. Default is HI"};
+  
+  struct : ConfigurableGroup {
+    std::string prefix = "ringDefinitionSwitches"; // JSON group name
+    Configurable<bool> useRingZ{"useRingZ", false, "Redefine the ring as the projection R_z = P_z cdot n_z for every proxy"};
+    Configurable<bool> useRingZT{"useRingZT", false, "Redefine the ring as R_z^T = R_z - 'helicity term'"}; // Exclusive with useRingZ (they cannot both be active!)
+    Configurable<int> ringRefDirection{"ringRefDirection", 0, "Direction for ring reference. 0: JetProxy, 1: EventPlane (TODO), 2: X axis"};
+    Configurable<bool> useNoJetEventsOnly{"useNoJetEventsOnly", false, "Skips events that have a reconstructed leading jet, subleading jet, or leading particle above its respective minimum pT threshold."};
+  } ringDefSwitches;
+
+  // Centrality:
+  Configurable<int> centralityEstimator{"centralityEstimator", kCentFT0M, "Run 3 centrality estimator (0:CentFT0C, 1:CentFT0M, 2:CentFV0A)"}; // Default is FT0M
 
   // A very inexpensive "signal extraction" imitation based on v0InMassPeak bool:
   // (Uses a mass interval to remove or include V0s from the final AnalysisResults to take advantage of existing post-processing codes)
-  Configurable<bool> excludeOutOfPeakQA{"excludeOutOfPeakQA", false, "removes all V0s outside an approximate +/- PeakWindowNSigma*sigma window from the mass peak"}; // A naive estimator of signal
-  Configurable<bool> excludeInPeakQA{"excludeInPeakQA", false, "uses only the V0s outside an approximate +/- (SidebandInnerNSigma, SidebandOuterNSigma)*sigma window from the mass peak. Should be the same width as PeakWindowNSigma."}; // A naive estimator of background
-  Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 1.5f, "Size for peak window, centered in LambdaMass from the PDG."};
-  Configurable<float> SidebandInnerNSigma{"SidebandInnerNSigma", 5.5f, "Absolute value for lower end of sideband window."};
+  Configurable<bool> excludeOutOfPeakQA{"excludeOutOfPeakQA", false, "Removes all V0s outside an approximate +/- PeakWindowNSigma*sigma window from the mass peak"}; // A naive estimator of signal
+  Configurable<bool> excludeInPeakQA{"excludeInPeakQA", false, "Uses only the V0s outside an approximate +/- (SidebandInnerNSigma, SidebandOuterNSigma)*sigma window from the mass peak."}; // A naive estimator of background
+  Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 2.2f, "Size for peak window, centered in LambdaMass from the PDG."};
+  Configurable<float> SidebandInnerNSigma{"SidebandInnerNSigma", 4.5f, "Absolute value for lower end of sideband window."};
   Configurable<float> SidebandOuterNSigma{"SidebandOuterNSigma", 7.0f, "Absolute value for upper end of sideband window."};
 
   // QA switches:
@@ -154,22 +170,18 @@ struct lambdajetpolarizationionsderived {
     Configurable<bool> doEventMixingQA{"doEventMixingQA", true, "Book and fill the EventMixingQA/ folder. Requires fakePolSwitches.doMixedEventProxies."};
   } qaSwitches;
 
-  // Centrality:
-  Configurable<int> centralityEstimator{"centralityEstimator", kCentFT0M, "Run 3 centrality estimator (0:CentFT0C, 1:CentFT0M, 2:CentFV0A)"}; // Default is FT0M
-  Configurable<float> maxZVtxPosition{"maxZVtxPosition", 5., "max Z vtx position [cm]"};                                                     // An additional post-processing cut after derived data was written. Same default as lambdaJetPolarizationIons.cxx producer
-
   // QAs that purposefully "break" the analysis
   // -- All of these tests should give us zero signal if the source is truly Lambda Polarization from vortices
   struct : ConfigurableGroup {
     std::string prefix = "fakePolSwitches"; // JSON group name
-    Configurable<bool> forcePolSignQA{"forcePolSignQA", false, "force antiLambda decay constant to be positive: should kill all the signal, if any. For QA"};
-    Configurable<bool> forcePerpToJet{"forcePerpToJet", false, "force jet direction to be perpendicular to jet estimator"};
-    Configurable<bool> forceJetDirectionSmudge{"forceJetDirectionSmudge", false, "fluctuate jet direction by 10% of R around original axis. For QA (tests sensibility)"};
-    Configurable<bool> forceRandJet{"forceRandJet", false, "makes jet direction random. A QA for AEE fake signal and its removal"};
-    Configurable<bool> forcePreviousJet{"forcePreviousJet", false, "uses previous event's jet direction instead of a random sample. A baseline for fake signal removal"};
-    Configurable<bool> forceDatalikeJet{"forceDatalikeJet", false, "a compromise between forceRandJet and forcePreviousJet. Parameterized distribution from data"};
-    Configurable<bool> doMixedEventProxies{"doMixedEventProxies", false, "mix leadP/leadJet/subJet directions between events using (proxy pt, Zvtx, centrality) bins -- three independent mixings, one per proxy"};
-    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 20, "number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
+    Configurable<bool> forcePolSignQA{"forcePolSignQA", false, "Force antiLambda decay constant to be positive: should kill all the signal, if any. For QA"};
+    Configurable<bool> forcePerpToJet{"forcePerpToJet", false, "Force jet direction to be perpendicular to jet estimator"};
+    Configurable<bool> forceJetDirectionSmudge{"forceJetDirectionSmudge", false, "Fluctuate jet direction by 10% of R around original axis. For QA (tests sensibility)"};
+    Configurable<bool> forceRandJet{"forceRandJet", false, "Makes jet direction random. A QA for AEE fake signal and its removal"};
+    Configurable<bool> forcePreviousJet{"forcePreviousJet", false, "Uses previous event's jet direction instead of a random sample. A baseline for fake signal removal"};
+    Configurable<bool> forceDatalikeJet{"forceDatalikeJet", false, "A compromise between forceRandJet and forcePreviousJet. Parameterized distribution from data"};
+    Configurable<bool> doMixedEventProxies{"doMixedEventProxies", false, "Mix leadP/leadJet/subJet directions between events using (proxy pt, Zvtx, centrality) bins -- three independent mixings, one per proxy"};
+    Configurable<int> mixedEventWindowSize{"mixedEventWindowSize", 20, "Number of neighbours for doMixedEventProxies: how many similar collisions stay eligible as mixing partners at once."}; // Should not be much higher than 30 for pp jets
     Configurable<int32_t> mixingIdxGapSize{"mixingIdxGapSize", 0, "Reject a mixing partner with collision index within +/- mixingIdxGapSize rows of the current collision. 0 disables the cut."}; // Continuous-readout cannibalization test.
     Configurable<bool> gatePtOnArtificialProxies{"gatePtOnArtificialProxies", false, "Apply the minimum-pT selection to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet) after their pT is recomputed."}; //  Off by default, but the Pt cut's biasing can be measured on demand. Borrowed physical proxies always pass it by construction.
     Configurable<bool> gateEtaOnArtificialProxies{"gateEtaOnArtificialProxies", true, "Apply an |eta| acceptance cut to artificial proxies (PerpToJet/DirectionSmudge/RandJet/DatalikeJet)"}; // forceRandJet samples the full 4pi, so without this it produces proxies far outside acceptance.
@@ -179,6 +191,16 @@ struct lambdajetpolarizationionsderived {
   } fakePolSwitches;
 
   Configurable<float> jetR{"jetR", 0.4f, "Radius of the jet"}; // Provide manually, please. Also used for forceJetDirectionSmudge
+
+  struct : ConfigurableGroup { // Additional post-processing cuts after derived data was written. Event-level
+    std::string prefix = "eventSelections";
+    Configurable<float> maxZVtxPosition{"maxZVtxPosition", 5., "Max. Z vtx position [cm]"};
+    Configurable<float> minCentralityCut{"minCentralityCut", 0.f, "Min. collision centrality (%)"};
+    Configurable<float> maxCentralityCut{"maxCentralityCut", 100.f, "Max. collision centrality (%)"};
+
+    // IR selection (TODO):
+    // 
+  } eventSelections;
 
   struct : ConfigurableGroup {
     std::string prefix = "analysisLevelCuts"; // JSON group name
@@ -220,7 +242,7 @@ struct lambdajetpolarizationionsderived {
     // (the minimum pT defines a valid proxy, so it is applied regardless of doAnalysisLevelCutsJets)
     Configurable<float> minLeadJetPt{"minLeadJetPt", 10.0f, "Minimum Pt for leading jet to be considered valid (may be more restrictive than TableProducer)"};
     Configurable<float> minSubJetPt{"minSubJetPt", 8.0f, "Minimum Pt for subleading jet to be considered valid (may be more restrictive than TableProducer)"};
-    Configurable<float> minLeadPPt{"minLeadPPt", 4.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
+    Configurable<float> minLeadPPt{"minLeadPPt", 2.0f, "Minimum Pt for a lead track to be considered a valid proxy for a jet (may be more restrictive than TableProducer)"};
     Configurable<float> maxLeadJetEta{"maxLeadJetEta", 0.5f, "|eta| ceiling for the leading jet. Default is the FastJet output's (0.9 - R for R = 0.4)."};
     Configurable<float> maxSubJetEta{"maxSubJetEta", 0.5f, "|eta| ceiling for the subleading jet. Default is the FastJet output's (0.9 - R for R = 0.4)."};
     Configurable<float> maxLeadPEta{"maxLeadPEta", 0.9f, "|eta| ceiling for the leading particle. Same default as the table producer."};
@@ -391,7 +413,7 @@ struct lambdajetpolarizationionsderived {
 
   /// \brief Kinematics of one jet proxy (leadP, leadJet or subJet). The same struct wherever a proxy is stored.
   /// \note  -999.f marks a value that was never filled (ALICE convention): e.g., pt = -999 for a leading particle
-  ///        without a table entry in this collision.
+  ///        without a table entry in this collision. Caution! Events with no table entry will fill the negative bin of eta-split histograms.
   struct ProxyKinematics {
     bool isValid = false; //! passed the proxy's minimum pT. Re-evaluated by applyProxyDistortion
     float pt = -999.f;
@@ -460,6 +482,15 @@ struct lambdajetpolarizationionsderived {
     float nz = 0.;
   };
 
+  /// \brief Measures of ring overlap for one Lambda measured around two reference directions. 
+  ///        zeta is the angle from a \hat n_A to \hat n_B, right-handed about p_Lambda.
+  /// \note  We define \hat n = \hat t \times \vec p_Lambda/||n||
+  struct RingOverlap {
+    double cosZeta = 0.;
+    double sinZeta = 0.;
+    bool isDegenerate = false; //! A useful QA: A Lambda collinear with either reference direction would make n_hat undefined, so the TProfiles should not be filled
+  };
+
   // Declaring the tracker here, so its accumulators are allocated only once (reset per collision):
   EventDeltaTracker deltaTracker;
 
@@ -479,6 +510,7 @@ struct lambdajetpolarizationionsderived {
   // QA guards, set once in init and shared by the bookings and the fills:
   bool doMixingQA = false;         // doMixedEventProxies && doEventMixingQA
   bool doResamplingPassQA = false; // Bool for nProxyResamples > 1
+  bool hasCollisionLevelRef = false; // ringRefDirection != kJetProxy: one ring reference per collision, shared by every proxy
 
   // CheapSigExtract mass-region edges, based on the NSigma configurables, and calculated with a small helper:
   std::array<double, 6> massRegionEdges{};
@@ -510,6 +542,15 @@ struct lambdajetpolarizationionsderived {
     const int nDistortionsOn = static_cast<int>(fakePolSwitches.forcePerpToJet) + static_cast<int>(fakePolSwitches.forceJetDirectionSmudge) +
                                static_cast<int>(fakePolSwitches.forceRandJet) + static_cast<int>(fakePolSwitches.forcePreviousJet) +
                                static_cast<int>(fakePolSwitches.forceDatalikeJet) + static_cast<int>(fakePolSwitches.doMixedEventProxies);
+    
+    hasCollisionLevelRef = ringDefSwitches.ringRefDirection != kJetProxy; // i.e., event plane or fixed direction as ring reference
+    if (hasCollisionLevelRef && nDistortionsOn > 0)
+      LOG(fatal) << "fakePolSwitches: " << nDistortionsOn << " proxy distortions enabled with a collision-level ring reference (ringRefDirection = " << ringDefSwitches.ringRefDirection << "). This is currently unsupported behavior.";
+    if (fakePolSwitches.nProxyResamples > 1 && nDistortionsOn == 0) // Deterministic references (plain jet behavior, event plane, kFixedX) would refill the same values in every pass
+      LOG(fatal) << "fakePolSwitches: nProxyResamples > 1 without a variable proxy distortion recounts every V0.";
+    if (ringDefSwitches.useNoJetEventsOnly && !hasCollisionLevelRef) // Events without a proxy have no jet direction to build the ring around
+      LOG(fatal) << "ringDefSwitches.useNoJetEventsOnly needs a collision-level ring reference (ringRefDirection != kJetProxy).";
+
     if (nDistortionsOn > 1) // applyProxyDistortion() is an if/else chain, so extra switches are silently ignored
       LOG(fatal) << "fakePolSwitches: " << nDistortionsOn << " proxy distortions enabled at once. They are mutually exclusive -- applyProxyDistortion() would apply only the first and silently drop the rest.";
     if (fakePolSwitches.nProxyResamples > 1 && fakePolSwitches.forcePreviousJet)
@@ -521,8 +562,8 @@ struct lambdajetpolarizationionsderived {
       LOG(fatal) << "excludeOutOfPeakQA and excludeInPeakQA are complementary: enabling both rejects every V0.";
     if (!analyseLambda && !analyseAntiLambda)
       LOG(fatal) << "analyseLambda and analyseAntiLambda are both false: no V0 would ever be analysed.";
-    if (std::abs((SidebandOuterNSigma - SidebandInnerNSigma) - PeakWindowNSigma) >= 1e-9)
-      LOG(fatal) << "Sideband and peak windows must have the same width for the histograms here.";
+    // if (std::abs((SidebandOuterNSigma - SidebandInnerNSigma) - PeakWindowNSigma) >= 1e-9)
+    //   LOG(fatal) << "Sideband and peak windows must have the same width for the histograms here.";
 
     // CheapSigExtract mass regions (left sideband, left gap, peak, right gap, right sideband), with the NSigma configurables as the single source of truth:
     massRegionEdges = {LambdaMass - SidebandOuterNSigma * LambdaMassSigma, LambdaMass - SidebandInnerNSigma * LambdaMassSigma,
@@ -535,11 +576,11 @@ struct lambdajetpolarizationionsderived {
     // The same edges as a five-bin axis (masses outside the sidebands go to the under/overflow):
     const AxisSpec axisMassRegions{std::vector<double>(massRegionEdges.begin(), massRegionEdges.end())};
 
-    if (useRingZ && useRingZT) {
-      LOG(fatal) << "useRingZ and useRingZT are mutually exclusive ring definitions: enable at most one.";
+    if (ringDefSwitches.useRingZ && ringDefSwitches.useRingZT) {
+      LOG(fatal) << "ringDefSwitches.useRingZ and ringDefSwitches.useRingZT are mutually exclusive ring definitions: enable at most one.";
     }
-    longitudinalRingMode = useRingZ || useRingZT;
-    transverseBeamAxisMode = useRingZT;
+    longitudinalRingMode = ringDefSwitches.useRingZ || ringDefSwitches.useRingZT;
+    transverseBeamAxisMode = ringDefSwitches.useRingZT;
     // Calculating the QA guards we've defined before init():
     doMixingQA = fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA;
     doResamplingPassQA = fakePolSwitches.nProxyResamples > 1;
@@ -631,6 +672,9 @@ struct lambdajetpolarizationionsderived {
     histosRing.add("Ring/LeadP/EtaDependence/pRingObservableEtaLambda", "<#it{R}> vs #eta_{#Lambda} (LeadP);#eta_{#Lambda};<#it{R}>", kTProfile, {axisConfigurations.axisV0EtaCoarse});
     histosRing.add("Ring/LeadP/EtaDependence/pRingObservableProxyEta", "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEtaCoarse});
     histosRing.add("Ring/LeadP/EtaDependence/pRingObservableProxyEtaHighEtaRes", "<#it{R}> vs #eta_{LeadP};#eta_{LeadP};<#it{R}>", kTProfile, {axisConfigurations.axisEta});
+    // The same, split by the CheapSigExtract mass regions (bin 1 sideband, bin 2 peak):
+    histosRing.add("Ring/LeadJet/EtaDependence/p2dRingObservableProxyEtaHighEtaResVsMassRegion", "<#it{R}> vs #eta_{Jet} vs mass region;#eta_{Jet};mass region (1 sideband, 2 peak);<#it{R}>", kTProfile2D, {axisConfigurations.axisEta, {2, 0., 2.}});
+    histosRing.add("Ring/LeadP/EtaDependence/p2dRingObservableProxyEtaHighEtaResVsMassRegion", "<#it{R}> vs #eta_{LeadP} vs mass region;#eta_{LeadP};mass region (1 sideband, 2 peak);<#it{R}>", kTProfile2D, {axisConfigurations.axisEta, {2, 0., 2.}});
     // TProfile2D: <R> vs Eta Lambda vs Eta Jet (Understanding eta dependence seen in pRingEtaCuts)
     histosRing.add("Ring/LeadJet/EtaDependence/hCounterEtaLambdaMinusProxyEta", "N_{V0s} vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet}; N_{V0s}", kTH1D, {axisConfigurations.axisDeltaEtaCoarse});
     histosRing.add("Ring/LeadJet/EtaDependence/pRingObservableEtaLambdaMinusProxyEta", "<#it{R}> vs #eta_{#Lambda} - #eta_{Jet};#eta_{#Lambda} - #eta_{Jet};<#it{R}>", kTProfile, {axisConfigurations.axisDeltaEtaCoarse});
@@ -1202,6 +1246,10 @@ struct lambdajetpolarizationionsderived {
       histos.add("FakePolDrivers/PhiAEE/LeadJet/p3dRingObservableVsPhiAEEVsProxyEtaVsMass", "<#it{R}>_{LeadJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs #eta_{Proxy};#phi_{#Lambda-like}-#phi_{p-like}^{*}; #eta_{Proxy}; m_{p#pi};<#it{R}>", kTProfile3D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
       histos.add("FakePolDrivers/PhiAEE/LeadP/p3dRingObservableVsPhiAEEVsProxyEtaVsMass", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs #eta_{Proxy};#phi_{#Lambda-like}-#phi_{p-like}^{*}; #eta_{Proxy}; m_{p#pi};<#it{R}>", kTProfile3D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
       histos.add("FakePolDrivers/PhiAEE/SubJet/p3dRingObservableVsPhiAEEVsProxyEtaVsMass", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs #eta_{Proxy};#phi_{#Lambda-like}-#phi_{p-like}^{*}; #eta_{Proxy}; m_{p#pi};<#it{R}>", kTProfile3D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisEtaSigExtract, axisConfigurations.axisLambdaMassSigExtract});
+      // p2dRingObservableVsPhiAEEVsProxyEta, split in CheapSigExtract mass regions (bin 1 sideband, bin 2 peak):
+      histos.add("FakePolDrivers/PhiAEE/LeadJet/p3dRingObservableVsPhiAEEVsProxyEtaVsMassRegion", "<#it{R}>_{LeadJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs #eta_{Proxy} vs mass region;#phi_{#Lambda-like}-#phi_{p-like}^{*}; #eta_{Proxy};mass region (1 sideband, 2 peak);<#it{R}>", kTProfile3D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisEta, {2, 0., 2.}});
+      histos.add("FakePolDrivers/PhiAEE/LeadP/p3dRingObservableVsPhiAEEVsProxyEtaVsMassRegion", "<#it{R}>_{LeadP} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs #eta_{Proxy} vs mass region;#phi_{#Lambda-like}-#phi_{p-like}^{*}; #eta_{Proxy};mass region (1 sideband, 2 peak);<#it{R}>", kTProfile3D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisEta, {2, 0., 2.}});
+      histos.add("FakePolDrivers/PhiAEE/SubJet/p3dRingObservableVsPhiAEEVsProxyEtaVsMassRegion", "<#it{R}>_{SubJet} vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs #eta_{Proxy} vs mass region;#phi_{#Lambda-like}-#phi_{p-like}^{*}; #eta_{Proxy};mass region (1 sideband, 2 peak);<#it{R}>", kTProfile3D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisEta, {2, 0., 2.}});
 
       // The same profiles collapsed onto the five mass regions:
       // (high statistics for a simpler lookup)
@@ -1364,7 +1412,7 @@ struct lambdajetpolarizationionsderived {
     histos.add("IntegratedCuts/LeadJet/h2dPairedNV0sVsCentrality", "h2dPairedNV0sVsCentrality; N_{#Lambda}+N_{#bar{#Lambda}};Centrality (%)", kTH2D, {{20, 0, 20}, axisConfigurations.axisCentrality}); // One entry per collision with a valid leading jet
 
     // R_z-only diagnostics -- Compares the 3D ring, the projected ring and other useful diagnostics:
-    if (useRingZ || useRingZT) {
+    if (ringDefSwitches.useRingZ || ringDefSwitches.useRingZT) {
       // The longitudinal ring in the titles: R_z, or R_z^T for useRingZT (the helicity-term titles name both on purpose):
       const std::string ringZSymbol = transverseBeamAxisMode ? "#it{R}_{z}^{T}" : "#it{R}_{z}";
       histos.add("RzDiagnostics/LeadJet/pRingVsChi", ("<" + ringZSymbol + "> vs #chi (LeadJet) (#hat{n} = cos(#chi)#hat{#phi} + sin(#chi)#hat{#theta});#chi_{LeadJet};<" + ringZSymbol + ">").c_str(), kTProfile, {axisConfigurations.axisDeltaPhi}); // chi is the angle such that n_hat = cos(chi) phi_hat + sin(chi) theta_hat.
@@ -1441,6 +1489,49 @@ struct lambdajetpolarizationionsderived {
     // doMixedEventProxies QA: gauge the size of the "too few collisions per bin" problem (see resonanceMergeDF.cxx)
     // Booked per proxy, since the three mixings are independent and can succeed/fail at different rates.
     if (doMixingQA) {
+      // Based on a phenomenology result for the polarization field, we estimate how much true vortex polarization persists in mixed events:
+      // "RingOverlap/": how much of the true ring can leak into the mixed ring, per V0 (<n_ownEvent \cdot n_MixedEv> is a direct measure of this)
+      // ("own" is the target's proxy and "mix" the borrowed one, i.e. the source in the other EventMixingQA/ objects).
+      // Under the ansatz \vec P_pheno = A(xi) n_own + B(xi) m_own, the mixed ring carries A <cos zeta> + B <sin zeta> of the true signal
+      // Ring overlap -- LeadP:
+      histos.add("EventMixingQA/RingOverlap/LeadP/pCosZetaIntegrated", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> (LeadP); ;<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {{1, -0.5f, 0.5f}});
+      histos.add("EventMixingQA/RingOverlap/LeadP/pCosZetaVsProxyPt", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs ProxyPt (LeadP);#it{p}_{T}^{LeadP} (GeV/c);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/RingOverlap/LeadP/pCosZetaVsCentrality", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs Centrality (LeadP);Centrality (%);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/RingOverlap/LeadP/pCosZetaVsPVz", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs PVz (LeadP);PVz (cm);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+      // Sine components:
+      histos.add("EventMixingQA/RingOverlap/LeadP/pSinZetaIntegrated", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> (LeadP); ;<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {{1, -0.5f, 0.5f}});
+      histos.add("EventMixingQA/RingOverlap/LeadP/pSinZetaVsProxyPt", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs ProxyPt (LeadP);#it{p}_{T}^{LeadP} (GeV/c);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/RingOverlap/LeadP/pSinZetaVsCentrality", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs Centrality (LeadP);Centrality (%);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/RingOverlap/LeadP/pSinZetaVsPVz", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs PVz (LeadP);PVz (cm);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+
+      // Ring overlap -- LeadJet:
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pCosZetaIntegrated", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> (LeadJet); ;<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {{1, -0.5f, 0.5f}});
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pCosZetaVsProxyPt", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs ProxyPt (LeadJet);#it{p}_{T}^{LeadJet} (GeV/c);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pCosZetaVsCentrality", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs Centrality (LeadJet);Centrality (%);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pCosZetaVsPVz", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs PVz (LeadJet);PVz (cm);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+      // Sine components:
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pSinZetaIntegrated", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> (LeadJet); ;<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {{1, -0.5f, 0.5f}});
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pSinZetaVsProxyPt", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs ProxyPt (LeadJet);#it{p}_{T}^{LeadJet} (GeV/c);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pSinZetaVsCentrality", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs Centrality (LeadJet);Centrality (%);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/RingOverlap/LeadJet/pSinZetaVsPVz", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs PVz (LeadJet);PVz (cm);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+
+      // Ring overlap -- SubJet:
+      histos.add("EventMixingQA/RingOverlap/SubJet/pCosZetaIntegrated", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> (SubJet); ;<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {{1, -0.5f, 0.5f}});
+      histos.add("EventMixingQA/RingOverlap/SubJet/pCosZetaVsProxyPt", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs ProxyPt (SubJet);#it{p}_{T}^{SubJet} (GeV/c);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/RingOverlap/SubJet/pCosZetaVsCentrality", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs Centrality (SubJet);Centrality (%);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/RingOverlap/SubJet/pCosZetaVsPVz", "<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}> vs PVz (SubJet);PVz (cm);<cos#zeta> = <#hat{n}_{own} #upoint #hat{n}_{mix}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+      // Sine components:
+      histos.add("EventMixingQA/RingOverlap/SubJet/pSinZetaIntegrated", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> (SubJet); ;<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {{1, -0.5f, 0.5f}});
+      histos.add("EventMixingQA/RingOverlap/SubJet/pSinZetaVsProxyPt", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs ProxyPt (SubJet);#it{p}_{T}^{SubJet} (GeV/c);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisJetPt});
+      histos.add("EventMixingQA/RingOverlap/SubJet/pSinZetaVsCentrality", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs Centrality (SubJet);Centrality (%);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisCentrality});
+      histos.add("EventMixingQA/RingOverlap/SubJet/pSinZetaVsPVz", "<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}> vs PVz (SubJet);PVz (cm);<sin#zeta> = <(#hat{n}_{own} #times #hat{n}_{mix}) #upoint #hat{p}_{#Lambda}>", kTProfile, {axisConfigurations.axisPVzCoarse});
+
+      // Counter for the V0s skipped in RingOverlap/ because the overlap is undefined (Lambda collinear with its own jet or the mixed event's):
+      histos.add("EventMixingQA/RingOverlap/hDegenerateOverlapsCounter", "hDegenerateOverlapsCounter; ;Skipped V0s", kTH1D, {{3, 0, 3}});
+      histos.get<TH1>(HIST("EventMixingQA/RingOverlap/hDegenerateOverlapsCounter"))->GetXaxis()->SetBinLabel(1, "LeadJet"); // One bin per proxy
+      histos.get<TH1>(HIST("EventMixingQA/RingOverlap/hDegenerateOverlapsCounter"))->GetXaxis()->SetBinLabel(2, "LeadP");
+      histos.get<TH1>(HIST("EventMixingQA/RingOverlap/hDegenerateOverlapsCounter"))->GetXaxis()->SetBinLabel(3, "SubJet");
+
       // These histograms are filled in the collision loop, so we are QAing only the collisions with V0s
       histos.add("EventMixingQA/CollLoopOutcome/LeadP/hMixedEventOutcome", "hMixedEventOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
       histos.add("EventMixingQA/CollLoopOutcome/LeadJet/hMixedEventOutcome", "hMixedEventOutcome;Outcome (0=skipped, 1=found);Counts", kTH1D, {{2, -0.5f, 1.5f}});
@@ -1913,6 +2004,21 @@ struct lambdajetpolarizationionsderived {
     return ringCache;
   }
 
+  /// \brief Overlap of the n_hat directions (\hat n = \hat t \times \vec p_Lambda/||n||) that circulate around jets, for the same Lambda, but using different \hat t
+  ///        reference directions (e.g., FastJet jet, and a mixed-event jet). zeta is the angle from n_A to n_B, right-handed about p_Lambda.
+  /// \note  We use the Binet-Cauchy formula to reduce n_A \cdot n_B to a simpler formulation, getting both sin(zeta) and cos(zeta) without building n_A and n_B explicitly:
+  ///        cos(zeta) = [t_A . t_B - (t_A . p_hat)(t_B . p_hat)] / (sin_A sin_B), sin(zeta) = t_A . (t_B x p_hat) / (sin_A sin_B).
+  RingOverlap computeRingOverlap(const XYZVector& unitVecA, const XYZVector& unitVecB, const XYZVector& lambdaUnitVec)
+  {
+    // |t x p_hat| = sin(theta_tp), can round to <= 0 for t close to p_hat, and an unguarded NaN ruins the TProfiles filled downstream
+    const double sinProduct = unitVecA.Cross(lambdaUnitVec).R() * unitVecB.Cross(lambdaUnitVec).R();
+    if (sinProduct < 1e-12) // A stability margin for checking colinearity 
+      return RingOverlap{0., 0., true};
+    const double cosThetaA = unitVecA.Dot(lambdaUnitVec);
+    const double cosThetaB = unitVecB.Dot(lambdaUnitVec);
+    return RingOverlap{(unitVecA.Dot(unitVecB) - cosThetaA * cosThetaB) / sinProduct, unitVecA.Dot(unitVecB.Cross(lambdaUnitVec)) / sinProduct, false};
+  }
+
   /// \brief Uniform random pick of nProxyResamples DISTINCT sources among each target's candidate window, via reservoir sampling
   ///        (Uses Algorithm R with nProxyResamples slots, without replacement, as a repeated source adds no new jet direction and would only shrink the error bars artificially)
   ///        (cannibalization of proxies by neighbouring collisions in Continuous Readout is not a worry as ITS hits are being demanded)
@@ -2065,7 +2171,7 @@ struct lambdajetpolarizationionsderived {
   }
 
   // Defining filters for events:
-  Filter zvtxFilter = (nabs(o2::aod::lambdajetpol::zvtx) < maxZVtxPosition);
+  Filter zvtxFilter = (nabs(o2::aod::lambdajetpol::zvtx) < eventSelections.maxZVtxPosition);
 
   // Preslices for correct collisions association:
   // (tested custom grouping and performs worse here)
@@ -2131,6 +2237,9 @@ struct lambdajetpolarizationionsderived {
 
       // Cached here so the pooling below never needs a collision iterator:
       mixingAxesByCollision[slot] = {collision.zvtx(), getCentrality(collision)};
+      // Checking centrality limits at cache building time:
+      if (mixingAxesByCollision[slot].centrality > eventSelections.maxCentralityCut || mixingAxesByCollision[slot].centrality < eventSelections.minCentralityCut) // Checks the most used cut first
+        continue;
 
       // std::optional avoids undefined behaviour from a default-constructed iterator:
       std::optional<o2::aod::RingJets::iterator> leadJetRow;
@@ -2149,19 +2258,22 @@ struct lambdajetpolarizationionsderived {
           subJetRow = jet;
         }
       }
-      // Finer control on jet momentum, further than TableProducer pre-selection:
-      leadJet.isValid = leadJet.pt > analysisLevelCutsJets.minLeadJetPt;
-      subJet.isValid = subJet.pt > analysisLevelCutsJets.minSubJetPt;
-      if (leadJet.isValid) {
+      // Kinematics are kept for any jet in the collision, even when below minPt threshold
+      // (useNoJetEventsOnly may use these soft jets in kJetProxy mode)
+      if (leadJetRow) {
         leadJet.eta = leadJetRow->jetEta();
         leadJet.phi = leadJetRow->jetPhi();
-        leadJet.isValid = isProxyAccepted(leadJet.eta, analysisLevelCutsJets.maxLeadJetEta); // Jet acceptance (analysisLevelCutsJets)
       }
-      if (subJet.isValid) {
+      if (subJetRow) {
         subJet.eta = subJetRow->jetEta();
         subJet.phi = subJetRow->jetPhi();
-        subJet.isValid = isProxyAccepted(subJet.eta, analysisLevelCutsJets.maxSubJetEta);
       }
+      // Finer control on jet momentum, further than TableProducer pre-selection, plus the jet acceptance (analysisLevelCutsJets):
+      leadJet.isValid = leadJet.pt > analysisLevelCutsJets.minLeadJetPt && isProxyAccepted(leadJet.eta, analysisLevelCutsJets.maxLeadJetEta);
+      subJet.isValid = subJet.pt > analysisLevelCutsJets.minSubJetPt && isProxyAccepted(subJet.eta, analysisLevelCutsJets.maxSubJetEta);
+      // (TODO: move minPt checks into the isProxyAccepted function)
+      
+      // Saving proxies in vectors:
       leadJetByCollision.proxyKinematicsVec[slot] = leadJet;
       subJetByCollision.proxyKinematicsVec[slot] = subJet;
 
@@ -2236,8 +2348,11 @@ struct lambdajetpolarizationionsderived {
         const float collisionPVz = collision.zvtx();
 
         const auto collId = collision.globalIndex(); // The self-index accessor
-        const size_t collSlot = slotOf(collId);       // This collision's slot in the per-collision caches
-        const float centrality = getCentrality(collision);
+        const size_t collSlot = slotOf(collId);      // This collision's slot in the per-collision caches
+        const float centrality = mixingAxesByCollision[collSlot].centrality;
+        // Checking centrality limits:
+        if (centrality > eventSelections.maxCentralityCut || centrality < eventSelections.minCentralityCut) // Checks the most used cut first
+          continue;
 
         // Used this dummy for backwards compatibility, under the reasonable assumption that the field points always in the same *direction* in the used runs
         // (it is not worth it to fetch and store the magnetic field in the datamodel)
@@ -2387,12 +2502,18 @@ struct lambdajetpolarizationionsderived {
         // (Local copy, as applyProxyDistortion may change it for this collision only)
         ProxyKinematics leadP = leadPByCollision.proxyKinematicsVec[collSlot];
 
+        // useNoJetEventsOnly: preserve only the events *without* a leading particle above minLeadPPt:
+        if (ringDefSwitches.useNoJetEventsOnly)
+          leadP.isValid = !(leadP.pt > analysisLevelCutsJets.minLeadPPt); // By changing the definition of isValid, we get a proxy-specific filter for the collision.
+                                                                          // Useful for kFixedX checks where we would want to see a "no jets" event using different proxies as conditions for the existence of a physical jet
+
         // Snapshot this collision's own leading particle before any distortion can overwrite it,
         // so forcePreviousJet can hand it to the next collision:
         const ProxyKinematics beforeDistLeadP = leadP;
 
         // Build leading particle unit vector, outside the V0 loop for performance.
         XYZVector leadPUnitVec(1., 0., 0.); // dummy (overwritten below when leadP.isValid)
+        XYZVector ownLeadPUnitVec(1., 0., 0.); // doMixingQA only: the target's own direction, before applyProxyDistortion swaps in the borrowed one
         float leadPZ = 0.;                  // \hat t_z of the leading-particle proxy actually used (see axisLeadPZ)
         if (leadP.isValid) {
           // Rebuild the direction from the cached eta/phi, as for the jets and the borrowed proxies (cheaper than going through px/py/pz and normalizing with .Unit()):
@@ -2405,8 +2526,10 @@ struct lambdajetpolarizationionsderived {
           if (fakePolSwitches.doMixedEventProxies) {
             const MixedProxyInfo mixedLeadPInfo = borrowMixedProxy(ProxyTypeTag<kLeadP>, leadP, leadPByCollision);
             proxyCache.leadP = mixedLeadPInfo.proxy;
-            if (doMixingQA)
+            if (doMixingQA) {
               fillMixingOutcomeQA(ProxyTypeTag<kLeadP>, leadP, mixedLeadPInfo, leadPByCollision);
+              ownLeadPUnitVec = leadPUnitVec; // Saving the state of the XYZvec before distortion overwrites it with the mixed event value
+            }
           }
 
           // Apply distortion logic:
@@ -2426,12 +2549,19 @@ struct lambdajetpolarizationionsderived {
         ProxyKinematics leadJet = leadJetByCollision.proxyKinematicsVec[collSlot];
         ProxyKinematics subJet = subJetByCollision.proxyKinematicsVec[collSlot];
 
+        // useNoJetEventsOnly selection of events without jets, now with respect to leading and subleading FastJet jets:
+        if (ringDefSwitches.useNoJetEventsOnly) {
+          leadJet.isValid = !(leadJet.pt > analysisLevelCutsJets.minLeadJetPt);
+          subJet.isValid = !(subJet.pt > analysisLevelCutsJets.minSubJetPt); // Probably not the most informative, as physics-wise the meaningful cut is in the lead jet, but kept as a cross-check. Useful for kFixedX, but not for kJetProxy
+        }
+
         // Build jet vectors (only when the corresponding jet exists):
         // Dummy initialisations are safe: all jet-dependent fills are gated on leadJet.isValid / subJet.isValid.
         // Useful scalars for PrimeJet coordinates:
         float leadJetZ = 0.;
         float inverseJetTransverse = 0.;
         XYZVector leadJetUnitVec(1., 0., 0.); // dummy (overwritten below)
+        XYZVector ownLeadJetUnitVec(1., 0., 0.); // doMixingQA only: the target's own direction, before applyProxyDistortion swaps in the borrowed one
         if (leadJet.isValid) {
           // Rebuild the direction from the cached eta/phi (cheaper than calling jetPx() internal getters and then normalizing with .Unit()):
           const double inverseCoshEta = 1.0 / std::cosh(leadJet.eta);
@@ -2442,8 +2572,10 @@ struct lambdajetpolarizationionsderived {
             // Get this collision's leading-jet mixing partner (if any) from the LUT built above:
             const MixedProxyInfo mixedLeadJetInfo = borrowMixedProxy(ProxyTypeTag<kLeadJet>, leadJet, leadJetByCollision);
             proxyCache.leadJet = mixedLeadJetInfo.proxy;
-            if (doMixingQA)
+            if (doMixingQA) {
               fillMixingOutcomeQA(ProxyTypeTag<kLeadJet>, leadJet, mixedLeadJetInfo, leadJetByCollision);
+              ownLeadJetUnitVec = leadJetUnitVec; // Saving the state of the XYZvec before distortion overwrites it with the mixed event value
+            }
           }
           applyProxyDistortion(leadJet, leadJetUnitVec, analysisLevelCutsJets.minLeadJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.leadJet, etaLeadPDist, phiLeadPDist);
 
@@ -2462,6 +2594,7 @@ struct lambdajetpolarizationionsderived {
         }
 
         XYZVector subJetUnitVec(1., 0., 0.);
+        XYZVector ownSubJetUnitVec(1., 0., 0.); // doMixingQA only: the target's own direction, before applyProxyDistortion swaps in the borrowed one
         if (subJet.isValid) {
           const double inverseCoshEtaSub = 1.0 / std::cosh(subJet.eta);
           subJetUnitVec = XYZVector(std::cos(subJet.phi) * inverseCoshEtaSub, std::sin(subJet.phi) * inverseCoshEtaSub, std::tanh(subJet.eta));
@@ -2471,8 +2604,10 @@ struct lambdajetpolarizationionsderived {
             // Get this collision's subleading-jet mixing partner (if any) from the LUT built above:
             const MixedProxyInfo mixedSubJetInfo = borrowMixedProxy(ProxyTypeTag<kSubJet>, subJet, subJetByCollision);
             proxyCache.subJet = mixedSubJetInfo.proxy;
-            if (doMixingQA)
+            if (doMixingQA) {
               fillMixingOutcomeQA(ProxyTypeTag<kSubJet>, subJet, mixedSubJetInfo, subJetByCollision);
+              ownSubJetUnitVec = subJetUnitVec; // Saving the state of the XYZvec before distortion overwrites it with the mixed event value
+            }
           }
           applyProxyDistortion(subJet, subJetUnitVec, analysisLevelCutsJets.minSubJetPt, fakePolSwitches.maxJetProxyEta, proxyCache.subJet, etaLeadPDist, phiLeadPDist);
 
@@ -2510,6 +2645,11 @@ struct lambdajetpolarizationionsderived {
 
         // Initialize delta method accumulators (reset for new collision):
         deltaTracker.reset();
+
+        // Defining a collision-level reference direction:
+        // (for kEventPlane this is the event plane direction. For kFixedX it is simply the X axis, which is the only one implemented right now)
+        const float refPhi = 0.f;
+        const XYZVector refUnitVec(std::cos(refPhi), std::sin(refPhi), 0.);
         for (auto const& v0 : v0sInColl) {
           const bool isLambda = v0.isLambda(); // true: is a Lambda. false: is an antiLambda.
           // For now, removing the ambiguous candidates from the analysis. New datamodel does NOT save ambiguous candidates.
@@ -2724,9 +2864,20 @@ struct lambdajetpolarizationionsderived {
           // Only computed when the proxy is valid. A missing proxy keeps the ProxyRingCache defaults.
           // (each proxy needs its own minimum pT, see the isValid flags)
           ////////////////////////////////////////////
-          const ProxyRingCache ringCacheLeadP = leadP.isValid ? computeProxyRing(leadPUnitVec, leadP.phi, v0RingInputs) : ProxyRingCache{};
-          const ProxyRingCache ringCacheLeadJet = leadJet.isValid ? computeProxyRing(leadJetUnitVec, leadJet.phi, v0RingInputs) : ProxyRingCache{};
-          const ProxyRingCache ringCacheSubJet = subJet.isValid ? computeProxyRing(subJetUnitVec, subJet.phi, v0RingInputs) : ProxyRingCache{};
+          ProxyRingCache ringCacheLeadP;
+          ProxyRingCache ringCacheLeadJet;
+          ProxyRingCache ringCacheSubJet;
+          if (hasCollisionLevelRef) {
+            // A collision-level reference does not depend on the proxy, so its ring is computed once per V0 and shared:
+            const ProxyRingCache ringCacheShared = computeProxyRing(refUnitVec, refPhi, v0RingInputs);
+            ringCacheLeadP = ringCacheShared;
+            ringCacheLeadJet = ringCacheShared;
+            ringCacheSubJet = ringCacheShared;
+          } else {
+            ringCacheLeadP = leadP.isValid ? computeProxyRing(leadPUnitVec, leadP.phi, v0RingInputs) : ProxyRingCache{};
+            ringCacheLeadJet = leadJet.isValid ? computeProxyRing(leadJetUnitVec, leadJet.phi, v0RingInputs) : ProxyRingCache{};
+            ringCacheSubJet = subJet.isValid ? computeProxyRing(subJetUnitVec, subJet.phi, v0RingInputs) : ProxyRingCache{};
+          }
 
           // Leading-jet-only companions of the ring:
           float deltaEtaLeadJet = 0.;
@@ -2828,6 +2979,7 @@ struct lambdajetpolarizationionsderived {
             // Leading jet and leading particle:
             if constexpr (idxProxy == kLeadJet || idxProxy == kLeadP) {
               histosRing.fill(folderPath + HIST("/EtaDependence/pRingObservableProxyEtaHighEtaRes"), proxy.eta, ringCache.ringObservable);
+              histosRing.fill(folderPath + HIST("/EtaDependence/p2dRingObservableProxyEtaHighEtaResVsMassRegion"), proxy.eta, massRegion, ringCache.ringObservable); // massRegion = -1 (neither region) lands in the underflow
               // 2D Profiles of the ring: lab momentum planes
               histosRing.fill(folderPath + HIST("/RingMaps/p2dRingObservableVsPxPy"), v0px, v0py, ringCache.ringObservable);
               histosRing.fill(folderPath + HIST("/RingMaps/p2dRingObservableVsPzPx"), v0pz, v0px, ringCache.ringObservable);
@@ -3103,6 +3255,7 @@ struct lambdajetpolarizationionsderived {
             histos.fill(phiAeeFolderPath + HIST("/p2dRingObservableVsPhiAEEVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringCache.ringObservable);
             histos.fill(phiAeeFolderPath + HIST("/p2dRingObservableVsPhiAEEVsProxyEta"), deltaPhiLambdaProtonStar, proxy.eta, ringCache.ringObservable);
             histos.fill(phiAeeFolderPath + HIST("/p3dRingObservableVsPhiAEEVsProxyEtaVsMass"), deltaPhiLambdaProtonStar, proxy.eta, v0LambdaLikeMass, ringCache.ringObservable);
+            histos.fill(phiAeeFolderPath + HIST("/p3dRingObservableVsPhiAEEVsProxyEtaVsMassRegion"), deltaPhiLambdaProtonStar, proxy.eta, massRegion, ringCache.ringObservable); // massRegion = -1 (neither region) lands in the underflow
             if (proxyEtaPos) {
               histos.fill(phiAeeFolderPath + HIST("/p2dRingObservableVsPhiAEEVsMassPosProxyEta"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringCache.ringObservable);
               histos.fill(phiAeeFolderPath + HIST("/p2dRingObservableVsPhiAEEVsProxyEtaSign"), deltaPhiLambdaProtonStar, 0.5, ringCache.ringObservable);
@@ -3138,6 +3291,27 @@ struct lambdajetpolarizationionsderived {
             }
             histos.fill(HIST("FakePolDrivers/PhiAEE/FiveBinMass/") + HIST(ProxyNames[idxProxy]) + HIST("/p2dRingObservableVsPhiAEEVs5BinMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, ringCache.ringObservable);
           };
+
+          // EventMixingQA/RingOverlap/ of one proxy: the event's own nhat direction ("target" event) against the mixed event's direction ("source" event) for this V0.
+          // (Filled in every resampling pass, with the same weight as the mixed ring itself)
+          auto fillRingOverlapQA = [&](auto proxyTypeTag, const XYZVector& ownUnitVec, const XYZVector& mixUnitVec, float proxyPt) {
+            // Gets the enum value at compile time via decltype's ::value, so HIST() can use it (a for loop over the enum would only give it at runtime):
+            constexpr int idxProxy = decltype(proxyTypeTag)::value;
+            constexpr auto folderPath = HIST("EventMixingQA/RingOverlap/") + HIST(ProxyNames[idxProxy]);
+            const RingOverlap ringOverlap = computeRingOverlap(ownUnitVec, mixUnitVec, lambdaLikeUnit3Vec);
+            if (ringOverlap.isDegenerate) {
+              histos.fill(HIST("EventMixingQA/RingOverlap/hDegenerateOverlaps"), idxProxy + 0.5);
+              return;
+            }
+            histos.fill(folderPath + HIST("/pCosZetaIntegrated"), 0., ringOverlap.cosZeta);
+            histos.fill(folderPath + HIST("/pCosZetaVsProxyPt"), proxyPt, ringOverlap.cosZeta);
+            histos.fill(folderPath + HIST("/pCosZetaVsCentrality"), centrality, ringOverlap.cosZeta);
+            histos.fill(folderPath + HIST("/pCosZetaVsPVz"), collisionPVz, ringOverlap.cosZeta);
+            histos.fill(folderPath + HIST("/pSinZetaIntegrated"), 0., ringOverlap.sinZeta);
+            histos.fill(folderPath + HIST("/pSinZetaVsProxyPt"), proxyPt, ringOverlap.sinZeta);
+            histos.fill(folderPath + HIST("/pSinZetaVsCentrality"), centrality, ringOverlap.sinZeta);
+            histos.fill(folderPath + HIST("/pSinZetaVsPVz"), collisionPVz, ringOverlap.sinZeta);
+          };
           // end of Fill helpers for this V0
           ////////////////////
 
@@ -3153,7 +3327,7 @@ struct lambdajetpolarizationionsderived {
 
           // Fill ring histograms: (1D, lambda 2D correlations and jet 2D correlations):
           if (leadP.isValid) {
-            fillRingObservable(ProxyTypeTag<kLeadP>, leadP, leadPZ, leadPEtaPos, ringCacheLeadP);
+            fillRingObservable(ProxyTypeTag<kLeadP>, leadP, hasCollisionLevelRef ? refUnitVec.Z() : leadPZ, leadPEtaPos, ringCacheLeadP); // Passes refUnitVec.Z() as a cheap alternative in the current implementation of kFixedX
             fillIntegratedCuts(ProxyTypeTag<kLeadP>, kinematicLeadPCheck, ringCacheLeadP);
             if (doResamplingPassQA)
               histos.fill(HIST("IntegratedCuts/LeadP/pRingVsResamplingPass"), idxResampling, ringCacheLeadP.ringObservable);
@@ -3198,7 +3372,7 @@ struct lambdajetpolarizationionsderived {
           histosRing.fill(HIST("RawPolarization/PolMaps/PrimeV0/h2dCountsVsPzPt"), v0pz, v0pt);
 
           if (leadJet.isValid) {
-            fillRingObservable(ProxyTypeTag<kLeadJet>, leadJet, leadJetZ, leadJetEtaPos, ringCacheLeadJet);
+            fillRingObservable(ProxyTypeTag<kLeadJet>, leadJet, hasCollisionLevelRef ? refUnitVec.Z() : leadJetZ, leadJetEtaPos, ringCacheLeadJet); // Passes refUnitVec.Z() as a cheap alternative in the current implementation of kFixedX
             fillIntegratedCuts(ProxyTypeTag<kLeadJet>, kinematicLeadJetCheck, ringCacheLeadJet);
             if (doResamplingPassQA)
               histos.fill(HIST("IntegratedCuts/LeadJet/pRingVsResamplingPass"), idxResampling, ringCacheLeadJet.ringObservable);
@@ -3257,6 +3431,16 @@ struct lambdajetpolarizationionsderived {
             fillIntegratedCuts(ProxyTypeTag<kSubJet>, kinematicSubJetCheck, ringCacheSubJet);
             if (doResamplingPassQA)
               histos.fill(HIST("IntegratedCuts/SubJet/pRingVsResamplingPass"), idxResampling, ringCacheSubJet.ringObservable);
+          }
+
+          // Mixed-event contamination check -- How much true signal leaks into this fake-signal estimator?
+          if (doMixingQA) {
+            if (leadP.isValid)
+              fillRingOverlapQA(ProxyTypeTag<kLeadP>, ownLeadPUnitVec, leadPUnitVec, leadP.pt); // proxy.pt is the borrowed pT, which sits in the target's own mixing bin (as in KappaEff/Differential)
+            if (leadJet.isValid)
+              fillRingOverlapQA(ProxyTypeTag<kLeadJet>, ownLeadJetUnitVec, leadJetUnitVec, leadJet.pt);
+            if (subJet.isValid)
+              fillRingOverlapQA(ProxyTypeTag<kSubJet>, ownSubJetUnitVec, subJetUnitVec, subJet.pt);
           }
 
           if (qaSwitches.doFakePolDiagnosticsQA) {
