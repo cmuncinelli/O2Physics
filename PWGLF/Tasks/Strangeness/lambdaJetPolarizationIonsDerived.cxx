@@ -82,6 +82,8 @@ using ROOT::Math::XYZVector;
 // Declaring constants:
 constexpr double ProtonMass = o2::constants::physics::MassProton; // Assumes particle identification for daughter is perfect
 constexpr double LambdaMass = o2::constants::physics::MassLambda;
+constexpr double PionMass = o2::constants::physics::MassPionCharged;
+constexpr double K0ShortMass = o2::constants::physics::MassK0Short; // Used as center of the competing mass rejection window
 constexpr double LambdaWeakDecayConstant = 0.749;                 // DPG 2025 update
 constexpr double AntiLambdaWeakDecayConstant = -0.758;            // DPG 2025 update
 constexpr double PolPrefactorLambda = 3.0 / LambdaWeakDecayConstant;
@@ -159,7 +161,7 @@ struct lambdajetpolarizationionsderived {
   // (Uses a mass interval to remove or include V0s from the final AnalysisResults to take advantage of existing post-processing codes)
   Configurable<bool> excludeOutOfPeakQA{"excludeOutOfPeakQA", false, "Removes all V0s outside an approximate +/- PeakWindowNSigma*sigma window from the mass peak"}; // A naive estimator of signal
   Configurable<bool> excludeInPeakQA{"excludeInPeakQA", false, "Uses only the V0s outside an approximate +/- (SidebandInnerNSigma, SidebandOuterNSigma)*sigma window from the mass peak."}; // A naive estimator of background
-  Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 2.2f, "Size for peak window, centered in LambdaMass from the PDG."};
+  Configurable<float> PeakWindowNSigma{"PeakWindowNSigma", 2.0f, "Size for peak window, centered in LambdaMass from the PDG."};
   Configurable<float> SidebandInnerNSigma{"SidebandInnerNSigma", 4.5f, "Absolute value for lower end of sideband window."};
   Configurable<float> SidebandOuterNSigma{"SidebandOuterNSigma", 7.0f, "Absolute value for upper end of sideband window."};
 
@@ -168,6 +170,7 @@ struct lambdajetpolarizationionsderived {
     std::string prefix = "qaSwitches";                                                                                      // JSON group name
     Configurable<bool> doFakePolDiagnosticsQA{"doFakePolDiagnosticsQA", true, "Book and fill the FakePolDrivers/ folder."}; // The largest per-V0 fill cost in this task
     Configurable<bool> doEventMixingQA{"doEventMixingQA", true, "Book and fill the EventMixingQA/ folder. Requires fakePolSwitches.doMixedEventProxies."};
+    Configurable<bool> doCompetingMassQA{"doCompetingMassQA", true, "Book and fill the CompetingMassQA/ folder (K0S rejection)."};
   } qaSwitches;
 
   // QAs that purposefully "break" the analysis
@@ -215,6 +218,8 @@ struct lambdajetpolarizationionsderived {
     Configurable<float> apAlphaMax{"apAlphaMax", 0.95f, "Armenteros-Podolanski max #alpha cut."};
     Configurable<float> apQtMin{"apQtMin", 0.008f, "Armenteros-Podolanski min q_{T} cut."};
     Configurable<float> apQtMax{"apQtMax", 0.11f, "Armenteros-Podolanski max q_{T} cut."};
+    // Competing mass rejection: the AP box cannot remove a K0S inside the Lambda mass window, as that candidate lies on the Lambda arc by construction
+    Configurable<float> compMassRejectionK0Short{"compMassRejectionK0Short", 0.010f, "Competing mass rejection of K0S in GeV/c^2."}; // Same convention as compMassRejection in the TableProducer. Size of the "tag" window of CompetingMassQA/
     // TPC-related:
     Configurable<float> nSigmaTPCPrLike{"nSigmaTPCPrLike", 4.f, "TableProducer default is 5."}; // Same as tpcPidNsigmaCut from TableProducer
     Configurable<float> nSigmaTPCPiLike{"nSigmaTPCPiLike", 4.f, "TableProducer default is 5."};
@@ -312,6 +317,10 @@ struct lambdajetpolarizationionsderived {
     // AP plot axes:
     ConfigurableAxis axisAPAlpha{"axisAPAlpha", {220, -1.1f, 1.1f}, "V0 AP alpha"};
     ConfigurableAxis axisAPQt{"axisAPQt", {220, 0.0f, 0.5f}, "V0 AP alpha"};
+    // Competing mass QA:
+    ConfigurableAxis axisK0ShortMass{"axisK0ShortMass", {340, 0.27f, 0.61f}, "K^{0}_{S}-hypothesis mass in GeV/c"};
+    ConfigurableAxis axisK0ShortMassCoarse{"axisK0ShortMassCoarse", {50, 0.4476f, 0.5476f}, "K^{0}_{S}-hypothesis mass in GeV/c, around the K^{0}_{S} peak"}; // For the 3D map: wide enough for a sideband fit of the K0S peak
+    ConfigurableAxis axisTPCNSigma{"axisTPCNSigma", {120, -6.f, 6.f}, "TPC n#sigma"};
 
     // Source-vs-target comparison for event mixing QA:
     ConfigurableAxis axisMixDeltaPt{"axisMixDeltaPt", {800, -40.f, 40.f}, "#Delta p_{T} (source - target) (GeV/c)"};
@@ -507,6 +516,10 @@ struct lambdajetpolarizationionsderived {
   bool longitudinalRingMode = false;
   bool transverseBeamAxisMode = false;
 
+  // CompetingMassQA/ -- "Tagged" K0S are V0s that match a K0S hypothesis within margin:
+  // (The K0S-tagged histograms only exist in configs that do NOT apply the rejection)
+  bool fillK0ShortTaggedQA = false;
+
   // QA guards, set once in init and shared by the bookings and the fills:
   bool doMixingQA = false;         // doMixedEventProxies && doEventMixingQA
   bool doResamplingPassQA = false; // Bool for nProxyResamples > 1
@@ -581,6 +594,8 @@ struct lambdajetpolarizationionsderived {
     }
     longitudinalRingMode = ringDefSwitches.useRingZ || ringDefSwitches.useRingZT;
     transverseBeamAxisMode = ringDefSwitches.useRingZT;
+    // The tag is defined by the rejection window, so it needs a positive-sized window and a config where isV0Accepted has not already removed the tagged candidates:
+    fillK0ShortTaggedQA = qaSwitches.doCompetingMassQA && !analysisLevelCuts.doAnalysisLevelCuts && analysisLevelCuts.compMassRejectionK0Short > 0.f;
     // Calculating the QA guards we've defined before init():
     doMixingQA = fakePolSwitches.doMixedEventProxies && qaSwitches.doEventMixingQA;
     doResamplingPassQA = fakePolSwitches.nProxyResamples > 1;
@@ -965,6 +980,7 @@ struct lambdajetpolarizationionsderived {
         {"AP |#alpha| (max)", analysisLevelCuts.apAlphaMax < 1.f},
         {"AP q_{T} (min)", analysisLevelCuts.apQtMin > 0.f},
         {"AP q_{T} (max)", analysisLevelCuts.apQtMax < 999.f},
+        {"K^{0}_{S} competing mass", analysisLevelCuts.compMassRejectionK0Short > 0.f},
         {"TPC n#sigma (p-like)", analysisLevelCuts.nSigmaTPCPrLike < 999.f},
         {"TPC n#sigma (#pi-like)", analysisLevelCuts.nSigmaTPCPiLike < 999.f},
         {"DCA_{V0 daughters}", analysisLevelCuts.v0MaxDcaDau < 999.f},
@@ -992,6 +1008,37 @@ struct lambdajetpolarizationionsderived {
       }
       histos.add("SelectionFlow/h2dArmenterosInput", "h2dArmenterosInput;Armenteros #alpha;Armenteros q_{T} (GeV/c)", kTH2D, {axisConfigurations.axisAPAlpha, axisConfigurations.axisAPQt});
       histos.add("SelectionFlow/h2dArmenterosAnalysisCuts", "h2dArmenterosAnalysisCuts;Armenteros #alpha;Armenteros q_{T} (GeV/c)", kTH2D, {axisConfigurations.axisAPAlpha, axisConfigurations.axisAPQt});
+    }
+
+    // ===============================
+    // CompetingMassQA/ for K0S reconstructed under the Lambda-like hypothesis
+    // ===============================
+    // Filled once per V0 that survives this config's selection (jet-independent).
+    // The walking peak/edge in mass caused by K0S is already studied under: FakePolDrivers/PhiAEE/h2dMassVsPhiAEE
+    // and FakePolDrivers/CosHEE/ByMass/h2dCountsCosThetaHEEVsFullMass (its cos(theta)_{HEE} vs mass curve, and the hole the rejection leaves on true Lambdas).
+    if (qaSwitches.doCompetingMassQA) {
+      // The K0S band vs Lambda band:
+      // (to get the K0S share per Lambda-like mass region, and the m_{pi pi} resolution for calibrating the rejection window)
+      histos.add("CompetingMassQA/h2dMassVsMassK0Short", "m_{#Lambda-like} vs m_{K^{0}_{S}-like};m_{p#pi} (GeV/c^{2});m_{#pi#pi} (GeV/c^{2});Counts", kTH2D, {axisConfigurations.axisLambdaMass, axisConfigurations.axisK0ShortMass});
+      // Same, resolved in the AEE angle
+      // (the K0S's share should peak along cos(phi_AEE) = cos(theta)_{HEE}(m))
+      histos.add("CompetingMassQA/h3dMassVsMassK0ShortVsPhiAEE", "m_{#Lambda-like} vs m_{K^{0}_{S}-like} vs AEE angle;m_{p#pi} (GeV/c^{2});m_{#pi#pi} (GeV/c^{2});#phi_{#Lambda-like}-#phi_{p-like}^{*}", kTH3D, {axisConfigurations.axisLambdaMassSigExtract, axisConfigurations.axisK0ShortMassCoarse, axisConfigurations.axisDeltaPhiCoarse});
+      // <sin(theta*_z)> = <|p*_T|/|p*|>: the only decay-angle input of <R>(m) at fixed AEE angle:
+      // (Same axes as p2dRingObservableVsPhiAEEVsMass, to be compared bin by bin)
+      histos.add("CompetingMassQA/p2dSinThetaStarVsPhiAEEVsMass", "<sin(#theta^{*}_{z})> vs #phi_{#Lambda-like}-#phi_{p-like}^{*} Vs Mass;#phi_{#Lambda-like}-#phi_{p-like}^{*};m_{p#pi} (GeV/c^{2});<sin(#theta^{*}_{z})>", kTProfile2D, {axisConfigurations.axisDeltaPhiCoarse, axisConfigurations.axisLambdaMassSigExtract});
+      // Closure -- the daughters' stored kinematics must reproduce the stored Lambda-like mass (m_{pi pi} is built from the same columns)
+      histos.add("CompetingMassQA/hMassRecomputedMinusStored", "Recomputed - stored m_{#Lambda-like};m_{p#pi}^{recomputed} - m_{p#pi}^{stored} (GeV/c^{2});Counts", kTH1D, {{400, -0.002, 0.002}});
+      // PID dependence of the contamination
+      // (a pi+ would only pass as a proton when the TPC-PID bands merge)
+      histos.add("CompetingMassQA/h2dPrLikePVsMassK0Short", "p_{p-like} vs m_{K^{0}_{S}-like};p_{p-like} (GeV/c);m_{#pi#pi} (GeV/c^{2});Counts", kTH2D, {axisConfigurations.axisPt, axisConfigurations.axisK0ShortMass});
+      // K0S-tagged candidates (|m_{pi pi} - m_{K0S}| < compMassRejectionK0Short))
+      // (booked only where they can be filled: a config that applies the rejection has no tagged candidate left)
+      if (fillK0ShortTaggedQA) {
+        // Where "tagged" candidates sit in the AP plane:
+        histos.add("CompetingMassQA/h2dArmenterosK0ShortTagged", "h2dArmenterosK0ShortTagged;Armenteros #alpha;Armenteros q_{T} (GeV/c)", kTH2D, {axisConfigurations.axisAPAlpha, axisConfigurations.axisAPQt});
+        // By how much an nsigma cut cannot remove these candidates:
+        histos.add("CompetingMassQA/h2dPrLikePVsPrLikeTPCNSigmaK0ShortTagged", "p_{p-like} vs TPC n#sigma_{p-like}, K^{0}_{S}-tagged;p_{p-like} (GeV/c);TPC n#sigma (p-like);Counts", kTH2D, {axisConfigurations.axisPt, axisConfigurations.axisTPCNSigma});
+      }
     }
 
     // Kinematic QA histograms for diagnosing detector defficiencies (V0s and daughters here. The proxies are under KinematicsQA/<Proxy>/, booked further below):
@@ -1733,6 +1780,11 @@ struct lambdajetpolarizationionsderived {
       return false;
     v0AnalysisCutCounter.fill();
     if (v0.qtArm() > analysisLevelCuts.apQtMax)
+      return false;
+    v0AnalysisCutCounter.fill();
+
+    // Competing mass rejection of K0S (if compMassRejectionK0Short < 0, this cut does nothing):
+    if (std::abs(v0.massK0Short() - K0ShortMass) < analysisLevelCuts.compMassRejectionK0Short)
       return false;
     v0AnalysisCutCounter.fill();
  
@@ -2839,6 +2891,28 @@ struct lambdajetpolarizationionsderived {
             // AEE and HEE correlation:
             histos.fill(HIST("FakePolDrivers/CosHEEVsPhiStar/h2dFakePolCounts_CosThetaVsPhiStar"), cosFakePol, phiStar);
           } // end doFakePolDiagnosticsQA (per-V0 AEE/HEE)
+
+          // Competing mass QA fills:
+          if (qaSwitches.doCompetingMassQA) {
+            const float v0K0ShortLikeMass = v0.massK0Short();
+            histos.fill(HIST("CompetingMassQA/h2dMassVsMassK0Short"), v0LambdaLikeMass, v0K0ShortLikeMass);
+            histos.fill(HIST("CompetingMassQA/h3dMassVsMassK0ShortVsPhiAEE"), v0LambdaLikeMass, v0K0ShortLikeMass, deltaPhiLambdaProtonStar);
+            // protonStarPt is already the transverse length of the unit p*, i.e. sin(theta*_z):
+            histos.fill(HIST("CompetingMassQA/p2dSinThetaStarVsPhiAEEVsMass"), deltaPhiLambdaProtonStar, v0LambdaLikeMass, protonStarPt);
+
+            // Quick closure check:
+            PtEtaPhiMVector pionLike4Vec(pionLikePt, pionLikeEta, pionLikePhi, PionMass);
+            histos.fill(HIST("CompetingMassQA/hMassRecomputedMinusStored"), (protonLike4Vec + pionLike4Vec).M() - v0LambdaLikeMass);
+
+            const float protonLikeP = protonLikePt * std::cosh(protonLikeEta); // Lab momentum, the variable the TPC dE/dx bands are a function of
+            histos.fill(HIST("CompetingMassQA/h2dPrLikePVsMassK0Short"), protonLikeP, v0K0ShortLikeMass);
+
+            // K0S-tagged candidates, with the same window as the rejection:
+            if (fillK0ShortTaggedQA && std::abs(v0K0ShortLikeMass - K0ShortMass) < analysisLevelCuts.compMassRejectionK0Short) {
+              histos.fill(HIST("CompetingMassQA/h2dArmenterosK0ShortTagged"), v0.alpha(), v0.qtArm());
+              histos.fill(HIST("CompetingMassQA/h2dPrLikePVsPrLikeTPCNSigmaK0ShortTagged"), protonLikeP, v0.prLikeTPCNSigma());
+            }
+          } // end doCompetingMassQA
 
           // Useful kinematic bools:
           const bool lambdaEtaPos = v0eta >= 0.;

@@ -22,6 +22,7 @@
 
 #include "Common/Core/RecoDecay.h"
 
+#include <CommonConstants/PhysicsConstants.h>
 #include <Framework/ASoA.h>
 #include <Framework/AnalysisDataModel.h>
 
@@ -98,38 +99,54 @@ DECLARE_SOA_DYNAMIC_COLUMN(V0Rapidity, v0Rapidity,
 // Armenteros-Podolanski dynamic columns (based on LFStrangenessTables.h's implementation, but using cylindrical coordinates):
 DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha,
                            [](float posPt, float posEta, float posPhi, float negPt, float negEta, float negPhi) -> float {
-                             const float sinh1 = std::sinh(posEta);
-                             const float sinh2 = std::sinh(negEta);
+                             const float posSinh = std::sinh(posEta);
+                             const float negSinh = std::sinh(negEta);
                              const float cosdPhi = std::cos(posPhi - negPhi);
 
-                             const float p1_2 = posPt * posPt * (1.f + sinh1 * sinh1); // |pPos|^2
-                             const float p2_2 = negPt * negPt * (1.f + sinh2 * sinh2); // |pNeg|^2
-                             const float dp = posPt * negPt * (cosdPhi + sinh1 * sinh2); // pPos dot pNeg
+                             const float posP2 = posPt * posPt * (1.f + posSinh * posSinh); // |pPos|^2
+                             const float negP2 = negPt * negPt * (1.f + negSinh * negSinh); // |pNeg|^2
+                             const float dp = posPt * negPt * (cosdPhi + posSinh * negSinh); // pPos dot pNeg
 
-                             const float lSum = p1_2 + p2_2 + 2.f * dp; // Equals |p_V0|^2, so the 1/|p_V0| normalization cancels in the ratio
+                             const float lSum = posP2 + negP2 + 2.f * dp; // Equals |p_V0|^2, so the 1/|p_V0| normalization cancels in the ratio
                              if (!(lSum > 0.f))
                                return -999.f; // Null guard. Also catches a NaN input
-                             return (p1_2 - p2_2) / lSum;
+                             return (posP2 - negP2) / lSum;
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtArm,
                            [](float posPt, float posEta, float posPhi, float negPt, float negEta, float negPhi) -> float {
-                             const float sinh1 = std::sinh(posEta);
-                             const float sinh2 = std::sinh(negEta);
+                             const float posSinh = std::sinh(posEta);
+                             const float negSinh = std::sinh(negEta);
                              const float cosdPhi = std::cos(posPhi - negPhi);
 
-                             const float p1_2 = posPt * posPt * (1.f + sinh1 * sinh1);
-                             const float p2_2 = negPt * negPt * (1.f + sinh2 * sinh2);
-                             const float dp = posPt * negPt * (cosdPhi + sinh1 * sinh2);
+                             const float posP2 = posPt * posPt * (1.f + posSinh * posSinh);
+                             const float negP2 = negPt * negPt * (1.f + negSinh * negSinh);
+                             const float dp = posPt * negPt * (cosdPhi + posSinh * negSinh);
 
-                             const float lSum = p1_2 + p2_2 + 2.f * dp;
+                             const float lSum = posP2 + negP2 + 2.f * dp;
                              if (!(lSum > 0.f))
                                return -999.f; // Null guard
 
-                             const float lNeg = p2_2 + dp; 
-                             const float qt2 = p2_2 - (lNeg * lNeg) / lSum; 
+                             const float lNeg = negP2 + dp; 
+                             const float qt2 = negP2 - (lNeg * lNeg) / lSum; 
 
                              return qt2 > 0.f ? std::sqrt(qt2) : 0.f; // Guard for the collinear limit
+                           });
+
+// For the competing mass hypothesis (K0S --> pi+ pi-):
+DECLARE_SOA_DYNAMIC_COLUMN(MassK0Short, massK0Short,
+                           [](float posPt, float posEta, float posPhi, float negPt, float negEta, float negPhi) -> float {
+                             const float posSinh = std::sinh(posEta);
+                             const float negSinh = std::sinh(negEta);
+                             const float cosdPhi = std::cos(posPhi - negPhi);
+
+                             const float posP2 = posPt * posPt * (1.f + posSinh * posSinh); // |pPos|^2
+                             const float negP2 = negPt * negPt * (1.f + negSinh * negSinh); // |pNeg|^2
+                             const float dp = posPt * negPt * (cosdPhi + posSinh * negSinh); // pPos dot pNeg
+
+                             const float mPi2 = o2::constants::physics::MassPionCharged * o2::constants::physics::MassPionCharged;
+                             const float m2 = 2.f * (mPi2 + std::sqrt((posP2 + mPi2) * (negP2 + mPi2)) - dp); // m^2 = 2 m_pi^2 + 2 (E1 E2 - p1.p2)
+                             return m2 > 0.f ? std::sqrt(m2) : -999.f; // Null guard
                            });
 
 // Dynamic columns for jets (Px,Py,Pz):
@@ -214,7 +231,9 @@ DECLARE_SOA_TABLE(RingLaV0s, "AOD", "RINGLAV0",
                   lambdajetpol::V0Rapidity<lambdajetpol::V0Pt, lambdajetpol::V0Eta, lambdajetpol::MassV0>,
                   // Armenteros-Podolanski variables:
                   lambdajetpol::Alpha<lambdajetpol::PosPt, lambdajetpol::PosEta, lambdajetpol::PosPhi, lambdajetpol::NegPt, lambdajetpol::NegEta, lambdajetpol::NegPhi>,
-                  lambdajetpol::QtArm<lambdajetpol::PosPt, lambdajetpol::PosEta, lambdajetpol::PosPhi, lambdajetpol::NegPt, lambdajetpol::NegEta, lambdajetpol::NegPhi>
+                  lambdajetpol::QtArm<lambdajetpol::PosPt, lambdajetpol::PosEta, lambdajetpol::PosPhi, lambdajetpol::NegPt, lambdajetpol::NegEta, lambdajetpol::NegPhi>,
+                  // K0S Competing mass hypothesis:
+                  lambdajetpol::MassK0Short<lambdajetpol::PosPt, lambdajetpol::PosEta, lambdajetpol::PosPhi, lambdajetpol::NegPt, lambdajetpol::NegEta, lambdajetpol::NegPhi>
                 );
 
 using RingCollision = RingCollisions::iterator; // Useful shorthand

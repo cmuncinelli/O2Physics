@@ -230,7 +230,7 @@ struct lambdajetpolarizationions {
     Configurable<float> lambdaLifetimeCut{"lambdaLifetimeCut", 30., "lifetime cut (c*tau) for Lambda (cm)"}; // For soft Lambdas, expect V0Radius < 30 cm. For hard ones, it can be > 30 cm.
 
     // invariant mass selection
-    Configurable<float> compMassRejection{"compMassRejection", -1, "Competing mass rejection (GeV/#it{c}^{2})"}; // This was creating bumps in the pp analysis code's invariant mass. Turned off for now.
+    Configurable<float> compMassRejection{"compMassRejection", -1, "Competing mass rejection (GeV/c^2)"}; // This was creating bumps in the pp analysis code's invariant mass. Turned off for now.
 
     // Track quality
     Configurable<int> minTPCrows{"minTPCrows", 70, "minimum TPC crossed rows"};
